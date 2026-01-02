@@ -31,7 +31,10 @@ interface PromptSidebarProps extends React.ComponentProps<typeof Sidebar> {
   setInput: (value: string) => void;
   isLoading: boolean;
   isMessagesLoading?: boolean;
-  handleFormSubmit: (e: React.FormEvent<HTMLFormElement>, attachments: Attachment[]) => void;
+  handleFormSubmit: (
+    e: React.FormEvent<HTMLFormElement>,
+    attachments: Attachment[]
+  ) => void;
   messages: Message[];
   onArtifactClick?: (artifactId: string) => void;
 }
@@ -47,7 +50,7 @@ function sanitizeText(text: string): string {
 // Attachment display in messages (similar to nextjs-ai-chatbot)
 function MessageAttachment({ attachment }: { attachment: Attachment }) {
   const isImage = attachment.contentType?.startsWith("image/");
-  
+
   if (isImage && attachment.url) {
     return (
       <div className="group relative size-16 overflow-hidden rounded-lg border bg-muted">
@@ -104,7 +107,10 @@ export function PromptSidebar({
   // Auto-scroll to bottom when new messages arrive
   React.useEffect(() => {
     if (scrollRef.current) {
-      scrollRef.current.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
+      scrollRef.current.scrollTo({
+        top: scrollRef.current.scrollHeight,
+        behavior: "smooth",
+      });
     }
   }, [messages]);
 
@@ -126,10 +132,7 @@ export function PromptSidebar({
             {isMessagesLoading ? (
               <div className="flex flex-col gap-3">
                 {[44, 32, 28, 64, 52].map((item, index) => (
-                  <div
-                    key={index}
-                    className="flex gap-2 justify-start"
-                  >
+                  <div key={index} className="flex gap-2 justify-start">
                     <div className="flex-shrink-0 w-6 h-6 rounded-full bg-muted animate-pulse" />
                     <div
                       className="h-10 flex-1 rounded-2xl bg-muted animate-pulse"
@@ -153,7 +156,9 @@ export function PromptSidebar({
                 >
                   {message.role === "assistant" && (
                     <div className="flex-shrink-0 w-6 h-6 rounded-full bg-gradient-to-br from-pink-400 via-purple-400 to-pink-400 flex items-center justify-center">
-                      <span className="text-[10px] font-bold text-white">N</span>
+                      <span className="text-[10px] font-bold text-white">
+                        N
+                      </span>
                     </div>
                   )}
                   <div
@@ -178,22 +183,37 @@ export function PromptSidebar({
                     {/* Render artifact previews */}
                     {message.artifacts && message.artifacts.length > 0 && (
                       <div className="mt-3 space-y-2">
-                        {message.artifacts.map((artifact) => (
-                          <DesignPreview
-                            key={artifact.id}
-                            artifactId={artifact.id}
-                            title={artifact.title}
-                            onClick={onArtifactClick}
-                          />
-                        ))}
+                        {message.artifacts.map((artifact) => {
+                          // Show streaming skeleton for artifacts in the last assistant message while loading
+                          const isLastMessage = index === messages.length - 1;
+                          const isArtifactStreaming =
+                            isLoading &&
+                            isLastMessage &&
+                            message.role === "assistant";
+
+                          return (
+                            <DesignPreview
+                              key={artifact.id}
+                              artifactId={artifact.id}
+                              title={artifact.title}
+                              isStreaming={isArtifactStreaming}
+                              onClick={onArtifactClick}
+                            />
+                          );
+                        })}
                       </div>
                     )}
                   </div>
                   {message.role === "user" && (
                     <Avatar className="w-6 h-6 flex-shrink-0">
-                      <AvatarImage src={user?.profilePictureUrl || ""} alt={user?.firstName || "User"} />
+                      <AvatarImage
+                        src={user?.profilePictureUrl || ""}
+                        alt={user?.firstName || "User"}
+                      />
                       <AvatarFallback className="bg-gradient-to-br from-indigo-500 to-purple-500 text-[10px] text-white">
-                        {user?.firstName?.charAt(0) || user?.email?.charAt(0)?.toUpperCase() || "U"}
+                        {user?.firstName?.charAt(0) ||
+                          user?.email?.charAt(0)?.toUpperCase() ||
+                          "U"}
                       </AvatarFallback>
                     </Avatar>
                   )}
@@ -203,13 +223,24 @@ export function PromptSidebar({
             {isLoading && (
               <div className="flex gap-2 justify-start">
                 <div className="flex-shrink-0 w-6 h-6 rounded-full bg-gradient-to-br from-pink-400 via-purple-400 to-pink-400 flex items-center justify-center">
-                  <span className="text-[10px] font-bold text-white animate-pulse">N</span>
+                  <span className="text-[10px] font-bold text-white animate-pulse">
+                    N
+                  </span>
                 </div>
                 <div className="bg-muted rounded-2xl px-4 py-2">
                   <div className="flex gap-1">
-                    <span className="w-2 h-2 bg-primary/50 rounded-full animate-bounce" style={{ animationDelay: "0ms" }}></span>
-                    <span className="w-2 h-2 bg-primary/50 rounded-full animate-bounce" style={{ animationDelay: "150ms" }}></span>
-                    <span className="w-2 h-2 bg-primary/50 rounded-full animate-bounce" style={{ animationDelay: "300ms" }}></span>
+                    <span
+                      className="w-2 h-2 bg-primary/50 rounded-full animate-bounce"
+                      style={{ animationDelay: "0ms" }}
+                    ></span>
+                    <span
+                      className="w-2 h-2 bg-primary/50 rounded-full animate-bounce"
+                      style={{ animationDelay: "150ms" }}
+                    ></span>
+                    <span
+                      className="w-2 h-2 bg-primary/50 rounded-full animate-bounce"
+                      style={{ animationDelay: "300ms" }}
+                    ></span>
                   </div>
                 </div>
               </div>

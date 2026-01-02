@@ -41,6 +41,7 @@ export default defineSchema({
     ),
     design_ids: v.array(v.id("designs")),
     attachments: v.optional(v.array(attachmentSchema)), // File attachments
+    model: v.optional(v.string()), // Model used for generation (e.g., "pro")
     created_at: v.string(),
   }).index("by_project", ["project_id"]),
 

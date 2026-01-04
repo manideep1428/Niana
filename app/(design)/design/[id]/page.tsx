@@ -88,6 +88,9 @@ function DesignPageContent() {
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [toolMode, setToolMode] = useState<ToolMode>("hand");
 
+  // Pending skeleton designs (shown while AI is generating)
+  const [pendingDesigns, setPendingDesigns] = useState<Design[]>([]);
+
   // Handle tab change - auto switch to pointer mode when switching to design tab
   const handleTabChange = useCallback((tab: "chat" | "design") => {
     setActiveTab(tab);
@@ -116,7 +119,7 @@ function DesignPageContent() {
   const updateProjectTitle = useMutation(api.mutations.updateProjectTitle);
 
   // Convert Convex designs to canvas format
-  const designs: Design[] = (designsData ?? []).map((d: any) => ({
+  const dbDesigns: Design[] = (designsData ?? []).map((d: any) => ({
     _id: d._id,
     artifact_id: d.artifact_id,
     title: d.title,
@@ -125,6 +128,16 @@ function DesignPageContent() {
     x: d.x,
     y: d.y,
   }));
+
+  // Merge database designs with pending skeleton designs
+  // Filter out pending designs that now have content in dbDesigns
+  const designs: Design[] = [
+    ...dbDesigns,
+    ...pendingDesigns.filter(
+      (pending) =>
+        !dbDesigns.some((db) => db.artifact_id === pending.artifact_id)
+    ),
+  ];
 
   // Warn before unload if unsaved changes
   useEffect(() => {
@@ -574,6 +587,21 @@ function DesignPageContent() {
         { role: "user" as const, content, attachments },
       ];
 
+      // Create a temporary skeleton design ID
+      const pendingSkeletonId = `pending-${Date.now()}`;
+
+      // Add a pending skeleton design immediately
+      const skeletonDesign: Design = {
+        _id: pendingSkeletonId,
+        artifact_id: pendingSkeletonId,
+        title: "Generating...",
+        content: "", // Empty content triggers skeleton in design-node
+        status: "streaming",
+        x: undefined,
+        y: undefined,
+      };
+      setPendingDesigns((prev) => [...prev, skeletonDesign]);
+
       try {
         // Save user message to database with attachments (skip if already saved, e.g., initial message)
         if (!skipSaveUserMessage) {
@@ -632,6 +660,11 @@ function DesignPageContent() {
                     { role: "assistant", content: assistantContent, artifacts },
                   ]);
                 } else if (event.type === "tool_call") {
+                  // Remove pending skeleton since real design is arriving
+                  setPendingDesigns((prev) =>
+                    prev.filter((p) => p.artifact_id !== pendingSkeletonId)
+                  );
+
                   const designData = {
                     project_id: projectId,
                     artifact_id: event.data.id,
@@ -684,6 +717,8 @@ function DesignPageContent() {
         console.error("Chat error:", error);
       } finally {
         setIsLoading(false);
+        // Clear any remaining pending designs
+        setPendingDesigns([]);
       }
     },
     [projectId, createDesign, updateDesign, setSelectedArtifactId, saveMessage]

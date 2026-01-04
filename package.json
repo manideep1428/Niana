@@ -49,6 +49,7 @@
     "motion": "^12.23.26",
     "next": "16.0.10",
     "next-themes": "^0.4.6",
+    "nodemailer": "^7.0.12",
     "openai": "^6.13.0",
     "react": "19.2.1",
     "react-day-picker": "^9.12.0",
@@ -65,6 +66,7 @@
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
+    "@types/nodemailer": "^7.0.4",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",

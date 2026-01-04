@@ -154,8 +154,9 @@ export function DesignCanvas({
       const position = hasValidDbPosition
         ? { x: design.x as number, y: design.y as number }
         : {
-            x: (index % 3) * 450,
-            y: Math.floor(index / 3) * 750,
+            // Increased gap: 500px horizontal (375px width + 125px gap), 850px vertical
+            x: (index % 3) * 500,
+            y: Math.floor(index / 3) * 850,
           };
 
       console.log(
@@ -227,7 +228,7 @@ export function DesignCanvas({
         if (selectedNode) {
           setCenter(
             selectedNode.position.x + 187.5, // Center of 375px width
-            selectedNode.position.y + 333.5, // Center of 667px height
+            selectedNode.position.y + 406, // Center of 812px height (6.1 inch phone)
             { zoom: 0.8, duration: 500 }
           );
         }
@@ -403,7 +404,7 @@ export function DesignCanvas({
           maskColor="rgba(0, 0, 0, 0.2)"
           position="bottom-right"
           onNodeClick={(_, node) => {
-            setCenter(node.position.x + 187.5, node.position.y + 333.5, {
+            setCenter(node.position.x + 187.5, node.position.y + 406, {
               zoom: 0.8,
               duration: 500,
             });

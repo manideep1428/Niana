@@ -1,9 +1,13 @@
 import openai from "@/lib/openai";
-import { getSystemPrompt } from "@/lib/prompt";
+// TEMP: Using temp prompt that generates only 1 screen by default
+// To revert: change getTempSystemPrompt to getSystemPrompt
+import { getTempSystemPrompt, getSystemPrompt } from "@/lib/prompt";
 import { tools, CreateArtifactArgs, UpdateArtifactArgs } from "@/lib/tools";
 import { NextRequest } from "next/server";
 
-const systemPrompt = getSystemPrompt();
+// TEMP: Using temp prompt for testing (generates 1 screen by default)
+// To revert to full prompt: change to getSystemPrompt()
+const systemPrompt = getTempSystemPrompt();
 
 // Attachment type
 interface Attachment {
@@ -15,7 +19,10 @@ interface Attachment {
 
 // Message part types for multimodal content
 type TextPart = { type: "text"; text: string };
-type ImagePart = { type: "image_url"; image_url: { url: string; detail?: "auto" | "low" | "high" } };
+type ImagePart = {
+  type: "image_url";
+  image_url: { url: string; detail?: "auto" | "low" | "high" };
+};
 type ContentPart = TextPart | ImagePart;
 
 export async function GET(request: Request) {
@@ -55,8 +62,8 @@ function buildMessageContent(
     parts.push({ type: "text", text });
   }
 
-  return parts.length === 1 && parts[0].type === "text" 
-    ? (parts[0] as TextPart).text 
+  return parts.length === 1 && parts[0].type === "text"
+    ? (parts[0] as TextPart).text
     : parts;
 }
 
@@ -66,10 +73,12 @@ export async function POST(request: NextRequest) {
   // Build the messages array with history, handling attachments
   const chatMessages = [
     { role: "system" as const, content: systemPrompt },
-    ...messages.map((m: { role: string; content: string; attachments?: Attachment[] }) => ({
-      role: m.role as "user" | "assistant",
-      content: buildMessageContent(m.content, m.attachments),
-    })),
+    ...messages.map(
+      (m: { role: string; content: string; attachments?: Attachment[] }) => ({
+        role: m.role as "user" | "assistant",
+        content: buildMessageContent(m.content, m.attachments),
+      })
+    ),
   ];
 
   try {
@@ -135,7 +144,10 @@ export async function POST(request: NextRequest) {
             }
 
             // Process tool calls if tool_calls finish reason OR if we have calls and it's stopping
-            if (finishReason === "tool_calls" || (finishReason === "stop" && toolCalls.size > 0)) {
+            if (
+              finishReason === "tool_calls" ||
+              (finishReason === "stop" && toolCalls.size > 0)
+            ) {
               for (const [, toolCall] of toolCalls) {
                 try {
                   const args = JSON.parse(toolCall.arguments);

@@ -6,15 +6,15 @@ import { api } from "@/convex/_generated/api";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import TopBar from "@/components/top-bar";
-import { 
-  Smartphone, 
-  MoreHorizontal, 
-  Trash2, 
-  Pencil, 
+import {
+  Smartphone,
+  MoreHorizontal,
+  Trash2,
+  Pencil,
   Star,
   Plus,
   Loader2,
-  AlertTriangle
+  AlertTriangle,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -39,13 +39,15 @@ function formatTimeAgo(dateString: string) {
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
   const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-  
+
   if (diffDays === 0) return "Created today";
   if (diffDays === 1) return "Created yesterday";
   if (diffDays < 7) return `Created ${diffDays} days ago`;
-  if (diffDays < 30) return `Created ${Math.floor(diffDays / 7)} week${Math.floor(diffDays / 7) > 1 ? 's' : ''} ago`;
-  if (diffDays < 365) return `Created ${Math.floor(diffDays / 30)} month${Math.floor(diffDays / 30) > 1 ? 's' : ''} ago`;
-  return `Created ${Math.floor(diffDays / 365)} year${Math.floor(diffDays / 365) > 1 ? 's' : ''} ago`;
+  if (diffDays < 30)
+    return `Created ${Math.floor(diffDays / 7)} week${Math.floor(diffDays / 7) > 1 ? "s" : ""} ago`;
+  if (diffDays < 365)
+    return `Created ${Math.floor(diffDays / 30)} month${Math.floor(diffDays / 30) > 1 ? "s" : ""} ago`;
+  return `Created ${Math.floor(diffDays / 365)} year${Math.floor(diffDays / 365) > 1 ? "s" : ""} ago`;
 }
 
 export default function DashboardPage() {
@@ -54,7 +56,10 @@ export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState<"all" | "favourites">("all");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [renameDialogOpen, setRenameDialogOpen] = useState(false);
-  const [selectedProject, setSelectedProject] = useState<{ id: string; title: string } | null>(null);
+  const [selectedProject, setSelectedProject] = useState<{
+    id: string;
+    title: string;
+  } | null>(null);
   const [newTitle, setNewTitle] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
   const [isRenaming, setIsRenaming] = useState(false);
@@ -101,7 +106,10 @@ export default function DashboardPage() {
     if (!selectedProject || !newTitle.trim()) return;
     setIsRenaming(true);
     try {
-      await renameProject({ project_id: selectedProject.id, title: newTitle.trim() });
+      await renameProject({
+        project_id: selectedProject.id,
+        title: newTitle.trim(),
+      });
       toast.success("Project renamed successfully");
       setRenameDialogOpen(false);
       setSelectedProject(null);
@@ -116,7 +124,7 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-black">
       <TopBar />
-      
+
       <div className="max-w-6xl mx-auto px-6 py-8">
         {/* Header */}
         <div className="mb-6">
@@ -157,11 +165,15 @@ export default function DashboardPage() {
             <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mb-4">
               <Smartphone className="w-8 h-8 text-white/40" />
             </div>
-            <h3 className="text-lg font-medium text-white mb-2">No projects yet</h3>
-            <p className="text-white/60 mb-6">Create your first mobile design to get started</p>
+            <h3 className="text-lg font-medium text-white mb-2">
+              No projects yet
+            </h3>
+            <p className="text-white/60 mb-6">
+              Create your first mobile design to get started
+            </p>
             <Button
               onClick={() => router.push("/")}
-              className="bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600"
+              className="bg-linear-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600"
             >
               <Plus className="w-4 h-4 mr-2" />
               New Project
@@ -176,7 +188,7 @@ export default function DashboardPage() {
                 onClick={() => handleOpenProject(project.project_id)}
               >
                 <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center flex-shrink-0">
+                  <div className="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center shrink-0">
                     <Smartphone className="w-5 h-5 text-white/60" />
                   </div>
                   <div className="flex-1 min-w-0">
@@ -187,7 +199,10 @@ export default function DashboardPage() {
                       {formatTimeAgo(project.created_at)}
                     </p>
                   </div>
-                  <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                  <div
+                    className="flex items-center gap-1"
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     <button className="p-1.5 rounded-lg hover:bg-white/10 text-white/40 hover:text-white/80 transition-colors">
                       <Star className="w-4 h-4" />
                     </button>
@@ -197,16 +212,29 @@ export default function DashboardPage() {
                           <MoreHorizontal className="w-4 h-4" />
                         </button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="bg-zinc-900 border-white/10">
+                      <DropdownMenuContent
+                        align="end"
+                        className="bg-zinc-900 border-white/10"
+                      >
                         <DropdownMenuItem
-                          onClick={() => handleRenameClick({ id: project.project_id, title: project.title })}
+                          onClick={() =>
+                            handleRenameClick({
+                              id: project.project_id,
+                              title: project.title,
+                            })
+                          }
                           className="text-white/80 hover:text-white focus:text-white cursor-pointer"
                         >
                           <Pencil className="w-4 h-4 mr-2" />
                           Rename
                         </DropdownMenuItem>
                         <DropdownMenuItem
-                          onClick={() => handleDeleteClick({ id: project.project_id, title: project.title })}
+                          onClick={() =>
+                            handleDeleteClick({
+                              id: project.project_id,
+                              title: project.title,
+                            })
+                          }
                           className="text-red-400 hover:text-red-300 focus:text-red-300 cursor-pointer"
                         >
                           <Trash2 className="w-4 h-4 mr-2" />
@@ -233,9 +261,18 @@ export default function DashboardPage() {
               <DialogTitle>Delete Project</DialogTitle>
             </div>
             <DialogDescription className="text-white/60">
-              Are you sure you want to delete <span className="text-white font-medium">"{selectedProject?.title}"</span>?
-              <br /><br />
-              <span className="text-red-400">This action cannot be undone.</span> All messages and designs in this project will be permanently deleted.
+              Are you sure you want to delete{" "}
+              <span className="text-white font-medium">
+                "{selectedProject?.title}"
+              </span>
+              ?
+              <br />
+              <br />
+              <span className="text-red-400">
+                This action cannot be undone.
+              </span>{" "}
+              All messages and designs in this project will be permanently
+              deleted.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="gap-2 sm:gap-0">
@@ -293,7 +330,7 @@ export default function DashboardPage() {
             <Button
               onClick={confirmRename}
               disabled={isRenaming || !newTitle.trim()}
-              className="bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600"
+              className="bg-linear-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600"
             >
               {isRenaming ? (
                 <>

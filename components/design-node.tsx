@@ -40,7 +40,8 @@ function DesignNodeComponent({ data, selected }: DesignNodeProps) {
     isInteractive,
     onElementSelect,
   } = data;
-  const [iframeHeight, setIframeHeight] = useState(400);
+  // Default height for 6.1 inch diagonal phone (375 x 812px like iPhone 14)
+  const [iframeHeight, setIframeHeight] = useState(812);
   const [isLoaded, setIsLoaded] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -351,8 +352,8 @@ function DesignNodeComponent({ data, selected }: DesignNodeProps) {
       if (event.data?.artifactId !== artifactId) return;
 
       if (event.data?.type === "resize") {
-        // Use actual height from content, with a small minimum for very small content
-        setIframeHeight(Math.max(200, event.data.height));
+        // Use actual height from content, with minimum height for 6.1 inch phone (812px)
+        setIframeHeight(Math.max(812, event.data.height));
         setIsLoaded(true);
       } else if (event.data?.type === "elementSelected") {
         if (onElementSelect) {
@@ -399,9 +400,22 @@ function DesignNodeComponent({ data, selected }: DesignNodeProps) {
   };
 
   return (
-    <div className="bg-transparent transition-all duration-200 cursor-grab active:cursor-grabbing">
+    <div
+      className={cn(
+        "transition-all duration-200 cursor-grab active:cursor-grabbing rounded-2xl",
+        // Solid bg for skeleton, glass effect for generated design
+        showSkeleton
+          ? "bg-background border border-border shadow-lg"
+          : "bg-transparent"
+      )}
+    >
       {/* Header */}
-      <div className="flex items-center justify-between gap-2 px-3 py-2 bg-transparent/50 border-b relative">
+      <div
+        className={cn(
+          "flex items-center justify-between gap-2 px-3 py-2 border-b relative",
+          showSkeleton ? "bg-muted/50 rounded-t-2xl" : "bg-transparent/50"
+        )}
+      >
         <span className="text-2xl font-medium truncate max-w-[200px]">
           {title || "Untitled Design"}
         </span>
@@ -441,7 +455,9 @@ function DesignNodeComponent({ data, selected }: DesignNodeProps) {
       {/* Content Area */}
       <div
         className={cn(
-          "relative rounded-2xl overflow-hidden bg-transparent",
+          "relative overflow-hidden rounded-b-2xl",
+          // Solid bg for skeleton, transparent for generated
+          showSkeleton ? "bg-background" : "bg-transparent",
           selected
             ? "border-primary border-2 ring-2 ring-primary/20 shadow-xl"
             : "border-border hover:border-primary/50"
@@ -465,7 +481,7 @@ function DesignNodeComponent({ data, selected }: DesignNodeProps) {
 
         {/* Skeleton Loader - Shows only when no content */}
         {showSkeleton && (
-          <div className="absolute inset-0 z-10 bg-background/90 backdrop-blur-sm flex flex-col items-center justify-center p-6 space-y-4 min-h-[400px]">
+          <div className="absolute inset-0 z-10 bg-background flex flex-col items-center justify-center p-6 space-y-4 min-h-[812px] w-[375px]">
             <div className="w-full space-y-3">
               <Skeleton className="h-[200px] w-full rounded-lg" />
               <div className="space-y-2">

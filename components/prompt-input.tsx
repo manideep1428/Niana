@@ -298,8 +298,9 @@ export function PromptInput({
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
           className={`
-            relative bg-card rounded-3xl border-2 transition-all duration-200
-            ${isFocused ? "border-primary/60 shadow-lg shadow-primary/20 ring-2 ring-primary/10" : "border-border shadow-sm"}
+            relative rounded-3xl border-2 transition-all duration-200
+            bg-[#faf4eb] dark:bg-card
+            ${isFocused ? "border-primary/60 shadow-lg shadow-primary/20 ring-2 ring-primary/10" : "border-black/10 dark:border-border shadow-sm"}
             ${isDragging ? "border-primary/60 bg-primary/5 shadow-lg shadow-primary/10" : ""}
           `}
         >

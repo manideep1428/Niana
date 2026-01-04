@@ -28,7 +28,7 @@ import {
 } from "lucide-react";
 
 // Tool modes
-type ToolMode = "hand" | "mouse";
+export type ToolMode = "hand" | "mouse";
 import { useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 
@@ -73,6 +73,8 @@ interface DesignCanvasProps {
   canUndo?: boolean;
   canRedo?: boolean;
   isSaving?: boolean;
+  toolMode?: ToolMode;
+  onToolModeChange?: (mode: ToolMode) => void;
 }
 
 export function DesignCanvas({
@@ -87,14 +89,26 @@ export function DesignCanvas({
   canUndo,
   canRedo,
   isSaving,
+  toolMode: controlledToolMode,
+  onToolModeChange,
 }: DesignCanvasProps) {
   const { fitView, setCenter, zoomIn, zoomOut } = useReactFlow();
   const { zoom } = useViewport();
   const updateCoordinates = useMutation(api.mutations.updateDesignCoordinates);
   const deleteDesign = useMutation(api.mutations.deleteDesign);
 
-  // Tool mode state - hand enables panning, mouse will be for future functionality
-  const [toolMode, setToolMode] = useState<ToolMode>("hand");
+  // Tool mode state - can be controlled from parent or internal
+  const [internalToolMode, setInternalToolMode] = useState<ToolMode>("hand");
+
+  // Use controlled mode if provided, otherwise use internal state
+  const toolMode = controlledToolMode ?? internalToolMode;
+  const setToolMode = (mode: ToolMode) => {
+    if (onToolModeChange) {
+      onToolModeChange(mode);
+    } else {
+      setInternalToolMode(mode);
+    }
+  };
 
   // Track if selection came from canvas interaction (to skip centering)
   const isInternalSelection = useRef(false);

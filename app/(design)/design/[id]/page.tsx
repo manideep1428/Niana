@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/sidebar";
 import { useCallback, useEffect, useState, useRef } from "react";
 import { Separator } from "@radix-ui/react-separator";
-import { DesignCanvas, Design } from "@/components/design-canvas";
+import { DesignCanvas, Design, ToolMode } from "@/components/design-canvas";
 import { ReactFlowProvider } from "@xyflow/react";
 import { useParams } from "next/navigation";
 import { useQuery, useMutation } from "convex/react";
@@ -86,6 +86,15 @@ function DesignPageContent() {
   const [selectedElement, setSelectedElement] =
     useState<SelectedElement | null>(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [toolMode, setToolMode] = useState<ToolMode>("hand");
+
+  // Handle tab change - auto switch to pointer mode when switching to design tab
+  const handleTabChange = useCallback((tab: "chat" | "design") => {
+    setActiveTab(tab);
+    if (tab === "design") {
+      setToolMode("mouse");
+    }
+  }, []);
 
   // Undo/Redo History
   const [editHistory, setEditHistory] = useState<EditAction[]>([]);
@@ -113,6 +122,8 @@ function DesignPageContent() {
     title: d.title,
     content: d.content,
     status: d.status as "streaming" | "idle",
+    x: d.x,
+    y: d.y,
   }));
 
   // Warn before unload if unsaved changes
@@ -165,9 +176,9 @@ function DesignPageContent() {
     (artifactId: string, elementInfo: any) => {
       setSelectedArtifactId(artifactId);
       setSelectedElement(elementInfo);
-      setActiveTab("design");
+      handleTabChange("design");
     },
-    [setSelectedArtifactId]
+    [setSelectedArtifactId, handleTabChange]
   );
 
   // Helper to add action to history
@@ -740,7 +751,7 @@ function DesignPageContent() {
         handleFormSubmit={handleSubmit}
         onArtifactClick={handleArtifactClick}
         activeTab={activeTab}
-        onTabChange={setActiveTab}
+        onTabChange={handleTabChange}
         selectedElement={selectedElement}
         onUpdateStyle={handleUpdateStyle}
         onPreviewStyle={handlePreviewStyle}
@@ -864,6 +875,8 @@ function DesignPageContent() {
               canUndo={canUndo}
               canRedo={canRedo}
               isSaving={isSaving}
+              toolMode={toolMode}
+              onToolModeChange={setToolMode}
             />
           </ReactFlowProvider>
         </div>

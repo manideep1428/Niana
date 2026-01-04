@@ -14,7 +14,7 @@ interface DesignPreviewProps {
 // Skeleton component for loading state
 function DesignPreviewSkeleton() {
   return (
-    <div className="w-full max-w-[300px] rounded-xl border-2 border-primary/20 overflow-hidden bg-gradient-to-br from-primary/5 via-background to-primary/5">
+    <div className="w-full max-w-[300px] rounded-xl border-2 border-primary/20 overflow-hidden bg-linear-to-br from-primary/5 via-background to-primary/5">
       {/* Animated header */}
       <div className="flex items-center gap-3 p-3 border-b border-primary/10">
         <div className="relative">
@@ -49,7 +49,7 @@ function DesignPreviewSkeleton() {
       </div>
 
       {/* Animated gradient overlay */}
-      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent animate-shimmer pointer-events-none" />
+      <div className="absolute inset-0 bg-linear-to-r from-transparent via-white/5 to-transparent animate-shimmer pointer-events-none" />
 
       {/* Generating indicator */}
       <div className="flex items-center justify-center gap-2 py-2 bg-primary/5 border-t border-primary/10">

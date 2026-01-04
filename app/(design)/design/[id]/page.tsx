@@ -2,13 +2,13 @@
 
 import { PromptSidebar } from "@/components/app-sidebar";
 import {
-    SidebarInset,
-    SidebarProvider,
-    SidebarTrigger,
+  SidebarInset,
+  SidebarProvider,
+  SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { useCallback, useEffect, useState, useRef } from "react";
 import { Separator } from "@radix-ui/react-separator";
-import { DesignCanvas, Design } from "@/components/design-canvas";
+import { DesignCanvas, Design, ToolMode } from "@/components/design-canvas";
 import { ReactFlowProvider } from "@xyflow/react";
 import { useParams } from "next/navigation";
 import { useQuery, useMutation } from "convex/react";
@@ -20,427 +20,876 @@ import { Input } from "@/components/ui/input";
 import { Pencil, Check, X, Moon, Sun, Zap, Heart } from "lucide-react";
 import { useTheme } from "next-themes";
 import {
-    Tooltip,
-    TooltipContent,
-    TooltipProvider,
-    TooltipTrigger,
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
 } from "@/components/ui/tooltip";
+import type { SelectedElement } from "@/components/visual-editor";
 
 // Types for SSE events
 interface TextEvent {
-    type: "text";
-    content: string;
+  type: "text";
+  content: string;
 }
 
 interface ToolCallEvent {
-    type: "tool_call";
-    tool: "create_artifact" | "update_artifact";
-    projectId: string;
-    data: {
-        id: string;
-        title: string;
-        content: string;
-    };
+  type: "tool_call";
+  tool: "create_artifact" | "update_artifact";
+  projectId: string;
+  data: {
+    id: string;
+    title: string;
+    content: string;
+  };
 }
 
 interface DoneEvent {
-    type: "done";
+  type: "done";
 }
 
 interface ErrorEvent {
-    type: "error";
-    message: string;
+  type: "error";
+  message: string;
 }
 
 type SSEEvent = TextEvent | ToolCallEvent | DoneEvent | ErrorEvent;
 
 // Message type for chat
 interface Message {
-    role: "user" | "assistant";
-    content: string;
-    artifacts?: { id: string; title: string }[];
-    attachments?: Attachment[];
+  role: "user" | "assistant";
+  content: string;
+  artifacts?: { id: string; title: string }[];
+  attachments?: Attachment[];
+}
+
+// Edit action type for undo/redo history
+interface EditAction {
+  type: "style" | "content" | "attribute";
+  artifactId: string;
+  property?: string;
+  attribute?: string;
+  oldValue: string;
+  newValue: string;
 }
 
 function DesignPageContent() {
-    const [input, setInput] = useState("");
-    const [isLoading, setIsLoading] = useState(false);
-    const [messages, setMessages] = useState<Message[]>([]);
-    const [isEditingTitle, setIsEditingTitle] = useState(false);
-    const [editedTitle, setEditedTitle] = useState("");
-    const titleInputRef = useRef<HTMLInputElement>(null);
-    const { id: projectId } = useParams<{ id: string }>();
-    const { selectedArtifactId, setSelectedArtifactId } = useArtifact();
-    const { theme, setTheme } = useTheme();
+  const [input, setInput] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [editedTitle, setEditedTitle] = useState("");
 
-    // Convex queries and mutations
-    const designsData = useQuery(api.quires.getDesignsByProject, {
-        project_id: projectId,
-    });
-    const messagesData = useQuery(api.quires.getMessages, { id: projectId });
-    const project = useQuery(api.quires.getProject, { project_id: projectId });
-    const createDesign = useMutation(api.mutations.createDesign);
-    const updateDesign = useMutation(api.mutations.updateDesign);
-    const updateProjectTitle = useMutation(api.mutations.updateProjectTitle);
+  // Visual Editor State
+  const [activeTab, setActiveTab] = useState<"chat" | "design">("chat");
+  const [selectedElement, setSelectedElement] =
+    useState<SelectedElement | null>(null);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [toolMode, setToolMode] = useState<ToolMode>("hand");
 
-    // Convert Convex designs to canvas format
-    const designs: Design[] = (designsData ?? []).map((d: any) => ({
-        _id: d._id,
-        artifact_id: d.artifact_id,
-        title: d.title,
-        content: d.content,
-        status: d.status as "streaming" | "idle",
-    }));
+  // Handle tab change - auto switch to pointer mode when switching to design tab
+  const handleTabChange = useCallback((tab: "chat" | "design") => {
+    setActiveTab(tab);
+    if (tab === "design") {
+      setToolMode("mouse");
+    }
+  }, []);
 
-    // Title editing handlers
-    const handleStartEditTitle = useCallback(() => {
-        setEditedTitle(project?.title || "");
-        setIsEditingTitle(true);
-        setTimeout(() => titleInputRef.current?.focus(), 0);
-    }, [project?.title]);
+  // Undo/Redo History
+  const [editHistory, setEditHistory] = useState<EditAction[]>([]);
+  const [historyIndex, setHistoryIndex] = useState(-1);
 
-    const handleSaveTitle = useCallback(async () => {
-        if (editedTitle.trim() && editedTitle !== project?.title) {
-            await updateProjectTitle({
-                project_id: projectId,
-                title: editedTitle.trim(),
-            });
+  const titleInputRef = useRef<HTMLInputElement>(null);
+  const { id: projectId } = useParams<{ id: string }>();
+  const { selectedArtifactId, setSelectedArtifactId } = useArtifact();
+  const { theme, setTheme } = useTheme();
+
+  // Convex queries and mutations
+  const designsData = useQuery(api.quires.getDesignsByProject, {
+    project_id: projectId,
+  });
+  const messagesData = useQuery(api.quires.getMessages, { id: projectId });
+  const project = useQuery(api.quires.getProject, { project_id: projectId });
+  const createDesign = useMutation(api.mutations.createDesign);
+  const updateDesign = useMutation(api.mutations.updateDesign);
+  const updateProjectTitle = useMutation(api.mutations.updateProjectTitle);
+
+  // Convert Convex designs to canvas format
+  const designs: Design[] = (designsData ?? []).map((d: any) => ({
+    _id: d._id,
+    artifact_id: d.artifact_id,
+    title: d.title,
+    content: d.content,
+    status: d.status as "streaming" | "idle",
+    x: d.x,
+    y: d.y,
+  }));
+
+  // Warn before unload if unsaved changes
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasUnsavedChanges) {
+        e.preventDefault();
+        e.returnValue = "";
+      }
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [hasUnsavedChanges]);
+
+  // Handle messages from iframe (e.g. returnHtml)
+  useEffect(() => {
+    const handleMessage = async (event: MessageEvent) => {
+      if (
+        event.data?.type === "returnHtml" &&
+        event.data?.artifactId &&
+        event.data?.html
+      ) {
+        try {
+          // Find current title
+          const currentDesign = designs.find(
+            (d) => d.artifact_id === event.data.artifactId
+          );
+          await updateDesign({
+            artifact_id: event.data.artifactId,
+            title: currentDesign?.title || "Untitled",
+            content: event.data.html,
+          });
+          setHasUnsavedChanges(false);
+          // Clear history after successful save
+          setEditHistory([]);
+          setHistoryIndex(-1);
+        } catch (e) {
+          console.error("Failed to save design:", e);
+        } finally {
+          setIsSaving(false);
         }
-        setIsEditingTitle(false);
-    }, [editedTitle, project?.title, projectId, updateProjectTitle]);
+      }
+    };
+    window.addEventListener("message", handleMessage);
+    return () => window.removeEventListener("message", handleMessage);
+  }, [designs, updateDesign]);
 
-    const handleCancelEditTitle = useCallback(() => {
-        setIsEditingTitle(false);
-        setEditedTitle("");
-    }, []);
+  // Visual Editor Handlers
+  const handleElementSelect = useCallback(
+    (artifactId: string, elementInfo: any) => {
+      setSelectedArtifactId(artifactId);
+      setSelectedElement(elementInfo);
+      handleTabChange("design");
+    },
+    [setSelectedArtifactId, handleTabChange]
+  );
 
-    const handleTitleKeyDown = useCallback(
-        (e: React.KeyboardEvent) => {
-            if (e.key === "Enter") {
-                handleSaveTitle();
-            } else if (e.key === "Escape") {
-                handleCancelEditTitle();
+  // Helper to add action to history
+  const addToHistory = useCallback(
+    (action: EditAction) => {
+      setEditHistory((prev) => {
+        // Remove any future history if we're not at the end
+        const newHistory = prev.slice(0, historyIndex + 1);
+        return [...newHistory, action];
+      });
+      setHistoryIndex((prev) => prev + 1);
+    },
+    [historyIndex]
+  );
+
+  const handleUpdateStyle = useCallback(
+    (property: string, value: string) => {
+      if (!selectedArtifactId || !selectedElement) return;
+
+      // Get old value for undo
+      const oldValue = selectedElement.styles?.[property] || "";
+
+      // Add to history
+      addToHistory({
+        type: "style",
+        artifactId: selectedArtifactId,
+        property,
+        oldValue,
+        newValue: value,
+      });
+
+      setHasUnsavedChanges(true);
+      const iframe = document.getElementsByName(
+        selectedArtifactId
+      )[0] as HTMLIFrameElement;
+      if (iframe?.contentWindow) {
+        iframe.contentWindow.postMessage(
+          { type: "updateStyle", property, value },
+          "*"
+        );
+      }
+      setSelectedElement((prev) =>
+        prev
+          ? {
+              ...prev,
+              styles: { ...prev.styles, [property]: value },
             }
-        },
-        [handleSaveTitle, handleCancelEditTitle]
-    );
+          : null
+      );
+    },
+    [selectedArtifactId, selectedElement, addToHistory]
+  );
 
-    // Load messages from Convex on mount
-    useEffect(() => {
-        if (messagesData && designsData) {
-            const formattedMessages: Message[] = messagesData.map((m: any) => {
-                // Map design_ids to artifact objects
-                const artifacts = m.design_ids
-                    .map((designId: string) => {
-                        const design = designsData.find((d: any) => d._id === designId);
-                        return design ? { id: design.artifact_id, title: design.title } : null;
-                    })
-                    .filter(Boolean);
+  // Preview style change without recording to history (for color picker dragging)
+  const handlePreviewStyle = useCallback(
+    (property: string, value: string) => {
+      if (!selectedArtifactId) return;
 
-                return {
-                    role: m.role as "user" | "assistant",
-                    content: m.content,
-                    artifacts,
-                    attachments: m.attachments || [],
-                };
-            });
-            setMessages(formattedMessages);
+      setHasUnsavedChanges(true);
+      const iframe = document.getElementsByName(
+        selectedArtifactId
+      )[0] as HTMLIFrameElement;
+      if (iframe?.contentWindow) {
+        iframe.contentWindow.postMessage(
+          { type: "updateStyle", property, value },
+          "*"
+        );
+      }
+      // Update local state for preview
+      setSelectedElement((prev) =>
+        prev
+          ? {
+              ...prev,
+              styles: { ...prev.styles, [property]: value },
+            }
+          : null
+      );
+    },
+    [selectedArtifactId]
+  );
+
+  const handleUpdateContent = useCallback(
+    (content: string) => {
+      if (!selectedArtifactId || !selectedElement) return;
+
+      // Get old value for undo
+      const oldValue = selectedElement.textContent || "";
+
+      // Add to history
+      addToHistory({
+        type: "content",
+        artifactId: selectedArtifactId,
+        oldValue,
+        newValue: content,
+      });
+
+      setHasUnsavedChanges(true);
+      const iframe = document.getElementsByName(
+        selectedArtifactId
+      )[0] as HTMLIFrameElement;
+      if (iframe?.contentWindow) {
+        iframe.contentWindow.postMessage(
+          { type: "updateContent", value: content },
+          "*"
+        );
+      }
+      setSelectedElement((prev) =>
+        prev ? { ...prev, textContent: content } : null
+      );
+    },
+    [selectedArtifactId, selectedElement, addToHistory]
+  );
+
+  const handleSelectParent = useCallback(() => {
+    if (!selectedArtifactId) return;
+    const iframe = document.getElementsByName(
+      selectedArtifactId
+    )[0] as HTMLIFrameElement;
+    if (iframe?.contentWindow) {
+      iframe.contentWindow.postMessage({ type: "selectParent" }, "*");
+    }
+  }, [selectedArtifactId]);
+
+  const handleUpdateAttribute = useCallback(
+    (attribute: string, value: string) => {
+      if (!selectedArtifactId || !selectedElement) return;
+
+      // Get old value for undo
+      const oldValue = selectedElement.attributes?.[attribute] || "";
+
+      // Add to history
+      addToHistory({
+        type: "attribute",
+        artifactId: selectedArtifactId,
+        attribute,
+        oldValue: String(oldValue),
+        newValue: value,
+      });
+
+      setHasUnsavedChanges(true);
+      const iframe = document.getElementsByName(
+        selectedArtifactId
+      )[0] as HTMLIFrameElement;
+      if (iframe?.contentWindow) {
+        iframe.contentWindow.postMessage(
+          { type: "updateAttribute", attribute, value },
+          "*"
+        );
+      }
+      setSelectedElement((prev) =>
+        prev
+          ? {
+              ...prev,
+              attributes: { ...prev.attributes, [attribute]: value },
+            }
+          : null
+      );
+    },
+    [selectedArtifactId, selectedElement, addToHistory]
+  );
+
+  // Undo handler
+  const handleUndo = useCallback(() => {
+    if (historyIndex < 0) return;
+
+    const action = editHistory[historyIndex];
+    const iframe = document.getElementsByName(
+      action.artifactId
+    )[0] as HTMLIFrameElement;
+
+    if (iframe?.contentWindow) {
+      // Apply the reverse of the action
+      if (action.type === "style" && action.property) {
+        iframe.contentWindow.postMessage(
+          {
+            type: "updateStyle",
+            property: action.property,
+            value: action.oldValue,
+          },
+          "*"
+        );
+        setSelectedElement((prev) =>
+          prev
+            ? {
+                ...prev,
+                styles: { ...prev.styles, [action.property!]: action.oldValue },
+              }
+            : null
+        );
+      } else if (action.type === "content") {
+        iframe.contentWindow.postMessage(
+          { type: "updateContent", value: action.oldValue },
+          "*"
+        );
+        setSelectedElement((prev) =>
+          prev ? { ...prev, textContent: action.oldValue } : null
+        );
+      } else if (action.type === "attribute" && action.attribute) {
+        iframe.contentWindow.postMessage(
+          {
+            type: "updateAttribute",
+            attribute: action.attribute,
+            value: action.oldValue,
+          },
+          "*"
+        );
+        setSelectedElement((prev) =>
+          prev
+            ? {
+                ...prev,
+                attributes: {
+                  ...prev.attributes,
+                  [action.attribute!]: action.oldValue,
+                },
+              }
+            : null
+        );
+      }
+    }
+
+    setHistoryIndex((prev) => prev - 1);
+  }, [editHistory, historyIndex]);
+
+  // Redo handler
+  const handleRedo = useCallback(() => {
+    if (historyIndex >= editHistory.length - 1) return;
+
+    const action = editHistory[historyIndex + 1];
+    const iframe = document.getElementsByName(
+      action.artifactId
+    )[0] as HTMLIFrameElement;
+
+    if (iframe?.contentWindow) {
+      // Re-apply the action
+      if (action.type === "style" && action.property) {
+        iframe.contentWindow.postMessage(
+          {
+            type: "updateStyle",
+            property: action.property,
+            value: action.newValue,
+          },
+          "*"
+        );
+        setSelectedElement((prev) =>
+          prev
+            ? {
+                ...prev,
+                styles: { ...prev.styles, [action.property!]: action.newValue },
+              }
+            : null
+        );
+      } else if (action.type === "content") {
+        iframe.contentWindow.postMessage(
+          { type: "updateContent", value: action.newValue },
+          "*"
+        );
+        setSelectedElement((prev) =>
+          prev ? { ...prev, textContent: action.newValue } : null
+        );
+      } else if (action.type === "attribute" && action.attribute) {
+        iframe.contentWindow.postMessage(
+          {
+            type: "updateAttribute",
+            attribute: action.attribute,
+            value: action.newValue,
+          },
+          "*"
+        );
+        setSelectedElement((prev) =>
+          prev
+            ? {
+                ...prev,
+                attributes: {
+                  ...prev.attributes,
+                  [action.attribute!]: action.newValue,
+                },
+              }
+            : null
+        );
+      }
+    }
+
+    setHistoryIndex((prev) => prev + 1);
+  }, [editHistory, historyIndex]);
+
+  // Check if undo/redo is possible
+  const canUndo = historyIndex >= 0;
+  const canRedo = historyIndex < editHistory.length - 1;
+
+  const handleSave = useCallback(() => {
+    if (!selectedArtifactId) return;
+    setIsSaving(true);
+    const iframe = document.getElementsByName(
+      selectedArtifactId
+    )[0] as HTMLIFrameElement;
+    if (iframe?.contentWindow) {
+      iframe.contentWindow.postMessage({ type: "getHtml" }, "*");
+    }
+  }, [selectedArtifactId]);
+
+  const handleCancel = useCallback(() => {
+    if (hasUnsavedChanges) {
+      if (
+        confirm(
+          "You have unsaved changes. Are you sure you want to discard them?"
+        )
+      ) {
+        setHasUnsavedChanges(false);
+        // To revert visual changes, we can reload the page or try to reset iframe.
+        // For now, reloading page is the safest way to ensure clean state
+        window.location.reload();
+      }
+    } else {
+      setActiveTab("chat");
+    }
+  }, [hasUnsavedChanges]);
+
+  // Title editing handlers
+  const handleStartEditTitle = useCallback(() => {
+    setEditedTitle(project?.title || "");
+    setIsEditingTitle(true);
+    setTimeout(() => titleInputRef.current?.focus(), 0);
+  }, [project?.title]);
+
+  const handleSaveTitle = useCallback(async () => {
+    if (editedTitle.trim() && editedTitle !== project?.title) {
+      await updateProjectTitle({
+        project_id: projectId,
+        title: editedTitle.trim(),
+      });
+    }
+    setIsEditingTitle(false);
+  }, [editedTitle, project?.title, projectId, updateProjectTitle]);
+
+  const handleCancelEditTitle = useCallback(() => {
+    setIsEditingTitle(false);
+    setEditedTitle("");
+  }, []);
+
+  const handleTitleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === "Enter") {
+        handleSaveTitle();
+      } else if (e.key === "Escape") {
+        handleCancelEditTitle();
+      }
+    },
+    [handleSaveTitle, handleCancelEditTitle]
+  );
+
+  // Load messages from Convex on mount
+  useEffect(() => {
+    if (messagesData && designsData) {
+      const formattedMessages: Message[] = messagesData.map((m: any) => {
+        // Map design_ids to artifact objects
+        const artifacts = m.design_ids
+          .map((designId: string) => {
+            const design = designsData.find((d: any) => d._id === designId);
+            return design
+              ? { id: design.artifact_id, title: design.title }
+              : null;
+          })
+          .filter(Boolean);
+
+        return {
+          role: m.role as "user" | "assistant",
+          content: m.content,
+          artifacts,
+          attachments: m.attachments || [],
+        };
+      });
+      setMessages(formattedMessages);
+    }
+  }, [messagesData, designsData]);
+
+  const markMessageProcessed = useMutation(api.mutations.markMessageProcessed);
+
+  const saveMessage = useMutation(api.mutations.saveMessage);
+
+  const handleSendMessage = useCallback(
+    async (
+      content: string,
+      currentMessages: Message[],
+      attachments: Attachment[] = [],
+      skipSaveUserMessage = false
+    ) => {
+      setIsLoading(true);
+      let assistantContent = "";
+      const artifacts: { id: string; title: string }[] = [];
+      const artifactDbIds: string[] = []; // Store Convex IDs for database reference
+      const newMessages = [
+        ...currentMessages,
+        { role: "user" as const, content, attachments },
+      ];
+
+      try {
+        // Save user message to database with attachments (skip if already saved, e.g., initial message)
+        if (!skipSaveUserMessage) {
+          await saveMessage({
+            project_id: projectId,
+            content: content,
+            role: "user",
+            design_ids: [],
+            attachments: attachments.map((a) => ({
+              name: a.name,
+              url: a.url,
+              contentType: a.contentType,
+              storageId: a.storageId as any,
+            })),
+          });
         }
-    }, [messagesData, designsData]);
 
-    const markMessageProcessed = useMutation(api.mutations.markMessageProcessed);
+        const response = await fetch("/api/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            messages: newMessages.map((m) => ({
+              role: m.role,
+              content: m.content,
+              attachments: m.attachments,
+            })),
+            projectId,
+          }),
+        });
 
-    const saveMessage = useMutation(api.mutations.saveMessage);
+        if (!response.ok) throw new Error("Failed to fetch");
 
-    const handleSendMessage = useCallback(
-        async (content: string, currentMessages: Message[], attachments: Attachment[] = [], skipSaveUserMessage = false) => {
-            setIsLoading(true);
-            let assistantContent = "";
-            const artifacts: { id: string; title: string }[] = [];
-            const artifactDbIds: string[] = []; // Store Convex IDs for database reference
-            const newMessages = [...currentMessages, { role: "user" as const, content, attachments }];
+        const reader = response.body?.getReader();
+        if (!reader) throw new Error("No reader");
 
-            try {
-                // Save user message to database with attachments (skip if already saved, e.g., initial message)
-                if (!skipSaveUserMessage) {
-                    await saveMessage({
-                        project_id: projectId,
-                        content: content,
-                        role: "user",
-                        design_ids: [],
-                        attachments: attachments.map(a => ({
-                            name: a.name,
-                            url: a.url,
-                            contentType: a.contentType,
-                            storageId: a.storageId as any,
-                        })),
-                    });
-                }
+        const decoder = new TextDecoder();
+        let buffer = "";
 
-                const response = await fetch("/api/chat", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        messages: newMessages.map(m => ({
-                            role: m.role,
-                            content: m.content,
-                            attachments: m.attachments,
-                        })),
-                        projectId,
-                    }),
-                });
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
 
-                if (!response.ok) throw new Error("Failed to fetch");
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split("\n\n");
+          buffer = lines.pop() || "";
 
-                const reader = response.body?.getReader();
-                if (!reader) throw new Error("No reader");
+          for (const line of lines) {
+            if (line.startsWith("data: ")) {
+              try {
+                const event: SSEEvent = JSON.parse(line.slice(6));
 
-                const decoder = new TextDecoder();
-                let buffer = "";
-
-                while (true) {
-                    const { done, value } = await reader.read();
-                    if (done) break;
-
-                    buffer += decoder.decode(value, { stream: true });
-                    const lines = buffer.split("\n\n");
-                    buffer = lines.pop() || "";
-
-                    for (const line of lines) {
-                        if (line.startsWith("data: ")) {
-                            try {
-                                const event: SSEEvent = JSON.parse(line.slice(6));
-
-                                if (event.type === "text") {
-                                    assistantContent += event.content;
-                                    setMessages([
-                                        ...newMessages,
-                                        { role: "assistant", content: assistantContent, artifacts },
-                                    ]);
-                                } else if (event.type === "tool_call") {
-                                    const designData = {
-                                        project_id: projectId,
-                                        artifact_id: event.data.id,
-                                        title: event.data.title,
-                                        content: event.data.content,
-                                    };
-
-                                    let designDbId;
-                                    if (event.tool === "create_artifact") {
-                                        designDbId = await createDesign(designData);
-                                    } else if (event.tool === "update_artifact") {
-                                        designDbId = await updateDesign({
-                                            artifact_id: designData.artifact_id,
-                                            title: designData.title,
-                                            content: designData.content,
-                                        });
-                                    }
-
-                                    if (designDbId) {
-                                        artifactDbIds.push(designDbId);
-                                    }
-
-                                    artifacts.push({ id: event.data.id, title: event.data.title });
-                                    setSelectedArtifactId(event.data.id);
-                                }
-                            } catch (e) {
-                                console.error("Error parsing SSE:", e);
-                            }
-                        }
-                    }
-                }
-
-                // Final update
-                setMessages([
+                if (event.type === "text") {
+                  assistantContent += event.content;
+                  setMessages([
                     ...newMessages,
                     { role: "assistant", content: assistantContent, artifacts },
-                ]);
-
-                // Save assistant message to database with artifact references
-                await saveMessage({
+                  ]);
+                } else if (event.type === "tool_call") {
+                  const designData = {
                     project_id: projectId,
-                    content: assistantContent,
-                    role: "assistant",
-                    design_ids: artifactDbIds as any, // Convex IDs of created/updated designs
-                });
-            } catch (error) {
-                console.error("Chat error:", error);
-            } finally {
-                setIsLoading(false);
-            }
-        },
-        [projectId, createDesign, updateDesign, setSelectedArtifactId, saveMessage]
-    );
+                    artifact_id: event.data.id,
+                    title: event.data.title,
+                    content: event.data.content,
+                  };
 
-    // Auto-process initial message
-    useEffect(() => {
-        if (messagesData && !isLoading) {
-            const initialMsg = messagesData.find(
-                (m: any) => m.role === "user" && m.initial_status === false
-            );
+                  let designDbId;
+                  if (event.tool === "create_artifact") {
+                    designDbId = await createDesign(designData);
+                  } else if (event.tool === "update_artifact") {
+                    designDbId = await updateDesign({
+                      artifact_id: designData.artifact_id,
+                      title: designData.title,
+                      content: designData.content,
+                    });
+                  }
 
-            if (initialMsg) {
-                // Mark as processed immediately to prevent double-firing
-                markMessageProcessed({ message_id: initialMsg._id });
-                // Trigger AI - skip saving user message since it's already in the database
-                handleSendMessage(initialMsg.content, [], initialMsg.attachments || [], true);
+                  if (designDbId) {
+                    artifactDbIds.push(designDbId);
+                  }
+
+                  artifacts.push({
+                    id: event.data.id,
+                    title: event.data.title,
+                  });
+                  setSelectedArtifactId(event.data.id);
+                }
+              } catch (e) {
+                console.error("Error parsing SSE:", e);
+              }
             }
+          }
         }
-    }, [messagesData, handleSendMessage, markMessageProcessed, isLoading]);
 
-    // Handle form submission with attachments
-    const handleSubmit = useCallback(
-        async (e: React.FormEvent<HTMLFormElement>, attachments: Attachment[] = []) => {
-            e.preventDefault();
-            if (!input.trim() && attachments.length === 0) return;
-            if (isLoading) return;
+        // Final update
+        setMessages([
+          ...newMessages,
+          { role: "assistant", content: assistantContent, artifacts },
+        ]);
 
-            const userMessage = input.trim();
-            setInput("");
-            setMessages((prev) => [...prev, { role: "user", content: userMessage, attachments }]);
+        // Save assistant message to database with artifact references
+        await saveMessage({
+          project_id: projectId,
+          content: assistantContent,
+          role: "assistant",
+          design_ids: artifactDbIds as any, // Convex IDs of created/updated designs
+        });
+      } catch (error) {
+        console.error("Chat error:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [projectId, createDesign, updateDesign, setSelectedArtifactId, saveMessage]
+  );
 
-            await handleSendMessage(userMessage, messages, attachments);
-        },
-        [input, isLoading, messages, handleSendMessage]
-    );
+  // Auto-process initial message
+  useEffect(() => {
+    if (messagesData && !isLoading) {
+      const initialMsg = messagesData.find(
+        (m: any) => m.role === "user" && m.initial_status === false
+      );
 
-    // Handle artifact click from chat
-    const handleArtifactClick = useCallback(
-        (artifactId: string) => {
-            setSelectedArtifactId(artifactId);
-        },
-        [setSelectedArtifactId]
-    );
+      if (initialMsg) {
+        // Mark as processed immediately to prevent double-firing
+        markMessageProcessed({ message_id: initialMsg._id });
+        // Trigger AI - skip saving user message since it's already in the database
+        handleSendMessage(
+          initialMsg.content,
+          [],
+          initialMsg.attachments || [],
+          true
+        );
+      }
+    }
+  }, [messagesData, handleSendMessage, markMessageProcessed, isLoading]);
 
-    return (
-        <SidebarProvider>
-            <PromptSidebar
-                input={input}
-                messages={messages}
-                setInput={setInput}
-                isLoading={isLoading}
-                isMessagesLoading={messagesData === undefined}
-                handleFormSubmit={handleSubmit}
-                onArtifactClick={handleArtifactClick}
+  // Handle form submission with attachments
+  const handleSubmit = useCallback(
+    async (
+      e: React.FormEvent<HTMLFormElement>,
+      attachments: Attachment[] = []
+    ) => {
+      e.preventDefault();
+      if (!input.trim() && attachments.length === 0) return;
+      if (isLoading) return;
+
+      const userMessage = input.trim();
+      setInput("");
+      setMessages((prev) => [
+        ...prev,
+        { role: "user", content: userMessage, attachments },
+      ]);
+
+      await handleSendMessage(userMessage, messages, attachments);
+    },
+    [input, isLoading, messages, handleSendMessage]
+  );
+
+  // Handle artifact click from chat
+  const handleArtifactClick = useCallback(
+    (artifactId: string) => {
+      setSelectedArtifactId(artifactId);
+    },
+    [setSelectedArtifactId]
+  );
+
+  return (
+    <SidebarProvider>
+      <PromptSidebar
+        input={input}
+        messages={messages}
+        setInput={setInput}
+        isLoading={isLoading}
+        isMessagesLoading={messagesData === undefined}
+        handleFormSubmit={handleSubmit}
+        onArtifactClick={handleArtifactClick}
+        activeTab={activeTab}
+        onTabChange={handleTabChange}
+        selectedElement={selectedElement}
+        onUpdateStyle={handleUpdateStyle}
+        onPreviewStyle={handlePreviewStyle}
+        onUpdateContent={handleUpdateContent}
+        onUpdateAttribute={handleUpdateAttribute}
+        onSelectParent={handleSelectParent}
+        onSave={handleSave}
+        onCancel={handleCancel}
+        hasUnsavedChanges={hasUnsavedChanges}
+      />
+      <SidebarInset className="flex flex-col">
+        <header className="flex h-16 shrink-0 items-center justify-between gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12 border-b">
+          <div className="flex items-center gap-2 px-4">
+            <SidebarTrigger className="-ml-1" />
+            <Separator
+              orientation="vertical"
+              className="mr-2 data-[orientation=vertical]:h-4"
             />
-            <SidebarInset className="flex flex-col">
-                <header className="flex h-16 shrink-0 items-center justify-between gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12 border-b">
-                    <div className="flex items-center gap-2 px-4">
-                        <SidebarTrigger className="-ml-1" />
-                        <Separator
-                            orientation="vertical"
-                            className="mr-2 data-[orientation=vertical]:h-4"
-                        />
-                        {isEditingTitle ? (
-                            <div className="flex items-center gap-1">
-                                <Input
-                                    ref={titleInputRef}
-                                    value={editedTitle}
-                                    onChange={(e) => setEditedTitle(e.target.value)}
-                                    onKeyDown={handleTitleKeyDown}
-                                    className="h-8 w-64"
-                                />
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-8 w-8"
-                                    onClick={handleSaveTitle}
-                                >
-                                    <Check className="h-4 w-4" />
-                                </Button>
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-8 w-8"
-                                    onClick={handleCancelEditTitle}
-                                >
-                                    <X className="h-4 w-4" />
-                                </Button>
-                            </div>
-                        ) : (
-                            <div className="flex items-center gap-1">
-                                <span className="font-medium">
-                                    {project?.title || "Building Your Application"}
-                                </span>
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-8 w-8"
-                                    onClick={handleStartEditTitle}
-                                >
-                                    <Pencil className="h-3.5 w-3.5" />
-                                </Button>
-                            </div>
-                        )}
-                    </div>
-                    <div className="flex items-center gap-2 px-4">
-                        <TooltipProvider>
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        className="gap-2"
-                                        onClick={() => window.open("https://bolt.new", "_blank")}
-                                    >
-                                        <Zap className="h-4 w-4" />
-                                        bolt.new
-                                    </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                    <p>Open in bolt.new</p>
-                                </TooltipContent>
-                            </Tooltip>
-                        </TooltipProvider>
-                        <TooltipProvider>
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        className="gap-2"
-                                        onClick={() => window.open("https://lovable.dev", "_blank")}
-                                    >
-                                        <Heart className="h-4 w-4" />
-                                        lovable.dev
-                                    </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                    <p>Open in lovable.dev</p>
-                                </TooltipContent>
-                            </Tooltip>
-                        </TooltipProvider>
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                            className="h-9 w-9"
-                        >
-                            <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-                            <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-                            <span className="sr-only">Toggle theme</span>
-                        </Button>
-                    </div>
-                </header>
-                <div className="flex-1 w-full">
-                    <ReactFlowProvider>
-                        <DesignCanvas
-                            designs={designs}
-                            selectedArtifactId={selectedArtifactId}
-                            onNodeSelect={setSelectedArtifactId}
-                        />
-                    </ReactFlowProvider>
-                </div>
-                <div className="border-t"></div>
-            </SidebarInset>
-        </SidebarProvider>
-    );
+            {isEditingTitle ? (
+              <div className="flex items-center gap-1">
+                <Input
+                  ref={titleInputRef}
+                  value={editedTitle}
+                  onChange={(e) => setEditedTitle(e.target.value)}
+                  onKeyDown={handleTitleKeyDown}
+                  className="h-8 w-64"
+                />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={handleSaveTitle}
+                >
+                  <Check className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={handleCancelEditTitle}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1">
+                <span className="font-medium">
+                  {project?.title || "Building Your Application"}
+                </span>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={handleStartEditTitle}
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            )}
+          </div>
+          <div className="flex items-center gap-2 px-4">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-2"
+                    onClick={() => window.open("https://bolt.new", "_blank")}
+                  >
+                    <Zap className="h-4 w-4" />
+                    bolt.new
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Open in bolt.new</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-2"
+                    onClick={() => window.open("https://lovable.dev", "_blank")}
+                  >
+                    <Heart className="h-4 w-4" />
+                    lovable.dev
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Open in lovable.dev</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+              className="h-9 w-9"
+            >
+              <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+              <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+              <span className="sr-only">Toggle theme</span>
+            </Button>
+          </div>
+        </header>
+        <div className="flex-1 w-full">
+          <ReactFlowProvider>
+            <DesignCanvas
+              designs={designs}
+              selectedArtifactId={selectedArtifactId}
+              onNodeSelect={setSelectedArtifactId}
+              onElementSelect={handleElementSelect}
+              onSave={handleSave}
+              hasUnsavedChanges={hasUnsavedChanges}
+              onUndo={handleUndo}
+              onRedo={handleRedo}
+              canUndo={canUndo}
+              canRedo={canRedo}
+              isSaving={isSaving}
+              toolMode={toolMode}
+              onToolModeChange={setToolMode}
+            />
+          </ReactFlowProvider>
+        </div>
+        <div className="border-t"></div>
+      </SidebarInset>
+    </SidebarProvider>
+  );
 }
 
 export default function DesignId() {
-    return (
-        <ArtifactProvider>
-            <DesignPageContent />
-        </ArtifactProvider>
-    );
+  return (
+    <ArtifactProvider>
+      <DesignPageContent />
+    </ArtifactProvider>
+  );
 }

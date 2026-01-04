@@ -151,7 +151,9 @@ export const updateDesign = mutation({
       .first();
 
     if (!existing) {
-      throw new Error(`Design with artifact_id "${args.artifact_id}" not found`);
+      throw new Error(
+        `Design with artifact_id "${args.artifact_id}" not found`
+      );
     }
 
     await ctx.db.patch(existing._id, {
@@ -209,12 +211,54 @@ export const updateDesignCoordinates = mutation({
   },
 });
 
+// Delete a design by artifact_id
+export const deleteDesign = mutation({
+  args: {
+    artifact_id: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const design = await ctx.db
+      .query("designs")
+      .withIndex("by_artifact_id", (q) => q.eq("artifact_id", args.artifact_id))
+      .first();
+
+    if (!design) {
+      throw new Error(
+        `Design with artifact_id "${args.artifact_id}" not found`
+      );
+    }
+
+    // Remove this design from any message design_ids arrays
+    const messages = await ctx.db
+      .query("messages")
+      .withIndex("by_project", (q) => q.eq("project_id", design.project_id))
+      .collect();
+
+    for (const message of messages) {
+      if (message.design_ids.includes(design._id)) {
+        await ctx.db.patch(message._id, {
+          design_ids: message.design_ids.filter((id) => id !== design._id),
+        });
+      }
+    }
+
+    // Delete the design
+    await ctx.db.delete(design._id);
+
+    return { success: true };
+  },
+});
+
 // Save a message with optional design references and attachments
 export const saveMessage = mutation({
   args: {
     project_id: v.string(),
     content: v.string(),
-    role: v.union(v.literal("user"), v.literal("assistant"), v.literal("system")),
+    role: v.union(
+      v.literal("user"),
+      v.literal("assistant"),
+      v.literal("system")
+    ),
     design_ids: v.array(v.id("designs")),
     attachments: v.optional(
       v.array(
@@ -274,7 +318,6 @@ export const updateProjectTitle = mutation({
     });
   },
 });
-
 
 // Delete a project and all related data (cascade delete)
 export const deleteProject = mutation({

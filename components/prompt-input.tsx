@@ -2,12 +2,13 @@
 
 import React, { useRef, useState, useCallback, ChangeEvent } from "react";
 import { Textarea } from "./ui/textarea";
-import { Paperclip } from "lucide-react";
+import { Paperclip, Plus, Sparkles, MessageSquare } from "lucide-react";
 import PromptSubmit from "./prompt-submit";
 import { useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { PreviewAttachment, type Attachment } from "./preview-attachment";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 // Allowed file types
 const ALLOWED_TYPES = [
@@ -27,7 +28,14 @@ interface PromptInputProps {
   input: string;
   setInput: (value: string) => void;
   isLoading: boolean;
-  onSubmit: (e: React.FormEvent<HTMLFormElement>, attachments: Attachment[]) => void;
+  onSubmit: (
+    e: React.FormEvent<HTMLFormElement>,
+    attachments: Attachment[]
+  ) => void;
+  // Visual edits props
+  activeTab?: "chat" | "design";
+  onTabChange?: (tab: "chat" | "design") => void;
+  hasSelectedElement?: boolean;
 }
 
 export function PromptInput({
@@ -35,6 +43,9 @@ export function PromptInput({
   setInput,
   onSubmit,
   isLoading,
+  activeTab = "chat",
+  onTabChange,
+  hasSelectedElement,
 }: PromptInputProps) {
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [uploadQueue, setUploadQueue] = useState<string[]>([]);
@@ -114,7 +125,9 @@ export function PromptInput({
       // Check max files limit
       const remainingSlots = MAX_FILES - attachments.length;
       if (files.length > remainingSlots) {
-        toast.error(`You can only upload ${MAX_FILES} files. ${remainingSlots} slots remaining.`);
+        toast.error(
+          `You can only upload ${MAX_FILES} files. ${remainingSlots} slots remaining.`
+        );
         files.splice(remainingSlots);
       }
 
@@ -125,7 +138,9 @@ export function PromptInput({
       try {
         const uploadPromises = files.map((file) => uploadFile(file));
         const results = await Promise.all(uploadPromises);
-        const successful = results.filter((r): r is Attachment => r !== undefined);
+        const successful = results.filter(
+          (r): r is Attachment => r !== undefined
+        );
 
         setAttachments((prev) => [...prev, ...successful]);
       } catch (err) {
@@ -143,7 +158,7 @@ export function PromptInput({
   const handleRemoveAttachment = useCallback(
     async (attachment: Attachment) => {
       setAttachments((prev) => prev.filter((a) => a.url !== attachment.url));
-      
+
       // Delete from Convex storage if we have storageId
       if (attachment.storageId) {
         try {
@@ -187,7 +202,9 @@ export function PromptInput({
 
       try {
         const results = await Promise.all(filesToUpload.map(uploadFile));
-        const successful = results.filter((r): r is Attachment => r !== undefined);
+        const successful = results.filter(
+          (r): r is Attachment => r !== undefined
+        );
         setAttachments((prev) => [...prev, ...successful]);
       } catch (err) {
         console.error("Error uploading pasted images:", err);
@@ -228,7 +245,9 @@ export function PromptInput({
 
       try {
         const results = await Promise.all(filesToUpload.map(uploadFile));
-        const successful = results.filter((r): r is Attachment => r !== undefined);
+        const successful = results.filter(
+          (r): r is Attachment => r !== undefined
+        );
         setAttachments((prev) => [...prev, ...successful]);
       } catch (err) {
         console.error("Error uploading dropped files:", err);
@@ -257,7 +276,8 @@ export function PromptInput({
   };
 
   const isUploading = uploadQueue.length > 0;
-  const canAttach = attachments.length < MAX_FILES && !isLoading && !isUploading;
+  const canAttach =
+    attachments.length < MAX_FILES && !isLoading && !isUploading;
 
   return (
     <div className="p-4 pt-0">
@@ -312,7 +332,7 @@ export function PromptInput({
               onFocus={() => setIsFocused(true)}
               onBlur={() => setIsFocused(false)}
               onPaste={handlePaste}
-              placeholder={isDragging ? "Drop files here..." : "Ask Niana to design a landing page that..."}
+              placeholder={isDragging ? "Drop files here..." : "Ask Niana..."}
               className="w-full bg-transparent border-none text-sm text-foreground placeholder:text-muted-foreground resize-none outline-none min-h-[60px] max-h-[200px] overflow-y-auto scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent focus:outline-none dark:bg-transparent focus:ring-0 focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 shadow-none"
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) {
@@ -328,26 +348,50 @@ export function PromptInput({
 
           <div className="flex items-center justify-between px-3 pb-3">
             <div className="flex items-center gap-2">
+              {/* Add/Attach button */}
               <button
                 type="button"
                 disabled={!canAttach}
                 onClick={() => fileInputRef.current?.click()}
-                className="h-8 px-3 rounded-lg text-xs border border-border hover:border-primary dark:border-border flex items-center gap-2 transition-colors disabled:opacity-50 text-muted-foreground hover:text-foreground hover:bg-accent"
+                className="h-8 w-8 rounded-lg border border-border hover:border-primary flex items-center justify-center transition-colors disabled:opacity-50 text-muted-foreground hover:text-foreground hover:bg-accent"
               >
-                <Paperclip className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Attach</span>
-                {attachments.length > 0 && (
-                  <span className="text-[10px] bg-primary/20 text-primary px-1.5 py-0.5 rounded-md">
-                    {attachments.length}/{MAX_FILES}
-                  </span>
-                )}
+                <Plus className="w-4 h-4" />
               </button>
+
+              {/* Visual edits button - only show in chat mode */}
+              {onTabChange && activeTab === "chat" && (
+                <button
+                  type="button"
+                  onClick={() => onTabChange("design")}
+                  className={cn(
+                    "h-8 px-3 rounded-lg text-xs flex items-center gap-2 transition-all",
+                    hasSelectedElement
+                      ? "bg-primary/20 text-primary border border-primary/30 hover:bg-primary/30"
+                      : "border border-border text-muted-foreground hover:text-foreground hover:bg-accent"
+                  )}
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>Visual edits</span>
+                </button>
+              )}
+
+              {/* Chat button - only show in design mode */}
+              {onTabChange && activeTab === "design" && (
+                <button
+                  type="button"
+                  onClick={() => onTabChange("chat")}
+                  className="h-8 px-3 rounded-lg text-xs flex items-center gap-2 transition-all border border-border text-muted-foreground hover:text-foreground hover:bg-accent"
+                >
+                  <MessageSquare className="w-3.5 h-3.5" />
+                  <span>Chat</span>
+                </button>
+              )}
             </div>
 
             <PromptSubmit
               status={isLoading ? "loading" : "streaming"}
               onSubmit={handleButtonClick}
-              className="bg-gradient-to-r from-primary/60 to-primary/40 hover:from-primary/70 hover:to-primary/50 text-primary-foreground h-8 w-8 rounded-lg transition-colors shadow-sm"
+              className="bg-linear-to-r from-primary/60 to-primary/40 hover:from-primary/70 hover:to-primary/50 text-primary-foreground h-8 w-8 rounded-lg transition-colors shadow-sm"
             />
           </div>
         </div>

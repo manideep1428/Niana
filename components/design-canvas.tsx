@@ -16,7 +16,16 @@ import {
 import "@xyflow/react/dist/style.css";
 import { DesignNode, DesignNodeData } from "./design-node";
 import { Button } from "@/components/ui/button";
-import { ZoomIn, ZoomOut, Maximize, Hand, MousePointer } from "lucide-react";
+import {
+  ZoomIn,
+  ZoomOut,
+  Maximize,
+  Hand,
+  MousePointer,
+  Undo2,
+  Redo2,
+  Loader2,
+} from "lucide-react";
 
 // Tool modes
 type ToolMode = "hand" | "mouse";
@@ -46,12 +55,38 @@ interface DesignCanvasProps {
   designs: Design[];
   selectedArtifactId: string | null;
   onNodeSelect?: (artifactId: string | null) => void;
+  onElementSelect?: (
+    artifactId: string,
+    elementInfo: {
+      tagName: string;
+      id?: string;
+      className?: string;
+      textContent?: string;
+      styles: any;
+      path: string[];
+    }
+  ) => void;
+  onSave?: () => void;
+  hasUnsavedChanges?: boolean;
+  onUndo?: () => void;
+  onRedo?: () => void;
+  canUndo?: boolean;
+  canRedo?: boolean;
+  isSaving?: boolean;
 }
 
 export function DesignCanvas({
   designs,
   selectedArtifactId,
   onNodeSelect,
+  onElementSelect,
+  onSave,
+  hasUnsavedChanges,
+  onUndo,
+  onRedo,
+  canUndo,
+  canRedo,
+  isSaving,
 }: DesignCanvasProps) {
   const { fitView, setCenter, zoomIn, zoomOut } = useReactFlow();
   const { zoom } = useViewport();
@@ -124,11 +159,13 @@ export function DesignCanvas({
           content: design.content,
           isStreaming: design.status === "streaming",
           onDelete: handleDeleteDesign,
+          onElementSelect: onElementSelect,
+          isInteractive: toolMode === "mouse",
         },
         selected: design.artifact_id === selectedArtifactId,
       };
     });
-  }, [designs, selectedArtifactId, handleDeleteDesign]);
+  }, [designs, selectedArtifactId, handleDeleteDesign, onElementSelect]);
 
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
 
@@ -147,6 +184,25 @@ export function DesignCanvas({
       setNodes(initialNodes);
     }
   }, [initialNodes, setNodes]);
+
+  // Update nodes interactive state when tool mode changes
+  useEffect(() => {
+    setNodes((nds) =>
+      nds.map((node) => {
+        if (node.type === "design") {
+          return {
+            ...node,
+            data: {
+              ...node.data,
+              isInteractive: toolMode === "mouse",
+              onElementSelect: onElementSelect, // Update callback if changed
+            },
+          };
+        }
+        return node;
+      })
+    );
+  }, [toolMode, onElementSelect, setNodes]);
 
   // Focus on selected node when selection comes from external source (chat click)
   useEffect(() => {
@@ -215,10 +271,49 @@ export function DesignCanvas({
         maxZoom={MAX_ZOOM}
         defaultViewport={{ x: 0, y: 0, zoom: 0.5 }}
         proOptions={{ hideAttribution: true }}
-        panOnDrag={toolMode === "hand" ? [1, 2] : false}
+        panOnDrag={toolMode === "hand" ? [0, 1, 2] : false}
         selectionOnDrag={toolMode === "mouse"}
       >
         <Background variant={BackgroundVariant.Dots} gap={12} size={1} />
+
+        {/* Save/Undo/Redo Toolbar - only visible in mouse mode */}
+        {toolMode === "mouse" && (
+          <Panel position="top-center" className="mt-4">
+            <div className="flex items-center gap-1 rounded-lg border bg-background/95 p-1 shadow-md backdrop-blur-sm">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 px-2.5 text-xs font-medium gap-1.5"
+                onClick={onSave}
+                disabled={!hasUnsavedChanges || isSaving}
+              >
+                {isSaving && <Loader2 className="h-3 w-3 animate-spin" />}
+                {isSaving ? "Saving..." : "Save"}
+              </Button>
+              <div className="w-px h-4 bg-border" />
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 w-7 p-0"
+                title="Undo"
+                onClick={onUndo}
+                disabled={!canUndo}
+              >
+                <Undo2 className="h-3.5 w-3.5" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 w-7 p-0"
+                title="Redo"
+                onClick={onRedo}
+                disabled={!canRedo}
+              >
+                <Redo2 className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          </Panel>
+        )}
 
         {/* Custom Controls */}
         <Panel position="bottom-center" className="mb-8">

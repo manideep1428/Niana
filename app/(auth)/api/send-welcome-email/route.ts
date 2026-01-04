@@ -307,7 +307,7 @@ const transporter = nodemailer.createTransport({
 
 export async function POST(request: NextRequest) {
   try {
-    const { email, firstName, lastName } = await request.json();
+    const { email, firstName } = await request.json();
 
     if (!email) {
       return NextResponse.json({ error: "Email is required" }, { status: 400 });
@@ -316,24 +316,33 @@ export async function POST(request: NextRequest) {
     // Generate the email template
     const htmlContent = getWelcomeEmailTemplate(firstName);
 
-    // Send the welcome email
-    await transporter.sendMail({
-      from: `"Niana" <${process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER}>`,
-      to: email,
-      subject: "🎉 Welcome to Niana - Your AI Design Journey Begins!",
-      html: htmlContent,
-    });
+    // Send the welcome email in background (fire and forget - non-blocking)
+    transporter
+      .sendMail({
+        from: `"Niana" <${process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER}>`,
+        to: email,
+        subject: "🎉 Welcome to Niana - Your AI Design Journey Begins!",
+        html: htmlContent,
+      })
+      .then(() => {
+        console.log(`Welcome email sent to ${email}`);
+      })
+      .catch((error) => {
+        console.error(`Failed to send welcome email to ${email}:`, error);
+      });
 
-    console.log(`Welcome email sent to ${email}`);
-
+    // Return immediately without waiting for email to be sent
     return NextResponse.json(
-      { success: true, message: "Welcome email sent successfully" },
+      { success: true, message: "Welcome email queued successfully" },
       { status: 200 }
     );
   } catch (error) {
-    console.error("Error sending welcome email:", error);
+    console.error("Error processing welcome email request:", error);
     return NextResponse.json(
-      { error: "Failed to send welcome email", details: String(error) },
+      {
+        error: "Failed to process welcome email request",
+        details: String(error),
+      },
       { status: 500 }
     );
   }

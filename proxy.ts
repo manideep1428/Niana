@@ -5,12 +5,18 @@ import { authkitMiddleware } from "@workos-inc/authkit-nextjs";
 export default authkitMiddleware({
   middlewareAuth: {
     enabled: true,
-    unauthenticatedPaths: ["/"],
+    unauthenticatedPaths: ["/", "/api/send-welcome-email"],
   },
 });
 
 // Match against pages that require authentication
 // Leave this out if you want authentication on every page in your application
 export const config = {
-  matcher: ["/", "/account/:page*", /*api*/ "/api/:path*", "/design/:id*", "/dashboard"],
+  matcher: [
+    "/",
+    "/account/:page*",
+    /*api*/ "/api/:path*",
+    "/design/:id*",
+    "/dashboard",
+  ],
 };

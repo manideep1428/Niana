@@ -36,7 +36,7 @@ http.route({
       try {
         // Get the base URL from environment or use a default
         const baseUrl =
-          process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+          process.env.NEXT_PUBLIC_APP_URL || "https://beta-niana.vercel.app/";
 
         // Call the Next.js API route to send welcome email
         const emailResponse = await fetch(`${baseUrl}/api/send-welcome-email`, {

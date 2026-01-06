@@ -2,9 +2,32 @@
 
 import { memo, useState, useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
-import { Columns3, MoreVertical, Trash2 } from "lucide-react";
+import {
+  Columns3,
+  MoreVertical,
+  Trash2,
+  Sparkles,
+  Pencil,
+  MoreHorizontal,
+  Check,
+  Loader2,
+  Figma,
+  AlertTriangle,
+} from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
+import { NodeToolbar, Position } from "@xyflow/react";
+import { convertHtmlToFigma } from "@/app/actions/figma";
+import { toast } from "sonner";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import Image from "next/image";
 
 export interface DesignNodeData extends Record<string, unknown> {
   artifactId: string;
@@ -13,6 +36,7 @@ export interface DesignNodeData extends Record<string, unknown> {
   isStreaming?: boolean;
   isInteractive?: boolean;
   onDelete?: (artifactId: string) => void;
+  onEnableEdit?: (artifactId: string) => void;
   onElementSelect?: (
     artifactId: string,
     elementInfo: {
@@ -37,19 +61,123 @@ function DesignNodeComponent({ data, selected }: DesignNodeProps) {
     title,
     content,
     onDelete,
+    onEnableEdit,
     isInteractive,
     onElementSelect,
   } = data;
-  // Default height for 6.1 inch diagonal phone (375 x 812px like iPhone 14)
+  const iframeRef = useRef<HTMLIFrameElement>(null);
   const [iframeHeight, setIframeHeight] = useState(812);
   const [isLoaded, setIsLoaded] = useState(false);
-  const [showMenu, setShowMenu] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
+  const [showMoreMenu, setShowMoreMenu] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
-  // Show skeleton only when there's no content
+  const [isFigmaLoading, setIsFigmaLoading] = useState(false);
+  const [preparedFigmaData, setPreparedFigmaData] = useState<string | null>(
+    null
+  );
+  const [figmaCopySuccess, setFigmaCopySuccess] = useState(false);
+  const clipboardDataRef = useRef<string | null>(null);
+
   const showSkeleton = !content;
 
-  // Inject inspector and resize script into content
+  useEffect(() => {
+    const handleCopy = (e: ClipboardEvent) => {
+      if (clipboardDataRef.current) {
+        e.clipboardData?.setData("text/html", clipboardDataRef.current);
+        e.preventDefault();
+        clipboardDataRef.current = null;
+        setFigmaCopySuccess(true);
+        setTimeout(() => {
+          setFigmaCopySuccess(false);
+          setPreparedFigmaData(null); // Reset to initial state
+        }, 2000);
+      }
+    };
+
+    document.addEventListener("copy", handleCopy);
+    return () => document.removeEventListener("copy", handleCopy);
+  }, []);
+
+  const handleFigmaAction = async () => {
+    if (preparedFigmaData) {
+      clipboardDataRef.current = preparedFigmaData;
+      document.execCommand("copy");
+      toast.success("Design copied! Paste in Figma (Cmd/Ctrl + V)");
+      setPreparedFigmaData(null); // Reset
+      return;
+    }
+
+    // Phase 1: Fetch content
+    if (!content || isFigmaLoading) return;
+
+    setIsFigmaLoading(true);
+    try {
+      const result = await convertHtmlToFigma(content, artifactId);
+
+      if (result.success && result.data) {
+        // Attempt direct async copy (Modern Browsers: Chrome, Edge, Safari 13.1+)
+        try {
+          if (
+            typeof navigator !== "undefined" &&
+            navigator.clipboard &&
+            navigator.clipboard.write
+          ) {
+            // Create blobs for both HTML and Plain Text for maximum compatibility
+            const blobHtml = new Blob([result.data], { type: "text/html" });
+            const blobText = new Blob([result.data], { type: "text/plain" });
+
+            const item = new ClipboardItem({
+              "text/html": blobHtml,
+              "text/plain": blobText,
+            });
+
+            await navigator.clipboard.write([item]);
+
+            setFigmaCopySuccess(true);
+            toast.success("Design copied! Paste in Figma (Cmd/Ctrl + V)");
+
+            setTimeout(() => setFigmaCopySuccess(false), 2000);
+            return; // Success!
+          }
+          throw new Error("Clipboard API unavailable");
+        } catch (copyErr: any) {
+          console.warn(
+            "Async copy failed, falling back to manual copy:",
+            copyErr
+          );
+
+          // If the error is due to usage interaction (NotAllowedError), we MUST use the fallback
+          setPreparedFigmaData(result.data);
+
+          if (copyErr.name === "NotAllowedError") {
+            toast.message("Click 'Copy Now' to finish", {
+              description: "Browser blocked auto-copy. One more click needed!",
+            });
+          } else {
+            toast.message("Design ready!", {
+              description: "Click the button again to copy to clipboard.",
+            });
+          }
+        }
+      } else {
+        console.error("Failed to convert:", result.error);
+        // Check if the error is about plan limit
+        if (result.error?.includes("Plan limit reached")) {
+          toast.error("Figma Export Limit Reached", {
+            description: result.error,
+          });
+        } else {
+          toast.error("Failed to prepare design. Please try again.");
+        }
+      }
+    } catch (err) {
+      console.error("Copy handler error:", err);
+      toast.error("An error occurred while preparing.");
+    } finally {
+      setIsFigmaLoading(false);
+    }
+  };
+
   const contentWithScript = content
     ? `${content}
     <style>
@@ -273,10 +401,6 @@ function DesignNodeComponent({ data, selected }: DesignNodeProps) {
             const inspectorDiv = clone.querySelector('#inspector-highlight');
             if (inspectorDiv) inspectorDiv.remove();
             
-            // Remove scripts that we injected (optional, but cleaner)
-            // Ideally we should keep the user's scripts but remove our inspector script
-            // For now, simpler to just return innerHTML of body/head excluding inspector
-            
             window.parent.postMessage({
               type: 'returnHtml', 
               artifactId: '${artifactId}',
@@ -377,100 +501,173 @@ function DesignNodeComponent({ data, selected }: DesignNodeProps) {
     }
   }, [content]);
 
-  // Click outside to close menu
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setShowMenu(false);
-      }
-    };
-
-    if (showMenu) {
-      document.addEventListener("mousedown", handleClickOutside);
-      return () =>
-        document.removeEventListener("mousedown", handleClickOutside);
-    }
-  }, [showMenu]);
-
-  const handleDelete = () => {
+  // Handle delete confirmation
+  const handleDeleteConfirm = () => {
     if (onDelete) {
       onDelete(artifactId);
     }
-    setShowMenu(false);
+    setShowDeleteDialog(false);
+  };
+
+  // Handle Generate - Coming Soon
+  const handleGenerate = () => {
+    toast.info("Coming Soon!", {
+      description: "AI-powered regeneration will be available soon.",
+    });
+  };
+
+  // Handle Edit - Enable visual editor mode
+  const handleEdit = () => {
+    if (onEnableEdit) {
+      onEnableEdit(artifactId);
+    }
+    // Also trigger a click in the iframe to select the first element
+    if (iframeRef.current?.contentDocument?.body) {
+      const firstElement = iframeRef.current.contentDocument.body.querySelector(
+        "div, section, main, header, article"
+      );
+      if (firstElement) {
+        (firstElement as HTMLElement).click();
+      }
+    }
   };
 
   return (
     <div
       className={cn(
-        "transition-all duration-200 cursor-grab active:cursor-grabbing rounded-2xl",
+        "transition-all duration-200 cursor-grab active:cursor-grabbing rounded-2xl relative group",
         // Solid bg for skeleton, glass effect for generated design
         showSkeleton
           ? "bg-background border border-border shadow-lg"
           : "bg-transparent"
       )}
     >
-      {/* Header */}
-      <div
-        className={cn(
-          "flex items-center justify-between gap-2 px-3 py-2 border-b relative",
-          showSkeleton ? "bg-muted/50 rounded-t-2xl" : "bg-transparent/50"
-        )}
-      >
-        <span className="text-2xl font-medium truncate max-w-[200px]">
-          {title || "Untitled Design"}
-        </span>
-
-        {/* Menu Button */}
-        <div className="relative" ref={menuRef}>
+      <NodeToolbar isVisible={selected} position={Position.Top} offset={20}>
+        <div className="flex items-center gap-1 p-1 bg-gray-900 rounded-xl shadow-xl border border-gray-800 text-white animate-in slide-in-from-bottom-2 fade-in duration-200">
           <Button
             variant="ghost"
-            size="icon"
-            className="h-8 w-8 rounded-full hover:bg-muted pointer-events-auto"
-            onClick={(e) => {
-              e.stopPropagation();
-              setShowMenu(!showMenu);
-            }}
+            size="sm"
+            onClick={handleGenerate}
+            className="text-white hover:bg-white/10 hover:text-white h-8 px-2.5 gap-2 rounded-lg font-medium text-xs"
           >
-            <MoreVertical className="h-4 w-4" />
+            <Sparkles className="w-3.5 h-3.5" />
+            Generate
           </Button>
 
-          {/* Dropdown Menu */}
-          {showMenu && (
-            <div className="absolute right-0 top-full mt-1 w-48 bg-background border rounded-lg shadow-lg z-50 overflow-hidden pointer-events-auto">
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleDelete();
-                }}
-                className="w-full flex items-center gap-2 px-4 py-2 text-sm text-destructive hover:bg-destructive/10 transition-colors"
-              >
-                <Trash2 className="h-4 w-4" />
-                Delete Design
-              </button>
-            </div>
-          )}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleEdit}
+            className="text-white hover:bg-white/10 hover:text-white h-8 px-2.5 gap-2 rounded-lg font-medium text-xs"
+          >
+            <Pencil className="w-3.5 h-3.5" />
+            Edit
+          </Button>
+
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleFigmaAction}
+            disabled={isFigmaLoading}
+            className={cn(
+              "h-8 px-2.5 gap-2 rounded-lg font-medium text-xs transition-all",
+              preparedFigmaData
+                ? "bg-green-500/20 text-green-400 hover:bg-green-500/30 hover:text-green-300 border border-green-500/50"
+                : "text-white hover:bg-white/10 hover:text-white"
+            )}
+          >
+            {isFigmaLoading ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : figmaCopySuccess ? (
+              <Check className="w-3.5 h-3.5 text-green-400" />
+            ) : preparedFigmaData ? (
+              <div className="flex items-center gap-2">
+                <Check className="w-3.5 h-3.5" />
+                <span>Copy Now</span>
+              </div>
+            ) : (
+              <Image
+                src="/figma.svg"
+                alt="Figma"
+                width={20}
+                height={20}
+                className="rounded"
+              />
+            )}
+            {!preparedFigmaData && (figmaCopySuccess ? "Copied!" : "Figma")}
+          </Button>
+
+          <div className="w-px h-4 bg-white/20 mx-1" />
+
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowDeleteDialog(true)}
+            className="text-red-400 hover:bg-red-500/20 hover:text-red-300 h-8 px-2.5 gap-2 rounded-lg font-medium text-xs"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+            Delete
+          </Button>
         </div>
-      </div>
+      </NodeToolbar>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <DialogContent className="bg-zinc-900 border-white/10 text-white sm:max-w-md">
+          <DialogHeader>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-10 h-10 rounded-full bg-red-500/20 flex items-center justify-center">
+                <AlertTriangle className="w-5 h-5 text-red-400" />
+              </div>
+              <DialogTitle>Delete Design</DialogTitle>
+            </div>
+            <DialogDescription className="text-white/60">
+              Are you sure you want to delete{" "}
+              <span className="text-white font-medium">"{title}"</span>?
+              <br />
+              <br />
+              <span className="text-red-400">
+                This action cannot be undone.
+              </span>
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              variant="ghost"
+              onClick={() => setShowDeleteDialog(false)}
+              className="text-white/60 hover:text-white hover:bg-white/10"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleDeleteConfirm}
+              className="bg-red-500 hover:bg-red-600 text-white"
+            >
+              Delete Design
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Content Area */}
       <div
         className={cn(
-          "relative overflow-hidden rounded-b-2xl",
+          "relative overflow-hidden rounded-2xl",
           // Solid bg for skeleton, transparent for generated
           showSkeleton ? "bg-background" : "bg-transparent",
           selected
-            ? "border-primary border-2 ring-2 ring-primary/20 shadow-xl"
+            ? "border-primary border-2 ring-4 ring-primary/20 shadow-xl"
             : "border-border hover:border-primary/50"
         )}
       >
-        {/* Iframe Preview - always render but hide when no content */}
+        {/* Iframe Preview */}
         <iframe
+          ref={iframeRef}
           name={artifactId}
           srcDoc={contentWithScript}
           className={cn(
             "w-[375px] border-0 transition-all duration-300 block",
             showSkeleton ? "opacity-0" : "opacity-100",
-            // Enable pointer events when interactive, otherwise disable
             isInteractive ? "pointer-events-auto" : "pointer-events-none"
           )}
           style={{ height: iframeHeight }}
@@ -479,7 +676,7 @@ function DesignNodeComponent({ data, selected }: DesignNodeProps) {
           title={title}
         />
 
-        {/* Skeleton Loader - Shows only when no content */}
+        {/* Skeleton Loader */}
         {showSkeleton && (
           <div className="absolute inset-0 z-10 bg-background flex flex-col items-center justify-center p-6 space-y-4 min-h-[812px] w-[375px]">
             <div className="w-full space-y-3">
@@ -498,10 +695,7 @@ function DesignNodeComponent({ data, selected }: DesignNodeProps) {
           </div>
         )}
 
-        {/* Overlay to allow dragging over iframe. 
-            When interactive, we hide this overlay or disable pointer events on it 
-            so the iframe receives the events.
-        */}
+        {/* Overlay for dragging */}
         <div
           className={cn(
             "absolute inset-0 transparent",

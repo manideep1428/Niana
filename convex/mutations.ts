@@ -397,3 +397,283 @@ export const renameProject = mutation({
     return { success: true };
   },
 });
+
+// Toggle project favorite status
+export const toggleProjectFavorite = mutation({
+  args: {
+    project_id: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const project = await ctx.db
+      .query("projects")
+      .filter((q) => q.eq(q.field("project_id"), args.project_id))
+      .first();
+
+    if (!project) {
+      throw new Error(`Project with id "${args.project_id}" not found`);
+    }
+
+    const newFavoriteStatus = !project.is_favorite;
+
+    await ctx.db.patch(project._id, {
+      is_favorite: newFavoriteStatus,
+    });
+
+    return { success: true, is_favorite: newFavoriteStatus };
+  },
+});
+
+// Create a payment record when order is created
+export const createPayment = mutation({
+  args: {
+    user_id: v.string(),
+    order_id: v.string(),
+    plan: v.union(
+      v.literal("free"),
+      v.literal("base"),
+      v.literal("standard"),
+      v.literal("premium")
+    ),
+    amount: v.number(),
+    currency: v.string(),
+    status: v.union(
+      v.literal("created"),
+      v.literal("paid"),
+      v.literal("failed")
+    ),
+  },
+  handler: async (ctx, args) => {
+    const now = new Date().toISOString();
+    return await ctx.db.insert("payments", {
+      ...args,
+      created_at: now,
+      updated_at: now,
+    });
+  },
+});
+
+// Update payment status after verification
+export const updatePaymentStatus = mutation({
+  args: {
+    order_id: v.string(),
+    status: v.union(
+      v.literal("created"),
+      v.literal("paid"),
+      v.literal("failed")
+    ),
+    razorpay_payment_id: v.optional(v.string()),
+    razorpay_signature: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const payment = await ctx.db
+      .query("payments")
+      .withIndex("by_order_id", (q) => q.eq("order_id", args.order_id))
+      .first();
+
+    if (!payment) {
+      throw new Error(`Payment with order_id "${args.order_id}" not found`);
+    }
+
+    await ctx.db.patch(payment._id, {
+      status: args.status,
+      razorpay_payment_id: args.razorpay_payment_id,
+      razorpay_signature: args.razorpay_signature,
+      updated_at: new Date().toISOString(),
+    });
+
+    return { success: true };
+  },
+});
+
+// Create subscription after successful payment
+export const createSubscription = mutation({
+  args: {
+    user_id: v.string(),
+    plan: v.union(
+      v.literal("free"),
+      v.literal("base"),
+      v.literal("standard"),
+      v.literal("premium")
+    ),
+    tokens_total: v.number(),
+    tokens_used: v.number(),
+    projects_limit: v.number(),
+    status: v.union(
+      v.literal("active"),
+      v.literal("expired"),
+      v.literal("cancelled")
+    ),
+    razorpay_payment_id: v.string(),
+    razorpay_order_id: v.string(),
+    razorpay_signature: v.string(),
+    amount: v.number(),
+    expires_at: v.string(),
+  },
+  handler: async (ctx, args) => {
+    // Expire any existing active subscriptions for this user
+    const existingSubscriptions = await ctx.db
+      .query("subscriptions")
+      .withIndex("by_user", (q) => q.eq("user_id", args.user_id))
+      .collect();
+
+    for (const sub of existingSubscriptions) {
+      if (sub.status === "active") {
+        await ctx.db.patch(sub._id, {
+          status: "expired",
+        });
+      }
+    }
+
+    // Create new subscription
+    return await ctx.db.insert("subscriptions", {
+      ...args,
+      created_at: new Date().toISOString(),
+    });
+  },
+});
+
+// Update token usage
+export const updateTokenUsage = mutation({
+  args: {
+    user_id: v.string(),
+    tokens_used: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const subscription = await ctx.db
+      .query("subscriptions")
+      .withIndex("by_user", (q) => q.eq("user_id", args.user_id))
+      .filter((q) => q.eq(q.field("status"), "active"))
+      .first();
+
+    if (!subscription) {
+      throw new Error("No active subscription found");
+    }
+
+    await ctx.db.patch(subscription._id, {
+      tokens_used: subscription.tokens_used + args.tokens_used,
+    });
+
+    return { success: true };
+  },
+});
+
+// Create free subscription for a user (if they don't have one)
+export const createFreeSubscription = mutation({
+  args: {
+    user_id: v.string(),
+  },
+  handler: async (ctx, args) => {
+    // Check if user already has any subscription
+    const existingSub = await ctx.db
+      .query("subscriptions")
+      .withIndex("by_user", (q) => q.eq("user_id", args.user_id))
+      .first();
+
+    if (existingSub) {
+      return { status: "already_exists", subscriptionId: existingSub._id };
+    }
+
+    // Create free base subscription
+    // Free plan: 1 Credit = 20,000 tokens
+    const now = new Date();
+    const expiresAt = new Date(now);
+    expiresAt.setMonth(now.getMonth() + 1); // Renews monthly
+
+    const subscriptionId = await ctx.db.insert("subscriptions", {
+      user_id: args.user_id,
+      plan: "free",
+      tokens_total: 20000, // 1 Credit = 20k tokens
+      tokens_used: 0,
+      projects_limit: -1, // Unlimited
+      status: "active",
+      amount: 0, // Free
+      created_at: now.toISOString(),
+      expires_at: expiresAt.toISOString(),
+      // razorpay fields are now optional, so omitting them
+    });
+
+    return { status: "created", subscriptionId };
+  },
+});
+
+// Backfill free subscriptions for all existing users without one
+export const backfillFreeSubscriptions = mutation({
+  args: {},
+  handler: async (ctx) => {
+    // Get all users
+    const users = await ctx.db.query("users").collect();
+
+    let created = 0;
+    let skipped = 0;
+
+    for (const user of users) {
+      // Check if user has a subscription
+      const existingSub = await ctx.db
+        .query("subscriptions")
+        .withIndex("by_user", (q) => q.eq("user_id", user.user_id))
+        .first();
+
+      if (!existingSub) {
+        // Create free subscription
+        const now = new Date();
+        const expiresAt = new Date(now);
+        expiresAt.setMonth(now.getMonth() + 1);
+
+        await ctx.db.insert("subscriptions", {
+          user_id: user.user_id,
+          plan: "free",
+          tokens_total: 20000, // 1 Credit = 20k tokens
+          tokens_used: 0,
+          projects_limit: -1,
+          status: "active",
+          amount: 0,
+          created_at: now.toISOString(),
+          expires_at: expiresAt.toISOString(),
+        });
+        created++;
+      } else {
+        skipped++;
+      }
+    }
+
+    return {
+      success: true,
+      created,
+      skipped,
+      total: users.length,
+    };
+  },
+});
+
+// Migrate all existing subscriptions to the "free" plan
+export const migrateAllUsersToFreePlan = mutation({
+  args: {},
+  handler: async (ctx) => {
+    // Get all subscriptions
+    const subscriptions = await ctx.db.query("subscriptions").collect();
+
+    let updated = 0;
+    let alreadyFree = 0;
+
+    for (const subscription of subscriptions) {
+      if (subscription.plan !== "free") {
+        await ctx.db.patch(subscription._id, {
+          plan: "free",
+          amount: 0, // Set amount to 0 for free plan
+          tokens_total: 10000, // Reset to free tier tokens
+          tokens_used: 0, // Reset token usage
+        });
+        updated++;
+      } else {
+        alreadyFree++;
+      }
+    }
+
+    return {
+      success: true,
+      updated,
+      alreadyFree,
+      total: subscriptions.length,
+    };
+  },
+});

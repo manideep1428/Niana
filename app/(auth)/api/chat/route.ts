@@ -4,6 +4,12 @@ import openai from "@/lib/openai";
 import { getTempSystemPrompt, getSystemPrompt } from "@/lib/prompt";
 import { tools, CreateArtifactArgs, UpdateArtifactArgs } from "@/lib/tools";
 import { NextRequest } from "next/server";
+import { ConvexHttpClient } from "convex/browser";
+import { api } from "@/convex/_generated/api";
+import { withAuth } from "@workos-inc/authkit-nextjs";
+
+// Initialize Convex Client
+const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
 // TEMP: Using temp prompt for testing (generates 1 screen by default)
 // To revert to full prompt: change to getSystemPrompt()
@@ -69,6 +75,32 @@ function buildMessageContent(
 
 export async function POST(request: NextRequest) {
   const { messages, projectId } = await request.json();
+  const { user } = await withAuth();
+
+  if (!user) {
+    return Response.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  // Check Credit Balance
+  try {
+    const subscription = await convex.query(api.quires.getUserSubscription, {
+      user_id: user.id,
+    });
+    const totalTokens = subscription?.tokens_total ?? 20000; // Default Free: 1 credit = 20k tokens
+    const usedTokens = subscription?.tokens_used ?? 0;
+
+    if (usedTokens >= totalTokens) {
+      return Response.json(
+        {
+          error:
+            "You have run out of credits. Please upgrade your plan to continue.",
+        },
+        { status: 403 }
+      );
+    }
+  } catch (e) {
+    console.error("Credit check failed:", e);
+  }
 
   // Build the messages array with history, handling attachments
   const chatMessages = [
@@ -88,6 +120,7 @@ export async function POST(request: NextRequest) {
       tools: tools,
       tool_choice: "auto",
       stream: true,
+      stream_options: { include_usage: true },
     });
 
     const encoder = new TextEncoder();
@@ -98,6 +131,7 @@ export async function POST(request: NextRequest) {
       { id: string; name: string; arguments: string }
     > = new Map();
     let currentContent = "";
+    let usageTokens = 0;
 
     const readable = new ReadableStream({
       async start(controller) {
@@ -105,6 +139,13 @@ export async function POST(request: NextRequest) {
           for await (const chunk of stream) {
             const delta = chunk.choices[0]?.delta;
             const finishReason = chunk.choices[0]?.finish_reason;
+
+            // Capture usage if available (usually in the last chunk)
+            if (chunk.usage) {
+              // User requested: "every 10,000 output tokens ... will cosume a 1 token"
+              // We track output tokens (completion_tokens).
+              usageTokens = chunk.usage.completion_tokens || 0;
+            }
 
             // Handle text content
             if (delta?.content) {
@@ -191,6 +232,18 @@ export async function POST(request: NextRequest) {
               }
               // Clear processed calls to avoid double processing
               toolCalls.clear();
+            }
+          }
+
+          // Update token usage in DB if we have a user and usage data
+          if (user && usageTokens > 0) {
+            try {
+              await convex.mutation(api.mutations.updateTokenUsage, {
+                user_id: user.id,
+                tokens_used: usageTokens,
+              });
+            } catch (error) {
+              console.error("Failed to update token usage:", error);
             }
           }
 

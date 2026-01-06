@@ -109,7 +109,7 @@ export function SubscriptionsSection() {
 
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight">
             <span className="text-white">Choose your </span>
-            <span className="bg-gradient-to-r from-orange-400 via-orange-500 to-orange-400 bg-clip-text text-transparent">
+            <span className="bg-linear-to-r from-orange-400 via-orange-500 to-orange-400 bg-clip-text text-transparent">
               perfect plan
             </span>
           </h2>
@@ -130,16 +130,16 @@ export function SubscriptionsSection() {
                 key={plan.name}
                 className={`relative rounded-2xl p-6 transition-all duration-300 flex flex-col ${
                   isCurrentPlan
-                    ? "bg-gradient-to-b from-emerald-500/20 to-emerald-500/5 border-2 border-emerald-500/50 shadow-2xl shadow-emerald-500/20"
+                    ? "bg-linear-to-b from-emerald-500/20 to-emerald-500/5 border-2 border-emerald-500/50 shadow-2xl shadow-emerald-500/20"
                     : plan.highlighted
-                      ? "bg-gradient-to-b from-orange-500/10 to-orange-500/5 border-2 border-orange-500/50 shadow-2xl shadow-orange-500/20 scale-105 z-10"
+                      ? "bg-linear-to-b from-orange-500/10 to-orange-500/5 border-2 border-orange-500/50 shadow-2xl shadow-orange-500/20 scale-105 z-10"
                       : "bg-white/5 border border-white/10 hover:bg-white/10"
                 }`}
               >
                 {/* Current Plan Badge */}
                 {isCurrentPlan && (
                   <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-                    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-xs font-medium shadow-lg">
+                    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-linear-to-r from-emerald-500 to-teal-500 text-white text-xs font-medium shadow-lg">
                       <Sparkles className="w-3 h-3" />
                       Current Plan
                     </div>
@@ -152,8 +152,8 @@ export function SubscriptionsSection() {
                     <div
                       className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-white text-xs font-medium shadow-lg ${
                         plan.badge === "MOST POPULAR"
-                          ? "bg-gradient-to-r from-orange-500 to-orange-600"
-                          : "bg-gradient-to-r from-orange-500/50 to-orange-600/50 border border-orange-500/30"
+                          ? "bg-linear-to-r from-orange-500 to-orange-600"
+                          : "bg-linear-to-r from-orange-500/50 to-orange-600/50 border border-orange-500/30"
                       }`}
                     >
                       {plan.badge}
@@ -202,7 +202,7 @@ export function SubscriptionsSection() {
                         isCurrentPlan
                           ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 cursor-default"
                           : plan.highlighted
-                            ? "bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white"
+                            ? "bg-linear-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white"
                             : "bg-white/10 hover:bg-white/20 text-white border border-white/20"
                       }`}
                     >

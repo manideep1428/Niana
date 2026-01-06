@@ -19,10 +19,12 @@ interface PreviewAttachmentProps {
 
 function getFileIcon(contentType: string) {
   if (contentType.startsWith("image/")) return null; // Will show image preview
-  if (contentType === "application/pdf") return <FileText className="w-6 h-6 text-red-500" />;
+  if (contentType === "application/pdf")
+    return <FileText className="w-6 h-6 text-red-500" />;
   if (
     contentType === "application/msword" ||
-    contentType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    contentType ===
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
   ) {
     return <FileText className="w-6 h-6 text-blue-500" />;
   }
@@ -44,7 +46,7 @@ export function PreviewAttachment({
   const extension = getFileExtension(name);
 
   return (
-    <div className="group relative size-16 overflow-hidden rounded-lg border bg-muted flex-shrink-0">
+    <div className="group relative size-16 overflow-hidden rounded-lg border bg-muted shrink-0">
       {isImage && url ? (
         <Image
           alt={name || "Attachment"}

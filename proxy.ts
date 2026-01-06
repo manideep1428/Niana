@@ -5,7 +5,7 @@ import { authkitMiddleware } from "@workos-inc/authkit-nextjs";
 export default authkitMiddleware({
   middlewareAuth: {
     enabled: true,
-    unauthenticatedPaths: ["/", "/api/send-welcome-email"],
+    unauthenticatedPaths: ["/", "/pricing", "/api/send-welcome-email"],
   },
 });
 
@@ -14,6 +14,7 @@ export default authkitMiddleware({
 export const config = {
   matcher: [
     "/",
+    "/pricing",
     "/account/:page*",
     /*api*/ "/api/:path*",
     "/design/:id*",

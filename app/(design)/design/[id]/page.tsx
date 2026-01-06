@@ -17,15 +17,19 @@ import { ArtifactProvider, useArtifact } from "@/hooks/use-artifact";
 import type { Attachment } from "@/components/preview-attachment";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Pencil, Check, X, Moon, Sun, Zap, Heart } from "lucide-react";
+import { Pencil, Check, X, Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
+import Image from "next/image";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { TokenUsageDisplay } from "@/components/token-usage-display";
 import type { SelectedElement } from "@/components/visual-editor";
+import { toast } from "sonner";
+import { useAuth } from "@workos-inc/authkit-nextjs/components";
 
 // Types for SSE events
 interface TextEvent {
@@ -117,6 +121,13 @@ function DesignPageContent() {
   const createDesign = useMutation(api.mutations.createDesign);
   const updateDesign = useMutation(api.mutations.updateDesign);
   const updateProjectTitle = useMutation(api.mutations.updateProjectTitle);
+
+  // Get user for subscription check
+  const { user } = useAuth();
+  const subscription = useQuery(
+    api.quires.getUserSubscription,
+    user ? { user_id: user.id } : "skip"
+  );
 
   // Convert Convex designs to canvas format
   const dbDesigns: Design[] = (designsData ?? []).map((d: any) => ({
@@ -578,6 +589,22 @@ function DesignPageContent() {
       attachments: Attachment[] = [],
       skipSaveUserMessage = false
     ) => {
+      // Check credit limit before proceeding
+      const totalTokens = subscription?.tokens_total ?? 10000;
+      const usedTokens = subscription?.tokens_used ?? 0;
+
+      if (usedTokens >= totalTokens) {
+        toast.error("Credit limit reached", {
+          description:
+            "You've used all your credits. Please upgrade your plan to continue.",
+          action: {
+            label: "Upgrade",
+            onClick: () => (window.location.href = "/pricing"),
+          },
+        });
+        return;
+      }
+
       setIsLoading(true);
       let assistantContent = "";
       const artifacts: { id: string; title: string }[] = [];
@@ -721,7 +748,14 @@ function DesignPageContent() {
         setPendingDesigns([]);
       }
     },
-    [projectId, createDesign, updateDesign, setSelectedArtifactId, saveMessage]
+    [
+      projectId,
+      createDesign,
+      updateDesign,
+      setSelectedArtifactId,
+      saveMessage,
+      subscription,
+    ]
   );
 
   // Auto-process initial message
@@ -847,43 +881,56 @@ function DesignPageContent() {
               </div>
             )}
           </div>
-          <div className="flex items-center gap-2 px-4">
+          <div className="flex items-center gap-3 px-4">
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="gap-2"
-                    onClick={() => window.open("https://bolt.new", "_blank")}
-                  >
-                    <Zap className="h-4 w-4" />
-                    bolt.new
-                  </Button>
+                  <Image
+                    onClick={() =>
+                      toast.info("Coming Soon!", {
+                        description:
+                          "Export to Bolt.new will be available soon.",
+                      })
+                    }
+                    src="/Bolt.new.png"
+                    alt="Bolt.new"
+                    width={80}
+                    height={28}
+                    className="cursor-pointer rounded-md hover:opacity-80 transition-opacity h-7 w-auto"
+                  />
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>Open in bolt.new</p>
+                  <p>Export to bolt.new (Coming Soon)</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="gap-2"
-                    onClick={() => window.open("https://lovable.dev", "_blank")}
-                  >
-                    <Heart className="h-4 w-4" />
-                    lovable.dev
-                  </Button>
+                  <Image
+                    onClick={() =>
+                      toast.info("Coming Soon!", {
+                        description:
+                          "Export to Lovable will be available soon.",
+                      })
+                    }
+                    src={
+                      theme === "dark"
+                        ? "/lovable-logo-bg-dark.png"
+                        : "/lovable-logo-bg-light.png"
+                    }
+                    alt="Lovable"
+                    width={80}
+                    height={28}
+                    className="cursor-pointer rounded-md hover:opacity-80 transition-opacity h-7 w-auto"
+                  />
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>Open in lovable.dev</p>
+                  <p>Export to lovable.dev (Coming Soon)</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
+            <TokenUsageDisplay />
             <Button
               variant="ghost"
               size="icon"

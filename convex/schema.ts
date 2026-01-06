@@ -27,6 +27,7 @@ export default defineSchema({
     user_id: v.string(),
     project_id: v.string(),
     title: v.string(),
+    is_favorite: v.optional(v.boolean()), // For starring/favoriting projects
     created_at: v.string(),
   }).index("by_user", ["user_id"]),
 
@@ -58,5 +59,69 @@ export default defineSchema({
     updated_at: v.number(),
   })
     .index("by_project", ["project_id"])
+    .index("by_artifact_id", ["artifact_id"]),
+
+  // Subscription plans for users
+  subscriptions: defineTable({
+    user_id: v.string(),
+    plan: v.union(
+      v.literal("free"),
+      v.literal("base"),
+      v.literal("standard"),
+      v.literal("premium")
+    ),
+    tokens_total: v.number(), // Total tokens allocated
+    tokens_used: v.number(), // Tokens consumed
+    projects_limit: v.number(), // -1 for unlimited
+    status: v.union(
+      v.literal("active"),
+      v.literal("expired"),
+      v.literal("cancelled")
+    ),
+    razorpay_payment_id: v.optional(v.string()), // Optional for free plans
+    razorpay_order_id: v.optional(v.string()), // Optional for free plans
+    razorpay_signature: v.optional(v.string()), // Optional for free plans
+    amount: v.number(), // Amount in paise (0 for free)
+    created_at: v.string(),
+    expires_at: v.string(), // Subscription expiry date
+  })
+    .index("by_user", ["user_id"])
+    .index("by_payment_id", ["razorpay_payment_id"]),
+
+  // Payment attempts (for audit trail)
+  payments: defineTable({
+    user_id: v.string(),
+    order_id: v.string(),
+    plan: v.union(
+      v.literal("free"),
+      v.literal("base"),
+      v.literal("standard"),
+      v.literal("premium")
+    ),
+    amount: v.number(),
+    currency: v.string(),
+    status: v.union(
+      v.literal("created"),
+      v.literal("paid"),
+      v.literal("failed")
+    ),
+    razorpay_payment_id: v.optional(v.string()),
+    razorpay_signature: v.optional(v.string()),
+    created_at: v.string(),
+    updated_at: v.string(),
+  })
+    .index("by_user", ["user_id"])
+    .index("by_order_id", ["order_id"]),
+
+  figma: defineTable({
+    user_id: v.string(),
+    figma_id: v.optional(v.string()),
+    artifact_id: v.string(),
+    content: v.string(),
+    created_at: v.string(),
+    updated_at: v.string(),
+    // We can index by artifact_id to quickly look up if we have it
+  })
+    .index("by_user", ["user_id"])
     .index("by_artifact_id", ["artifact_id"]),
 });

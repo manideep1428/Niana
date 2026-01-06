@@ -15,7 +15,6 @@ export function PaymentSuccessAnimation({
   onClose,
 }: PaymentSuccessAnimationProps) {
   useEffect(() => {
-    // Fire confetti on mount
     const duration = 3 * 1000;
     const animationEnd = Date.now() + duration;
     const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 100 };
@@ -52,7 +51,7 @@ export function PaymentSuccessAnimation({
   }, []);
 
   return (
-    <div className="relative w-[400px] max-w-[90vw] bg-gradient-to-br from-purple-900/90 to-pink-900/90 backdrop-blur-xl rounded-3xl p-8 border border-white/10 shadow-2xl">
+    <div className="relative w-[400px] max-w-[90vw] bg-linear-to-br from-purple-900/90 to-pink-900/90 backdrop-blur-xl rounded-3xl p-8 border border-white/10 shadow-2xl">
       {/* Decorative elements */}
       <div className="absolute top-4 right-4">
         <motion.div
@@ -88,14 +87,14 @@ export function PaymentSuccessAnimation({
             initial={{ scale: 0 }}
             animate={{ scale: [0, 1.2, 1] }}
             transition={{ duration: 0.5, delay: 0.2 }}
-            className="w-24 h-24 rounded-full bg-gradient-to-br from-green-400 to-emerald-500 flex items-center justify-center shadow-lg shadow-green-500/30"
+            className="w-24 h-24 rounded-full bg-linear-to-br from-green-400 to-emerald-500 flex items-center justify-center shadow-lg shadow-green-500/30"
           >
             <motion.div
               initial={{ opacity: 0, scale: 0 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.4 }}
             >
-              <Check className="w-12 h-12 text-white stroke-[3]" />
+              <Check className="w-12 h-12 text-white stroke-3" />
             </motion.div>
           </motion.div>
 
@@ -149,7 +148,7 @@ export function PaymentSuccessAnimation({
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.9 }}
           onClick={onClose}
-          className="w-full py-3 px-6 rounded-xl font-medium bg-gradient-to-r from-pink-500 to-purple-500 text-white hover:from-pink-600 hover:to-purple-600 transition-all duration-300 shadow-lg shadow-pink-500/30 hover:shadow-pink-500/50"
+          className="w-full py-3 px-6 rounded-xl font-medium bg-linear-to-r from-pink-500 to-purple-500 text-white hover:from-pink-600 hover:to-purple-600 transition-all duration-300 shadow-lg shadow-pink-500/30 hover:shadow-pink-500/50"
         >
           Start Designing
         </motion.button>
@@ -159,7 +158,7 @@ export function PaymentSuccessAnimation({
       {[...Array(6)].map((_, i) => (
         <motion.div
           key={i}
-          className="absolute w-2 h-2 rounded-full bg-gradient-to-r from-pink-400 to-purple-400"
+          className="absolute w-2 h-2 rounded-full bg-linear-to-r from-pink-400 to-purple-400"
           style={{
             left: `${20 + i * 15}%`,
             top: `${10 + Math.random() * 20}%`,

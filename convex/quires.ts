@@ -63,3 +63,39 @@ export const getProject = query({
       .first();
   },
 });
+
+// Get user's active subscription
+export const getUserSubscription = query({
+  args: { user_id: v.string() },
+  handler: async (ctx, args) => {
+    return ctx.db
+      .query("subscriptions")
+      .withIndex("by_user", (q) => q.eq("user_id", args.user_id))
+      .filter((q) => q.eq(q.field("status"), "active"))
+      .first();
+  },
+});
+
+// Get user's subscription history
+export const getUserSubscriptionHistory = query({
+  args: { user_id: v.string() },
+  handler: async (ctx, args) => {
+    return ctx.db
+      .query("subscriptions")
+      .withIndex("by_user", (q) => q.eq("user_id", args.user_id))
+      .order("desc")
+      .collect();
+  },
+});
+
+// Get user's payment history
+export const getUserPayments = query({
+  args: { user_id: v.string() },
+  handler: async (ctx, args) => {
+    return ctx.db
+      .query("payments")
+      .withIndex("by_user", (q) => q.eq("user_id", args.user_id))
+      .order("desc")
+      .collect();
+  },
+});

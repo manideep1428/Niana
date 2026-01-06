@@ -8,6 +8,7 @@
  * @module
  */
 
+import type * as figma from "../figma.js";
 import type * as http from "../http.js";
 import type * as mutations from "../mutations.js";
 import type * as quires from "../quires.js";
@@ -19,6 +20,7 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  figma: typeof figma;
   http: typeof http;
   mutations: typeof mutations;
   quires: typeof quires;

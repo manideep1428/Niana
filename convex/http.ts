@@ -1,5 +1,6 @@
 import { httpRouter } from "convex/server";
 import { httpAction } from "./_generated/server";
+import { api } from "./_generated/api";
 
 const http = httpRouter();
 
@@ -33,10 +34,44 @@ http.route({
 
     // Only send welcome email for new user creation events
     if (data.event === "user.created") {
+      // 1. Save user to database
+      try {
+        await ctx.runMutation(api.mutations.saveUser, {
+          user_id: userData.id,
+          email: userData.email,
+          email_verified: userData.email_verified,
+          first_name: userData.first_name,
+          last_name: userData.last_name,
+          profile_picture_url: userData.profile_picture_url,
+          created_at: userData.created_at,
+          password: null,
+        });
+        console.log(`User ${userData.email} saved to database`);
+      } catch (error) {
+        console.error("Error saving user to database:", error);
+      }
+
+      // 2. Create free subscription for new user
+      try {
+        const result = await ctx.runMutation(
+          api.mutations.createFreeSubscription,
+          {
+            user_id: userData.id,
+          }
+        );
+        console.log(
+          `Free subscription created for ${userData.email}:`,
+          result.status
+        );
+      } catch (error) {
+        console.error("Error creating free subscription:", error);
+      }
+
+      // 2. Send welcome email
       try {
         // Get the base URL from environment or use a default
         const baseUrl =
-          process.env.NEXT_PUBLIC_APP_URL || "https://beta-niana.vercel.app/";
+          process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
         // Call the Next.js API route to send welcome email
         const emailResponse = await fetch(`${baseUrl}/api/send-welcome-email`, {

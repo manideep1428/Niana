@@ -8,7 +8,6 @@ import {
   SidebarHeader,
   SidebarRail,
 } from "@/components/ui/sidebar";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { PromptInput } from "./prompt-input";
 import { DesignPreview } from "./design-preview";
 import { Response } from "./elements/response";
@@ -19,6 +18,7 @@ import {
   FileText,
   File,
   ArrowLeft,
+  ArrowDown,
   Pencil,
   Square,
   Type,
@@ -26,6 +26,7 @@ import {
   Undo2,
   Redo2,
 } from "lucide-react";
+import { useScrollToBottom } from "@/hooks/use-scroll-to-bottom";
 import { useAuth } from "@workos-inc/authkit-nextjs/components";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { VisualEditor, SelectedElement } from "./visual-editor";
@@ -152,17 +153,14 @@ export function PromptSidebar({
   ...props
 }: PromptSidebarProps) {
   const { user } = useAuth();
-  const scrollRef = React.useRef<HTMLDivElement>(null);
-
-  // Auto-scroll to bottom when new messages arrive
-  React.useEffect(() => {
-    if (scrollRef.current && activeTab === "chat") {
-      scrollRef.current.scrollTo({
-        top: scrollRef.current.scrollHeight,
-        behavior: "smooth",
-      });
-    }
-  }, [messages, activeTab]);
+  
+  // Use the scroll-to-bottom hook for auto-scroll during streaming
+  const {
+    containerRef,
+    endRef,
+    isAtBottom,
+    scrollToBottom,
+  } = useScrollToBottom();
 
   // Auto-switch to design tab when an element is selected
   React.useEffect(() => {
@@ -243,134 +241,158 @@ export function PromptSidebar({
         {/* Content Area */}
         <SidebarContent className="p-0 overflow-hidden flex-1">
           {activeTab === "chat" ? (
-            // Chat Content
-            <ScrollArea className="h-full" ref={scrollRef}>
-              <div className="p-4 space-y-4">
-                {isMessagesLoading ? (
-                  <div className="flex flex-col gap-3">
-                    {[44, 32, 28, 64, 52].map((item, index) => (
-                      <div key={index} className="flex gap-2 justify-start">
-                        <div className="shrink-0 w-6 h-6 rounded-full bg-muted animate-pulse" />
-                        <div
-                          className="h-10 flex-1 rounded-2xl bg-muted animate-pulse"
-                          style={{ maxWidth: `${item}%` }}
-                        />
-                      </div>
-                    ))}
-                  </div>
-                ) : messages.length === 0 ? (
-                  <div className="text-center text-muted-foreground text-sm py-8">
-                    Start a conversation to create mobile UI designs
-                  </div>
-                ) : (
-                  messages.map((message, index) => (
-                    <div
-                      key={index}
-                      className={cn(
-                        "flex gap-2",
-                        message.role === "user"
-                          ? "justify-end"
-                          : "justify-start"
-                      )}
-                    >
-                      {message.role === "assistant" && (
-                        <div className="shrink-0 w-6 h-6 rounded-full bg-linear-to-br from-pink-400 via-purple-400 to-pink-400 flex items-center justify-center">
-                          <span className="text-[10px] font-bold text-white">
-                            N
-                          </span>
+            // Chat Content with auto-scroll
+            <div className="relative h-full">
+              <div
+                className="absolute inset-0 touch-pan-y overflow-y-auto"
+                ref={containerRef}
+              >
+                <div className="p-4 space-y-4">
+                  {isMessagesLoading ? (
+                    <div className="flex flex-col gap-3">
+                      {[44, 32, 28, 64, 52].map((item, index) => (
+                        <div key={index} className="flex gap-2 justify-start">
+                          <div className="shrink-0 w-6 h-6 rounded-full bg-muted animate-pulse" />
+                          <div
+                            className="h-10 flex-1 rounded-2xl bg-muted animate-pulse"
+                            style={{ maxWidth: `${item}%` }}
+                          />
                         </div>
-                      )}
+                      ))}
+                    </div>
+                  ) : messages.length === 0 ? (
+                    <div className="text-center text-muted-foreground text-sm py-8">
+                      Start a conversation to create mobile UI designs
+                    </div>
+                  ) : (
+                    messages.map((message, index) => (
                       <div
+                        key={index}
                         className={cn(
-                          "max-w-[85%] rounded-2xl px-4 py-2",
+                          "flex gap-2",
                           message.role === "user"
-                            ? "bg-primary text-primary-foreground"
-                            : "bg-muted"
+                            ? "justify-end"
+                            : "justify-start"
                         )}
                       >
-                        {/* Render attachments */}
-                        {message.attachments &&
-                          message.attachments.length > 0 && (
-                            <div className="flex flex-wrap gap-2 mb-2">
-                              {message.attachments.map((attachment, i) => (
-                                <MessageAttachment
-                                  key={i}
-                                  attachment={attachment}
-                                />
-                              ))}
-                            </div>
-                          )}
-                        <div className="text-sm">
-                          <Response>{sanitizeText(message.content)}</Response>
-                        </div>
-                        {/* Render artifact previews */}
-                        {message.artifacts && message.artifacts.length > 0 && (
-                          <div className="mt-3 space-y-2">
-                            {message.artifacts.map((artifact) => {
-                              // Show streaming skeleton for artifacts in the last assistant message while loading
-                              const isLastMessage =
-                                index === messages.length - 1;
-                              const isArtifactStreaming =
-                                isLoading &&
-                                isLastMessage &&
-                                message.role === "assistant";
-
-                              return (
-                                <DesignPreview
-                                  key={artifact.id}
-                                  artifactId={artifact.id}
-                                  title={artifact.title}
-                                  isStreaming={isArtifactStreaming}
-                                  onClick={onArtifactClick}
-                                />
-                              );
-                            })}
+                        {message.role === "assistant" && (
+                          <div className="shrink-0 w-6 h-6 rounded-full bg-linear-to-br from-pink-400 via-purple-400 to-pink-400 flex items-center justify-center">
+                            <span className="text-[10px] font-bold text-white">
+                              N
+                            </span>
                           </div>
                         )}
+                        <div
+                          className={cn(
+                            "max-w-[85%] rounded-2xl px-4 py-2",
+                            message.role === "user"
+                              ? "bg-primary text-primary-foreground"
+                              : "bg-muted"
+                          )}
+                        >
+                          {/* Render attachments */}
+                          {message.attachments &&
+                            message.attachments.length > 0 && (
+                              <div className="flex flex-wrap gap-2 mb-2">
+                                {message.attachments.map((attachment, i) => (
+                                  <MessageAttachment
+                                    key={i}
+                                    attachment={attachment}
+                                  />
+                                ))}
+                              </div>
+                            )}
+                          <div className="text-sm">
+                            <Response>{sanitizeText(message.content)}</Response>
+                          </div>
+                          {/* Render artifact previews */}
+                          {message.artifacts && message.artifacts.length > 0 && (
+                            <div className="mt-3 space-y-2">
+                              {message.artifacts.map((artifact) => {
+                                // Show streaming skeleton for artifacts in the last assistant message while loading
+                                const isLastMessage =
+                                  index === messages.length - 1;
+                                const isArtifactStreaming =
+                                  isLoading &&
+                                  isLastMessage &&
+                                  message.role === "assistant";
+
+                                return (
+                                  <DesignPreview
+                                    key={artifact.id}
+                                    artifactId={artifact.id}
+                                    title={artifact.title}
+                                    isStreaming={isArtifactStreaming}
+                                    onClick={onArtifactClick}
+                                  />
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                        {message.role === "user" && (
+                          <Avatar className="w-6 h-6 shrink-0">
+                            <AvatarImage
+                              src={user?.profilePictureUrl || ""}
+                              alt={user?.firstName || "User"}
+                            />
+                            <AvatarFallback className="bg-linear-to-br from-indigo-500 to-purple-500 text-[10px] text-white">
+                              {user?.firstName?.charAt(0) ||
+                                user?.email?.charAt(0)?.toUpperCase() ||
+                                "U"}
+                            </AvatarFallback>
+                          </Avatar>
+                        )}
                       </div>
-                      {message.role === "user" && (
-                        <Avatar className="w-6 h-6 shrink-0">
-                          <AvatarImage
-                            src={user?.profilePictureUrl || ""}
-                            alt={user?.firstName || "User"}
-                          />
-                          <AvatarFallback className="bg-linear-to-br from-indigo-500 to-purple-500 text-[10px] text-white">
-                            {user?.firstName?.charAt(0) ||
-                              user?.email?.charAt(0)?.toUpperCase() ||
-                              "U"}
-                          </AvatarFallback>
-                        </Avatar>
-                      )}
-                    </div>
-                  ))
-                )}
-                {isLoading && (
-                  <div className="flex gap-2 justify-start">
-                    <div className="shrink-0 w-6 h-6 rounded-full bg-linear-to-br from-pink-400 via-purple-400 to-pink-400 flex items-center justify-center">
-                      <span className="text-[10px] font-bold text-white animate-pulse">
-                        N
-                      </span>
-                    </div>
-                    <div className="bg-muted rounded-2xl px-4 py-2">
-                      <div className="flex gap-1">
-                        <span
-                          className="w-2 h-2 bg-primary/50 rounded-full animate-bounce"
-                          style={{ animationDelay: "0ms" }}
-                        ></span>
-                        <span
-                          className="w-2 h-2 bg-primary/50 rounded-full animate-bounce"
-                          style={{ animationDelay: "150ms" }}
-                        ></span>
-                        <span
-                          className="w-2 h-2 bg-primary/50 rounded-full animate-bounce"
-                          style={{ animationDelay: "300ms" }}
-                        ></span>
+                    ))
+                  )}
+                  {isLoading && (
+                    <div className="flex gap-2 justify-start">
+                      <div className="shrink-0 w-6 h-6 rounded-full bg-linear-to-br from-pink-400 via-purple-400 to-pink-400 flex items-center justify-center">
+                        <span className="text-[10px] font-bold text-white animate-pulse">
+                          N
+                        </span>
+                      </div>
+                      <div className="bg-muted rounded-2xl px-4 py-2">
+                        <div className="flex gap-1">
+                          <span
+                            className="w-2 h-2 bg-primary/50 rounded-full animate-bounce"
+                            style={{ animationDelay: "0ms" }}
+                          ></span>
+                          <span
+                            className="w-2 h-2 bg-primary/50 rounded-full animate-bounce"
+                            style={{ animationDelay: "150ms" }}
+                          ></span>
+                          <span
+                            className="w-2 h-2 bg-primary/50 rounded-full animate-bounce"
+                            style={{ animationDelay: "300ms" }}
+                          ></span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                )}
+                  )}
+                  {/* End ref for scroll tracking */}
+                  <div
+                    className="min-h-[24px] min-w-[24px] shrink-0"
+                    ref={endRef}
+                  />
+                </div>
               </div>
-            </ScrollArea>
+
+              {/* Scroll to bottom button */}
+              <button
+                aria-label="Scroll to bottom"
+                className={`-translate-x-1/2 absolute bottom-4 left-1/2 z-10 rounded-full border bg-background p-2 shadow-lg transition-all hover:bg-muted ${
+                  isAtBottom
+                    ? "pointer-events-none scale-0 opacity-0"
+                    : "pointer-events-auto scale-100 opacity-100"
+                }`}
+                onClick={() => scrollToBottom("smooth")}
+                type="button"
+              >
+                <ArrowDown className="size-4" />
+              </button>
+            </div>
           ) : (
             // Design/Visual Editor Content
             <VisualEditor

@@ -2,7 +2,13 @@
 
 import React, { useRef, useState, useCallback, ChangeEvent } from "react";
 import { Textarea } from "./ui/textarea";
-import { Paperclip, Plus, Sparkles, MessageSquare } from "lucide-react";
+import {
+  Paperclip,
+  Plus,
+  Sparkles,
+  MessageSquare,
+  SquareDashedMousePointer,
+} from "lucide-react";
 import PromptSubmit from "./prompt-submit";
 import { useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -371,7 +377,7 @@ export function PromptInput({
                       : "border border-border text-muted-foreground hover:text-foreground hover:bg-accent"
                   )}
                 >
-                  <Sparkles className="w-3.5 h-3.5" />
+                  <SquareDashedMousePointer className="w-3.5 h-3.5" />
                   <span>Visual edits</span>
                 </button>
               )}

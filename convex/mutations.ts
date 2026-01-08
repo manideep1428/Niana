@@ -677,3 +677,284 @@ export const migrateAllUsersToFreePlan = mutation({
     };
   },
 });
+
+// Toggle project visibility (public/private)
+export const toggleProjectVisibility = mutation({
+  args: {
+    project_id: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const project = await ctx.db
+      .query("projects")
+      .filter((q) => q.eq(q.field("project_id"), args.project_id))
+      .first();
+
+    if (!project) {
+      throw new Error(`Project with id "${args.project_id}" not found`);
+    }
+
+    const newVisibility = !project.is_public;
+
+    await ctx.db.patch(project._id, {
+      is_public: newVisibility,
+      // Initialize likes and views when making public
+      ...(newVisibility && !project.likes ? { likes: 0 } : {}),
+      ...(newVisibility && !project.views ? { views: 0 } : {}),
+    });
+
+    return { success: true, is_public: newVisibility };
+  },
+});
+
+// Toggle like on a project
+export const toggleProjectLike = mutation({
+  args: {
+    user_id: v.string(),
+    project_id: v.string(),
+  },
+  handler: async (ctx, args) => {
+    // Check if already liked
+    const existingLike = await ctx.db
+      .query("project_likes")
+      .withIndex("by_user_project", (q) =>
+        q.eq("user_id", args.user_id).eq("project_id", args.project_id)
+      )
+      .first();
+
+    const project = await ctx.db
+      .query("projects")
+      .filter((q) => q.eq(q.field("project_id"), args.project_id))
+      .first();
+
+    if (!project) {
+      throw new Error(`Project with id "${args.project_id}" not found`);
+    }
+
+    if (existingLike) {
+      // Unlike - remove the like record
+      await ctx.db.delete(existingLike._id);
+      await ctx.db.patch(project._id, {
+        likes: Math.max(0, (project.likes ?? 0) - 1),
+      });
+      return {
+        success: true,
+        liked: false,
+        likes: Math.max(0, (project.likes ?? 0) - 1),
+      };
+    } else {
+      // Like - add the like record
+      await ctx.db.insert("project_likes", {
+        user_id: args.user_id,
+        project_id: args.project_id,
+        created_at: new Date().toISOString(),
+      });
+      await ctx.db.patch(project._id, {
+        likes: (project.likes ?? 0) + 1,
+      });
+      return { success: true, liked: true, likes: (project.likes ?? 0) + 1 };
+    }
+  },
+});
+
+// Increment project view count
+export const incrementProjectViews = mutation({
+  args: {
+    project_id: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const project = await ctx.db
+      .query("projects")
+      .filter((q) => q.eq(q.field("project_id"), args.project_id))
+      .first();
+
+    if (!project) {
+      throw new Error(`Project with id "${args.project_id}" not found`);
+    }
+
+    await ctx.db.patch(project._id, {
+      views: (project.views ?? 0) + 1,
+    });
+
+    return { success: true, views: (project.views ?? 0) + 1 };
+  },
+});
+
+// Update project thumbnail
+export const updateProjectThumbnail = mutation({
+  args: {
+    project_id: v.string(),
+    thumbnail: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const project = await ctx.db
+      .query("projects")
+      .filter((q) => q.eq(q.field("project_id"), args.project_id))
+      .first();
+
+    if (!project) {
+      throw new Error(`Project with id "${args.project_id}" not found`);
+    }
+
+    await ctx.db.patch(project._id, {
+      thumbnail: args.thumbnail,
+    });
+
+    return { success: true };
+  },
+});
+
+// Update project description
+export const updateProjectDescription = mutation({
+  args: {
+    project_id: v.string(),
+    description: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const project = await ctx.db
+      .query("projects")
+      .filter((q) => q.eq(q.field("project_id"), args.project_id))
+      .first();
+
+    if (!project) {
+      throw new Error(`Project with id "${args.project_id}" not found`);
+    }
+
+    await ctx.db.patch(project._id, {
+      description: args.description,
+    });
+
+    return { success: true };
+  },
+});
+
+// Backfill: Make all existing projects public
+export const makeAllProjectsPublic = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const projects = await ctx.db.query("projects").collect();
+
+    let updated = 0;
+    let alreadyPublic = 0;
+
+    for (const project of projects) {
+      if (!project.is_public) {
+        await ctx.db.patch(project._id, {
+          is_public: true,
+          views: project.views ?? 0,
+          likes: project.likes ?? 0,
+        });
+        updated++;
+      } else {
+        alreadyPublic++;
+      }
+    }
+
+    return {
+      success: true,
+      updated,
+      alreadyPublic,
+      total: projects.length,
+    };
+  },
+});
+
+// Fork a project (copy all designs and messages to a new project for a different user)
+export const forkProject = mutation({
+  args: {
+    source_project_id: v.string(),
+    new_user_id: v.string(),
+  },
+  handler: async (ctx, args) => {
+    // Get the source project
+    const sourceProject = await ctx.db
+      .query("projects")
+      .filter((q) => q.eq(q.field("project_id"), args.source_project_id))
+      .first();
+
+    if (!sourceProject) {
+      throw new Error(
+        `Source project with id "${args.source_project_id}" not found`
+      );
+    }
+
+    // Check if the project is public (only public projects can be forked)
+    if (!sourceProject.is_public) {
+      throw new Error("Only public projects can be forked");
+    }
+
+    // Generate new project ID
+    const newProjectId = crypto.randomUUID();
+    const now = Date.now();
+
+    // Create the forked project
+    await ctx.db.insert("projects", {
+      created_at: now.toString(),
+      user_id: args.new_user_id,
+      project_id: newProjectId,
+      title: `${sourceProject.title} (Fork)`,
+      is_public: false, // Forked projects start as private
+      is_favorite: false,
+      views: 0,
+      likes: 0,
+    });
+
+    // Copy all designs from source project
+    const sourceDesigns = await ctx.db
+      .query("designs")
+      .withIndex("by_project", (q) =>
+        q.eq("project_id", args.source_project_id)
+      )
+      .collect();
+
+    // Map old design IDs to new design IDs for message copying
+    const designIdMap = new Map<string, string>();
+
+    for (const design of sourceDesigns) {
+      const newDesignId = await ctx.db.insert("designs", {
+        project_id: newProjectId,
+        artifact_id: design.artifact_id, // Keep same artifact_id for consistency
+        title: design.title,
+        content: design.content,
+        version: 1,
+        status: "idle",
+        created_at: now,
+        updated_at: now,
+        x: design.x ?? 0,
+        y: design.y ?? 0,
+      });
+      designIdMap.set(design._id, newDesignId);
+    }
+
+    // Copy all messages from source project
+    const sourceMessages = await ctx.db
+      .query("messages")
+      .withIndex("by_project", (q) =>
+        q.eq("project_id", args.source_project_id)
+      )
+      .collect();
+
+    for (const message of sourceMessages) {
+      // Map old design IDs to new design IDs
+      const newDesignIds = message.design_ids
+        .map((oldId) => designIdMap.get(oldId))
+        .filter((id): id is string => id !== undefined) as any[];
+
+      await ctx.db.insert("messages", {
+        project_id: newProjectId,
+        content: message.content,
+        role: message.role,
+        design_ids: newDesignIds,
+        attachments: message.attachments ?? [],
+        initial_status: true, // Mark as processed
+        created_at: now.toString(),
+      });
+    }
+
+    return {
+      success: true,
+      new_project_id: newProjectId,
+      designs_copied: sourceDesigns.length,
+      messages_copied: sourceMessages.length,
+    };
+  },
+});

@@ -75,6 +75,7 @@ interface DesignCanvasProps {
   isSaving?: boolean;
   toolMode?: ToolMode;
   onToolModeChange?: (mode: ToolMode) => void;
+  isReadOnly?: boolean;
 }
 
 export function DesignCanvas({
@@ -91,6 +92,7 @@ export function DesignCanvas({
   isSaving,
   toolMode: controlledToolMode,
   onToolModeChange,
+  isReadOnly = false,
 }: DesignCanvasProps) {
   const { fitView, setCenter, zoomIn, zoomOut } = useReactFlow();
   const { zoom } = useViewport();
@@ -197,6 +199,32 @@ export function DesignCanvas({
     if (idsChanged || nodes.length === 0) {
       console.log("Syncing nodes with initialNodes (designs changed)");
       setNodes(initialNodes);
+    } else {
+      // Update existing nodes with new content/streaming status
+      setNodes((nds) =>
+        nds.map((node) => {
+          const updatedNode = initialNodes.find((n) => n.id === node.id);
+          if (updatedNode && node.type === "design") {
+            const currentData = node.data as DesignNodeData;
+            const newData = updatedNode.data as DesignNodeData;
+            // Update if content or streaming status changed
+            if (
+              currentData.content !== newData.content ||
+              currentData.isStreaming !== newData.isStreaming
+            ) {
+              return {
+                ...node,
+                data: {
+                  ...currentData,
+                  content: newData.content,
+                  isStreaming: newData.isStreaming,
+                },
+              };
+            }
+          }
+          return node;
+        })
+      );
     }
   }, [initialNodes, setNodes]);
 
@@ -278,8 +306,8 @@ export function DesignCanvas({
         onNodesChange={onNodesChange}
         nodeTypes={nodeTypes}
         onSelectionChange={handleSelectionChange}
-        onNodeDragStop={onNodeDragStop}
-        nodesDraggable={true}
+        onNodeDragStop={isReadOnly ? undefined : onNodeDragStop}
+        nodesDraggable={!isReadOnly}
         fitView
         fitViewOptions={{ padding: 0.2 }}
         minZoom={MIN_ZOOM}
@@ -291,8 +319,8 @@ export function DesignCanvas({
       >
         <Background variant={BackgroundVariant.Dots} gap={12} size={1} />
 
-        {/* Save/Undo/Redo Toolbar - only visible in mouse mode */}
-        {toolMode === "mouse" && (
+        {/* Save/Undo/Redo Toolbar - only visible in mouse mode and not read-only */}
+        {toolMode === "mouse" && !isReadOnly && (
           <Panel position="top-center" className="mt-4">
             <div className="flex items-center gap-1 rounded-lg border bg-background/95 p-1 shadow-md backdrop-blur-sm">
               <Button
@@ -348,19 +376,21 @@ export function DesignCanvas({
               >
                 <Hand className="h-4 w-4" />
               </Button>
-              <Button
-                variant={toolMode === "mouse" ? "secondary" : "ghost"}
-                size="icon"
-                onClick={() => setToolMode("mouse")}
-                className={`h-9 w-9 rounded-full ${
-                  toolMode === "mouse"
-                    ? "bg-primary/10 text-primary ring-1 ring-primary/20"
-                    : "hover:bg-muted"
-                }`}
-                title="Mouse tool - Select elements"
-              >
-                <MousePointer className="h-4 w-4" />
-              </Button>
+              {!isReadOnly && (
+                <Button
+                  variant={toolMode === "mouse" ? "secondary" : "ghost"}
+                  size="icon"
+                  onClick={() => setToolMode("mouse")}
+                  className={`h-9 w-9 rounded-full ${
+                    toolMode === "mouse"
+                      ? "bg-primary/10 text-primary ring-1 ring-primary/20"
+                      : "hover:bg-muted"
+                  }`}
+                  title="Mouse tool - Select elements"
+                >
+                  <MousePointer className="h-4 w-4" />
+                </Button>
+              )}
             </div>
 
             {/* Zoom Controls */}

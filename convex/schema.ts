@@ -27,9 +27,26 @@ export default defineSchema({
     user_id: v.string(),
     project_id: v.string(),
     title: v.string(),
+    description: v.optional(v.string()), // Short description for community display
     is_favorite: v.optional(v.boolean()), // For starring/favoriting projects
+    is_public: v.optional(v.boolean()), // For community visibility (default: false = private)
+    views: v.optional(v.number()), // View count for public projects
+    likes: v.optional(v.number()), // Like count for public projects
+    thumbnail: v.optional(v.string()), // Preview image URL
     created_at: v.string(),
-  }).index("by_user", ["user_id"]),
+  })
+    .index("by_user", ["user_id"])
+    .index("by_public", ["is_public"]),
+
+  // Track which users liked which projects
+  project_likes: defineTable({
+    user_id: v.string(),
+    project_id: v.string(),
+    created_at: v.string(),
+  })
+    .index("by_user", ["user_id"])
+    .index("by_project", ["project_id"])
+    .index("by_user_project", ["user_id", "project_id"]),
 
   messages: defineTable({
     project_id: v.string(),

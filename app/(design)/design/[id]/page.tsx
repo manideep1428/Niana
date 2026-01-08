@@ -17,7 +17,7 @@ import { ArtifactProvider, useArtifact } from "@/hooks/use-artifact";
 import type { Attachment } from "@/components/preview-attachment";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Pencil, Check, X, Moon, Sun } from "lucide-react";
+import { Pencil, Check, X, Moon, Sun, Lock, Unlock } from "lucide-react";
 import { useTheme } from "next-themes";
 import Image from "next/image";
 import {
@@ -48,6 +48,41 @@ interface ToolCallEvent {
   };
 }
 
+interface ArtifactStartEvent {
+  type: "artifact_start";
+  data: {
+    id: string;
+    title: string;
+  };
+}
+
+interface ContentDeltaEvent {
+  type: "content_delta";
+  data: {
+    id: string;
+    delta: string;
+  };
+}
+
+interface ArtifactFinishEvent {
+  type: "artifact_finish";
+  tool: "create_artifact" | "update_artifact";
+  projectId: string;
+  data: {
+    id: string;
+    title: string;
+    content: string;
+  };
+}
+
+interface SkeletonEvent {
+  type: "skeleton";
+  data: {
+    id: string;
+    title: string;
+  };
+}
+
 interface DoneEvent {
   type: "done";
 }
@@ -57,13 +92,26 @@ interface ErrorEvent {
   message: string;
 }
 
-type SSEEvent = TextEvent | ToolCallEvent | DoneEvent | ErrorEvent;
+type SSEEvent =
+  | TextEvent
+  | ToolCallEvent
+  | ArtifactStartEvent
+  | ContentDeltaEvent
+  | ArtifactFinishEvent
+  | SkeletonEvent
+  | DoneEvent
+  | ErrorEvent;
 
 // Message type for chat
 interface Message {
   role: "user" | "assistant";
   content: string;
   artifacts?: { id: string; title: string }[];
+  streamingDesigns?: {
+    id: string;
+    title: string;
+    status: "creating" | "completed";
+  }[];
   attachments?: Attachment[];
 }
 
@@ -121,6 +169,8 @@ function DesignPageContent() {
   const createDesign = useMutation(api.mutations.createDesign);
   const updateDesign = useMutation(api.mutations.updateDesign);
   const updateProjectTitle = useMutation(api.mutations.updateProjectTitle);
+  const toggleVisibility = useMutation(api.mutations.toggleProjectVisibility);
+  const forkProject = useMutation(api.mutations.forkProject);
 
   // Get user for subscription check
   const { user } = useAuth();
@@ -128,6 +178,10 @@ function DesignPageContent() {
     api.quires.getUserSubscription,
     user ? { user_id: user.id } : "skip"
   );
+
+  // Check if current user is the owner of this project
+  const isOwner = project && user ? project.user_id === user.id : true;
+  const isReadOnly = !isOwner;
 
   // Convert Convex designs to canvas format
   const dbDesigns: Design[] = (designsData ?? []).map((d: any) => ({
@@ -554,7 +608,11 @@ function DesignPageContent() {
   );
 
   // Load messages from Convex on mount
+  // IMPORTANT: Skip sync while streaming to prevent overwriting streaming messages
   useEffect(() => {
+    // Don't overwrite messages while streaming - the streaming handler manages state
+    if (isLoading) return;
+
     if (messagesData && designsData) {
       const formattedMessages: Message[] = messagesData.map((m: any) => {
         // Map design_ids to artifact objects
@@ -576,7 +634,7 @@ function DesignPageContent() {
       });
       setMessages(formattedMessages);
     }
-  }, [messagesData, designsData]);
+  }, [messagesData, designsData, isLoading]);
 
   const markMessageProcessed = useMutation(api.mutations.markMessageProcessed);
 
@@ -646,7 +704,8 @@ function DesignPageContent() {
           });
         }
 
-        const response = await fetch("/api/chat", {
+        // Use iterative API for progressive rendering
+        const response = await fetch("/api/chat-iterative", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -667,6 +726,16 @@ function DesignPageContent() {
         const decoder = new TextDecoder();
         let buffer = "";
 
+        // Remove initial skeleton once we start receiving actual events
+        let initialSkeletonRemoved = false;
+
+        // Track designs being created for chat display
+        const streamingDesigns: {
+          id: string;
+          title: string;
+          status: "creating" | "completed";
+        }[] = [];
+
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
@@ -684,12 +753,63 @@ function DesignPageContent() {
                   assistantContent += event.content;
                   setMessages([
                     ...newMessages,
-                    { role: "assistant", content: assistantContent, artifacts },
+                    {
+                      role: "assistant",
+                      content: assistantContent,
+                      artifacts,
+                      streamingDesigns: [...streamingDesigns],
+                    },
                   ]);
-                } else if (event.type === "tool_call") {
-                  // Remove pending skeleton since real design is arriving
+                } else if (event.type === "artifact_start") {
+                  // Remove initial placeholder skeleton
+                  if (!initialSkeletonRemoved) {
+                    setPendingDesigns((prev) =>
+                      prev.filter((p) => p.artifact_id !== pendingSkeletonId)
+                    );
+                    initialSkeletonRemoved = true;
+                  }
+
+                  // Add to streamingDesigns for chat display
+                  streamingDesigns.push({
+                    id: event.data.id,
+                    title: event.data.title,
+                    status: "creating",
+                  });
+
+                  // Add a skeleton design node with streaming state
+                  const newStreamingDesign: Design = {
+                    _id: `streaming-${event.data.id}`,
+                    artifact_id: event.data.id,
+                    title: event.data.title,
+                    content: "", // Empty = show skeleton loader
+                    status: "streaming",
+                    x: undefined,
+                    y: undefined,
+                  };
+                  setPendingDesigns((prev) => [...prev, newStreamingDesign]);
+
+                  // Update messages to show creating status
+                  setMessages([
+                    ...newMessages,
+                    {
+                      role: "assistant",
+                      content: assistantContent,
+                      artifacts,
+                      streamingDesigns: [...streamingDesigns],
+                    },
+                  ]);
+                } else if (event.type === "artifact_finish") {
+                  // Update status in streamingDesigns
+                  const designIndex = streamingDesigns.findIndex(
+                    (d) => d.id === event.data.id
+                  );
+                  if (designIndex !== -1) {
+                    streamingDesigns[designIndex].status = "completed";
+                  }
+
+                  // Remove the streaming design
                   setPendingDesigns((prev) =>
-                    prev.filter((p) => p.artifact_id !== pendingSkeletonId)
+                    prev.filter((p) => p.artifact_id !== event.data.id)
                   );
 
                   const designData = {
@@ -719,6 +839,68 @@ function DesignPageContent() {
                     title: event.data.title,
                   });
                   setSelectedArtifactId(event.data.id);
+
+                  // Update messages with completed status
+                  setMessages([
+                    ...newMessages,
+                    {
+                      role: "assistant",
+                      content: assistantContent,
+                      artifacts,
+                      streamingDesigns: [...streamingDesigns],
+                    },
+                  ]);
+                } else if (
+                  event.type === "skeleton" ||
+                  event.type === "tool_call"
+                ) {
+                  // Legacy event handling for backwards compatibility
+                  if (event.type === "skeleton") {
+                    if (!initialSkeletonRemoved) {
+                      setPendingDesigns((prev) =>
+                        prev.filter((p) => p.artifact_id !== pendingSkeletonId)
+                      );
+                      initialSkeletonRemoved = true;
+                    }
+                    const newSkeleton: Design = {
+                      _id: `skeleton-${event.data.id}`,
+                      artifact_id: event.data.id,
+                      title: event.data.title,
+                      content: "",
+                      status: "streaming",
+                      x: undefined,
+                      y: undefined,
+                    };
+                    setPendingDesigns((prev) => [...prev, newSkeleton]);
+                  } else if (event.type === "tool_call") {
+                    setPendingDesigns((prev) =>
+                      prev.filter((p) => p.artifact_id !== event.data.id)
+                    );
+                    const designData = {
+                      project_id: projectId,
+                      artifact_id: event.data.id,
+                      title: event.data.title,
+                      content: event.data.content,
+                    };
+                    let designDbId;
+                    if (event.tool === "create_artifact") {
+                      designDbId = await createDesign(designData);
+                    } else if (event.tool === "update_artifact") {
+                      designDbId = await updateDesign({
+                        artifact_id: designData.artifact_id,
+                        title: designData.title,
+                        content: designData.content,
+                      });
+                    }
+                    if (designDbId) {
+                      artifactDbIds.push(designDbId);
+                    }
+                    artifacts.push({
+                      id: event.data.id,
+                      title: event.data.title,
+                    });
+                    setSelectedArtifactId(event.data.id);
+                  }
                 }
               } catch (e) {
                 console.error("Error parsing SSE:", e);
@@ -809,6 +991,33 @@ function DesignPageContent() {
     [setSelectedArtifactId]
   );
 
+  // Handle fork project
+  const handleForkProject = useCallback(async () => {
+    if (!user) {
+      toast.error("Please sign in to fork this project");
+      return;
+    }
+
+    try {
+      const result = await forkProject({
+        source_project_id: projectId,
+        new_user_id: user.id,
+      });
+
+      if (result.success) {
+        toast.success("Project forked successfully!", {
+          description: `Copied ${result.designs_copied} designs and ${result.messages_copied} messages`,
+        });
+        // Navigate to the new forked project
+        window.location.href = `/design/${result.new_project_id}`;
+      }
+    } catch (error: any) {
+      toast.error("Failed to fork project", {
+        description: error.message || "Please try again",
+      });
+    }
+  }, [forkProject, projectId, user]);
+
   return (
     <SidebarProvider>
       <PromptSidebar
@@ -830,6 +1039,9 @@ function DesignPageContent() {
         onSave={handleSave}
         onCancel={handleCancel}
         hasUnsavedChanges={hasUnsavedChanges}
+        isReadOnly={isReadOnly}
+        onFork={handleForkProject}
+        projectTitle={project?.title || "Untitled"}
       />
       <SidebarInset className="flex flex-col">
         <header className="flex h-16 shrink-0 items-center justify-between gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12 border-b">
@@ -878,6 +1090,41 @@ function DesignPageContent() {
                 >
                   <Pencil className="h-3.5 w-3.5" />
                 </Button>
+                {/* Privacy Toggle */}
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={async () => {
+                          const result = await toggleVisibility({
+                            project_id: projectId,
+                          });
+                          toast.success(
+                            result.is_public
+                              ? "Project is now public! Others can view it in the community."
+                              : "Project is now private."
+                          );
+                        }}
+                      >
+                        {project?.is_public ? (
+                          <Unlock className="h-3.5 w-3.5 text-green-500" />
+                        ) : (
+                          <Lock className="h-3.5 w-3.5 text-muted-foreground" />
+                        )}
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>
+                        {project?.is_public
+                          ? "Public - Click to make private"
+                          : "Private - Click to share with community"}
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               </div>
             )}
           </div>
@@ -959,6 +1206,7 @@ function DesignPageContent() {
               isSaving={isSaving}
               toolMode={toolMode}
               onToolModeChange={setToolMode}
+              isReadOnly={isReadOnly}
             />
           </ReactFlowProvider>
         </div>

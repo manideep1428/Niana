@@ -102,6 +102,12 @@ export default function TopBar() {
 
             {/* User Section */}
             <div className="flex items-center gap-4">
+              <Link
+                href="/pricing"
+                className="rounded-lg px-4 py-2 text-sm font-medium text-black/70 dark:text-white/70 transition-colors hover:bg-black/5 dark:hover:bg-white/5 hover:text-black dark:hover:text-white"
+              >
+                Pricing
+              </Link>
               {user ? (
                 <>
                   <Link
@@ -261,12 +267,6 @@ export default function TopBar() {
                 </>
               ) : (
                 <div className="flex items-center gap-3">
-                  <Link
-                    href="/pricing"
-                    className="rounded-lg px-4 py-2 text-sm font-medium text-black/70 dark:text-white/70 transition-colors hover:bg-black/5 dark:hover:bg-white/5 hover:text-black dark:hover:text-white"
-                  >
-                    Pricing
-                  </Link>
                   <Link
                     href="/sign-in"
                     className="rounded-lg px-4 py-2 text-sm font-medium text-black/70 dark:text-white/70 transition-colors hover:bg-black/5 dark:hover:bg-white/5 hover:text-black dark:hover:text-white"

@@ -143,6 +143,10 @@ function DesignPageContent() {
   // Pending skeleton designs (shown while AI is generating)
   const [pendingDesigns, setPendingDesigns] = useState<Design[]>([]);
 
+  // AbortController for stopping generation
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const isStoppedRef = useRef(false);
+
   // Handle tab change - auto switch to pointer mode when switching to design tab
   const handleTabChange = useCallback((tab: "chat" | "design") => {
     setActiveTab(tab);
@@ -664,6 +668,10 @@ function DesignPageContent() {
       }
 
       setIsLoading(true);
+      isStoppedRef.current = false;
+
+      // Create new AbortController for this request
+      abortControllerRef.current = new AbortController();
       let assistantContent = "";
       const artifacts: { id: string; title: string }[] = [];
       const artifactDbIds: string[] = []; // Store Convex IDs for database reference
@@ -716,6 +724,7 @@ function DesignPageContent() {
             })),
             projectId,
           }),
+          signal: abortControllerRef.current?.signal,
         });
 
         if (!response.ok) throw new Error("Failed to fetch");
@@ -738,7 +747,7 @@ function DesignPageContent() {
 
         while (true) {
           const { done, value } = await reader.read();
-          if (done) break;
+          if (done || isStoppedRef.current) break;
 
           buffer += decoder.decode(value, { stream: true });
           const lines = buffer.split("\n\n");
@@ -922,12 +931,31 @@ function DesignPageContent() {
           role: "assistant",
           design_ids: artifactDbIds as any, // Convex IDs of created/updated designs
         });
-      } catch (error) {
-        console.error("Chat error:", error);
+      } catch (error: any) {
+        // Handle abort specifically
+        if (error.name === "AbortError" || isStoppedRef.current) {
+          console.log("Generation stopped by user");
+          toast.info("Generation stopped", {
+            description: "Only completed designs were saved.",
+          });
+
+          // Save assistant message if we have any content
+          if (assistantContent.trim() && artifactDbIds.length > 0) {
+            await saveMessage({
+              project_id: projectId,
+              content: assistantContent + "\n\n*[Generation stopped by user]*",
+              role: "assistant",
+              design_ids: artifactDbIds as any,
+            });
+          }
+        } else {
+          console.error("Chat error:", error);
+        }
       } finally {
         setIsLoading(false);
-        // Clear any remaining pending designs
+        // Clear any remaining pending designs (incomplete ones)
         setPendingDesigns([]);
+        abortControllerRef.current = null;
       }
     },
     [
@@ -983,6 +1011,16 @@ function DesignPageContent() {
     [input, isLoading, messages, handleSendMessage]
   );
 
+  // Handle stop generation
+  const handleStop = useCallback(() => {
+    if (abortControllerRef.current) {
+      isStoppedRef.current = true;
+      abortControllerRef.current.abort();
+      // Pending designs will be cleared in the finally block
+      toast.info("Stopping generation...");
+    }
+  }, []);
+
   // Handle artifact click from chat
   const handleArtifactClick = useCallback(
     (artifactId: string) => {
@@ -1027,6 +1065,7 @@ function DesignPageContent() {
         isLoading={isLoading}
         isMessagesLoading={messagesData === undefined}
         handleFormSubmit={handleSubmit}
+        onStop={handleStop}
         onArtifactClick={handleArtifactClick}
         activeTab={activeTab}
         onTabChange={handleTabChange}

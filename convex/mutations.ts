@@ -573,23 +573,20 @@ export const createFreeSubscription = mutation({
       return { status: "already_exists", subscriptionId: existingSub._id };
     }
 
-    // Create free base subscription
-    // Free plan: 1 Credit = 20,000 tokens
     const now = new Date();
     const expiresAt = new Date(now);
-    expiresAt.setMonth(now.getMonth() + 1); // Renews monthly
+    expiresAt.setMonth(now.getMonth() + 1);
 
     const subscriptionId = await ctx.db.insert("subscriptions", {
       user_id: args.user_id,
       plan: "free",
-      tokens_total: 20000, // 1 Credit = 20k tokens
+      tokens_total: 50000,
       tokens_used: 0,
-      projects_limit: -1, // Unlimited
+      projects_limit: -1,
       status: "active",
-      amount: 0, // Free
+      amount: 0,
       created_at: now.toISOString(),
       expires_at: expiresAt.toISOString(),
-      // razorpay fields are now optional, so omitting them
     });
 
     return { status: "created", subscriptionId };
@@ -607,14 +604,12 @@ export const backfillFreeSubscriptions = mutation({
     let skipped = 0;
 
     for (const user of users) {
-      // Check if user has a subscription
       const existingSub = await ctx.db
         .query("subscriptions")
         .withIndex("by_user", (q) => q.eq("user_id", user.user_id))
         .first();
 
       if (!existingSub) {
-        // Create free subscription
         const now = new Date();
         const expiresAt = new Date(now);
         expiresAt.setMonth(now.getMonth() + 1);
@@ -622,7 +617,7 @@ export const backfillFreeSubscriptions = mutation({
         await ctx.db.insert("subscriptions", {
           user_id: user.user_id,
           plan: "free",
-          tokens_total: 20000, // 1 Credit = 20k tokens
+          tokens_total: 50000,
           tokens_used: 0,
           projects_limit: -1,
           status: "active",

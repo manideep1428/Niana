@@ -1,7 +1,5 @@
 import openai from "@/lib/openai";
-// TEMP: Using temp prompt that generates only 1 screen by default
-// To revert: change getTempSystemPrompt to getSystemPrompt
-import { getTempSystemPrompt, getSystemPrompt } from "@/lib/prompt";
+import { getSystemPrompt } from "@/lib/prompt";
 import { tools, CreateArtifactArgs, UpdateArtifactArgs } from "@/lib/tools";
 import { NextRequest } from "next/server";
 import { ConvexHttpClient } from "convex/browser";
@@ -11,11 +9,8 @@ import { withAuth } from "@workos-inc/authkit-nextjs";
 // Initialize Convex Client
 const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
-// TEMP: Using temp prompt for testing (generates 1 screen by default)
-// To revert to full prompt: change to getSystemPrompt()
-const systemPrompt = getTempSystemPrompt();
+const systemPrompt = getSystemPrompt();
 
-// Attachment type
 interface Attachment {
   name: string;
   url: string;
@@ -23,7 +18,6 @@ interface Attachment {
   storageId?: string;
 }
 
-// Message part types for multimodal content
 type TextPart = { type: "text"; text: string };
 type ImagePart = {
   type: "image_url";
@@ -35,7 +29,6 @@ export async function GET(request: Request) {
   return Response.json({ message: "Chat API is running" });
 }
 
-// Convert attachments to OpenAI message content format
 function buildMessageContent(
   text: string,
   attachments?: Attachment[]
@@ -46,7 +39,6 @@ function buildMessageContent(
 
   const parts: ContentPart[] = [];
 
-  // Add image attachments
   for (const attachment of attachments) {
     if (attachment.contentType.startsWith("image/")) {
       parts.push({
@@ -54,8 +46,6 @@ function buildMessageContent(
         image_url: { url: attachment.url, detail: "auto" },
       });
     } else {
-      // For non-image files (PDF, Word), add as text reference
-      // Note: For full document processing, you'd need a document parser
       parts.push({
         type: "text",
         text: `[Attached file: ${attachment.name} (${attachment.contentType})]`,
@@ -128,13 +118,69 @@ export async function POST(request: NextRequest) {
     // Track tool calls as they stream
     const toolCalls: Map<
       number,
-      { id: string; name: string; arguments: string }
+      { id: string; name: string; arguments: string; sent: boolean }
     > = new Map();
     let currentContent = "";
     let usageTokens = 0;
 
     const readable = new ReadableStream({
       async start(controller) {
+        // Helper function to try sending a tool call if its arguments are complete
+        const tryProcessToolCall = (
+          index: number,
+          toolCall: {
+            id: string;
+            name: string;
+            arguments: string;
+            sent: boolean;
+          }
+        ) => {
+          if (toolCall.sent) return; // Already sent
+
+          try {
+            // Try to parse - if successful, the arguments are complete
+            const args = JSON.parse(toolCall.arguments);
+
+            if (toolCall.name === "create_artifact") {
+              const createArgs = args as CreateArtifactArgs;
+              controller.enqueue(
+                encoder.encode(
+                  `data: ${JSON.stringify({
+                    type: "tool_call",
+                    tool: "create_artifact",
+                    projectId,
+                    data: {
+                      id: createArgs.id,
+                      title: createArgs.title,
+                      content: createArgs.content,
+                    },
+                  })}\n\n`
+                )
+              );
+              toolCall.sent = true;
+            } else if (toolCall.name === "update_artifact") {
+              const updateArgs = args as UpdateArtifactArgs;
+              controller.enqueue(
+                encoder.encode(
+                  `data: ${JSON.stringify({
+                    type: "tool_call",
+                    tool: "update_artifact",
+                    projectId,
+                    data: {
+                      id: updateArgs.id,
+                      title: updateArgs.title,
+                      content: updateArgs.content,
+                    },
+                  })}\n\n`
+                )
+              );
+              toolCall.sent = true;
+            }
+          } catch {
+            // JSON not complete yet, wait for more chunks
+          }
+        };
+
         try {
           for await (const chunk of stream) {
             const delta = chunk.choices[0]?.delta;
@@ -167,6 +213,7 @@ export async function POST(request: NextRequest) {
                     id: toolCall.id || "",
                     name: toolCall.function?.name || "",
                     arguments: "",
+                    sent: false,
                   });
                 }
 
@@ -181,56 +228,22 @@ export async function POST(request: NextRequest) {
                 if (toolCall.function?.arguments) {
                   current.arguments += toolCall.function.arguments;
                 }
+
+                // Try to process this tool call immediately if arguments are complete
+                tryProcessToolCall(index, current);
               }
             }
 
-            // Process tool calls if tool_calls finish reason OR if we have calls and it's stopping
+            // Final check: Process any remaining tool calls that weren't sent yet
             if (
               finishReason === "tool_calls" ||
               (finishReason === "stop" && toolCalls.size > 0)
             ) {
-              for (const [, toolCall] of toolCalls) {
-                try {
-                  const args = JSON.parse(toolCall.arguments);
-
-                  if (toolCall.name === "create_artifact") {
-                    const createArgs = args as CreateArtifactArgs;
-                    controller.enqueue(
-                      encoder.encode(
-                        `data: ${JSON.stringify({
-                          type: "tool_call",
-                          tool: "create_artifact",
-                          projectId,
-                          data: {
-                            id: createArgs.id,
-                            title: createArgs.title,
-                            content: createArgs.content,
-                          },
-                        })}\n\n`
-                      )
-                    );
-                  } else if (toolCall.name === "update_artifact") {
-                    const updateArgs = args as UpdateArtifactArgs;
-                    controller.enqueue(
-                      encoder.encode(
-                        `data: ${JSON.stringify({
-                          type: "tool_call",
-                          tool: "update_artifact",
-                          projectId,
-                          data: {
-                            id: updateArgs.id,
-                            title: updateArgs.title,
-                            content: updateArgs.content,
-                          },
-                        })}\n\n`
-                      )
-                    );
-                  }
-                } catch (e) {
-                  console.error("Failed to parse tool call arguments:", e);
+              for (const [index, toolCall] of toolCalls) {
+                if (!toolCall.sent) {
+                  tryProcessToolCall(index, toolCall);
                 }
               }
-              // Clear processed calls to avoid double processing
               toolCalls.clear();
             }
           }

@@ -9,9 +9,8 @@ import {
   SidebarRail,
 } from "@/components/ui/sidebar";
 import { PromptInput } from "./prompt-input";
-import { DesignPreview } from "./design-preview";
+import { DesignToolCall } from "./design-tool-call";
 import { Response } from "./elements/response";
-import { cn } from "@/lib/utils";
 import type { Attachment } from "./preview-attachment";
 import Image from "next/image";
 import {
@@ -19,24 +18,26 @@ import {
   File,
   ArrowLeft,
   ArrowDown,
-  Pencil,
   Square,
   Type,
-  Save,
-  Undo2,
-  Redo2,
+  GitFork,
+  Lock,
 } from "lucide-react";
 import { useScrollToBottom } from "@/hooks/use-scroll-to-bottom";
 import { useAuth } from "@workos-inc/authkit-nextjs/components";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { VisualEditor, SelectedElement } from "./visual-editor";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 
 interface Message {
   role: "user" | "assistant";
   content: string;
   artifacts?: { id: string; title: string }[];
+  streamingDesigns?: {
+    id: string;
+    title: string;
+    status: "creating" | "completed";
+  }[];
   attachments?: Attachment[];
 }
 
@@ -64,6 +65,11 @@ interface PromptSidebarProps extends React.ComponentProps<typeof Sidebar> {
   onSave: () => void;
   onCancel: () => void;
   hasUnsavedChanges: boolean;
+
+  // Read-only mode for community designs
+  isReadOnly?: boolean;
+  onFork?: () => void;
+  projectTitle?: string;
 }
 
 // Sanitize text to remove any function call markers
@@ -150,17 +156,16 @@ export function PromptSidebar({
   onSave,
   onCancel,
   hasUnsavedChanges,
+  isReadOnly = false,
+  onFork,
+  projectTitle,
   ...props
 }: PromptSidebarProps) {
   const { user } = useAuth();
-  
+
   // Use the scroll-to-bottom hook for auto-scroll during streaming
-  const {
-    containerRef,
-    endRef,
-    isAtBottom,
-    scrollToBottom,
-  } = useScrollToBottom();
+  const { containerRef, endRef, isAtBottom, scrollToBottom } =
+    useScrollToBottom();
 
   // Auto-switch to design tab when an element is selected
   React.useEffect(() => {
@@ -194,9 +199,7 @@ export function PromptSidebar({
         {/* Header */}
         <SidebarHeader className="border-b border-white/10 p-4 space-y-3">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-full bg-linear-to-br from-pink-400 via-purple-400 to-pink-400 flex items-center justify-center shadow-lg shadow-pink-500/20">
-              <span className="text-sm font-bold text-white">N</span>
-            </div>
+            <Image src="/logo.png" alt="Niana Logo" width={24} height={24} />
             <h2 className="font-semibold bg-linear-to-r from-pink-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
               Niana
             </h2>
@@ -244,7 +247,7 @@ export function PromptSidebar({
             // Chat Content with auto-scroll
             <div className="relative h-full">
               <div
-                className="absolute inset-0 touch-pan-y overflow-y-auto"
+                className="absolute inset-0 touch-pan-y overflow-y-auto scrollbar-thin"
                 ref={containerRef}
               >
                 <div className="p-4 space-y-4">
@@ -267,29 +270,39 @@ export function PromptSidebar({
                   ) : (
                     messages.map((message, index) => (
                       <div
-                        key={index}
-                        className={cn(
-                          "flex gap-2",
-                          message.role === "user"
-                            ? "justify-end"
-                            : "justify-start"
-                        )}
+                        key={`${message.role}-${index}`}
+                        className="flex gap-3 w-full pb-4 border-b border-white/10"
                       >
-                        {message.role === "assistant" && (
-                          <div className="shrink-0 w-6 h-6 rounded-full bg-linear-to-br from-pink-400 via-purple-400 to-pink-400 flex items-center justify-center">
-                            <span className="text-[10px] font-bold text-white">
-                              N
-                            </span>
+                        {/* Large avatar on the left */}
+                        {message.role === "assistant" ? (
+                          <div className="shrink-0 w-7 h-7 rounded-full flex items-center justify-center">
+                            <Image
+                              src="/logo.png"
+                              alt="Niana Logo"
+                              width={24}
+                              height={24}
+                            />
                           </div>
+                        ) : (
+                          <Avatar className="w-7 h-7 shrink-0">
+                            <AvatarImage
+                              src={user?.profilePictureUrl || ""}
+                              alt={user?.firstName || "User"}
+                            />
+                            <AvatarFallback className="bg-linear-to-br from-indigo-500 to-purple-500 text-xs text-white">
+                              {user?.firstName?.charAt(0) ||
+                                user?.email?.charAt(0)?.toUpperCase() ||
+                                "U"}
+                            </AvatarFallback>
+                          </Avatar>
                         )}
-                        <div
-                          className={cn(
-                            "max-w-[85%] rounded-2xl px-4 py-2",
-                            message.role === "user"
-                              ? "bg-primary text-primary-foreground"
-                              : "bg-muted"
-                          )}
-                        >
+                        {/* Message content */}
+                        <div className="flex-1 min-w-0">
+                          <span className="text-xs font-medium text-muted-foreground mb-1 block">
+                            {message.role === "assistant"
+                              ? "Niana"
+                              : user?.firstName || "You"}
+                          </span>
                           {/* Render attachments */}
                           {message.attachments &&
                             message.attachments.length > 0 && (
@@ -305,72 +318,89 @@ export function PromptSidebar({
                           <div className="text-sm">
                             <Response>{sanitizeText(message.content)}</Response>
                           </div>
-                          {/* Render artifact previews */}
-                          {message.artifacts && message.artifacts.length > 0 && (
-                            <div className="mt-3 space-y-2">
-                              {message.artifacts.map((artifact) => {
-                                // Show streaming skeleton for artifacts in the last assistant message while loading
-                                const isLastMessage =
-                                  index === messages.length - 1;
-                                const isArtifactStreaming =
-                                  isLoading &&
-                                  isLastMessage &&
-                                  message.role === "assistant";
-
-                                return (
-                                  <DesignPreview
-                                    key={artifact.id}
-                                    artifactId={artifact.id}
-                                    title={artifact.title}
-                                    isStreaming={isArtifactStreaming}
-                                    onClick={onArtifactClick}
+                          {/* Render streaming design status (Creating/Created indicators) */}
+                          {message.streamingDesigns &&
+                            message.streamingDesigns.length > 0 && (
+                              <div className="mt-3 space-y-2">
+                                {message.streamingDesigns.map((design) => (
+                                  <DesignToolCall
+                                    key={design.id}
+                                    title={design.title}
+                                    status={design.status}
+                                    onClick={() => onArtifactClick?.(design.id)}
                                   />
-                                );
-                              })}
-                            </div>
-                          )}
+                                ))}
+                              </div>
+                            )}
+                          {/* Render completed artifacts (from database/after generation) */}
+                          {message.artifacts &&
+                            message.artifacts.length > 0 &&
+                            (!message.streamingDesigns ||
+                              message.streamingDesigns.length === 0) && (
+                              <div className="mt-3 space-y-2">
+                                {message.artifacts.map((artifact) => (
+                                  <DesignToolCall
+                                    key={artifact.id}
+                                    title={artifact.title}
+                                    status="completed"
+                                    onClick={() =>
+                                      onArtifactClick?.(artifact.id)
+                                    }
+                                  />
+                                ))}
+                              </div>
+                            )}
                         </div>
-                        {message.role === "user" && (
-                          <Avatar className="w-6 h-6 shrink-0">
-                            <AvatarImage
-                              src={user?.profilePictureUrl || ""}
-                              alt={user?.firstName || "User"}
-                            />
-                            <AvatarFallback className="bg-linear-to-br from-indigo-500 to-purple-500 text-[10px] text-white">
-                              {user?.firstName?.charAt(0) ||
-                                user?.email?.charAt(0)?.toUpperCase() ||
-                                "U"}
-                            </AvatarFallback>
-                          </Avatar>
-                        )}
                       </div>
                     ))
                   )}
-                  {isLoading && (
-                    <div className="flex gap-2 justify-start">
-                      <div className="shrink-0 w-6 h-6 rounded-full bg-linear-to-br from-pink-400 via-purple-400 to-pink-400 flex items-center justify-center">
-                        <span className="text-[10px] font-bold text-white animate-pulse">
-                          N
-                        </span>
-                      </div>
-                      <div className="bg-muted rounded-2xl px-4 py-2">
-                        <div className="flex gap-1">
-                          <span
-                            className="w-2 h-2 bg-primary/50 rounded-full animate-bounce"
-                            style={{ animationDelay: "0ms" }}
-                          ></span>
-                          <span
-                            className="w-2 h-2 bg-primary/50 rounded-full animate-bounce"
-                            style={{ animationDelay: "150ms" }}
-                          ></span>
-                          <span
-                            className="w-2 h-2 bg-primary/50 rounded-full animate-bounce"
-                            style={{ animationDelay: "300ms" }}
-                          ></span>
+                  {/* Show loading indicator only when waiting for first response (no assistant message yet) */}
+                  {isLoading &&
+                    (() => {
+                      // Check if the last message is from assistant with content
+                      const lastMessage = messages[messages.length - 1];
+                      const hasAssistantResponse =
+                        lastMessage?.role === "assistant" &&
+                        (lastMessage?.content?.trim() ||
+                          (lastMessage?.streamingDesigns &&
+                            lastMessage.streamingDesigns.length > 0));
+
+                      // Only show loading dots if there's no assistant response yet
+                      if (hasAssistantResponse) return null;
+
+                      return (
+                        <div className="flex gap-3 w-full pb-4 border-b border-white/10">
+                          <div className="shrink-0 w-7 h-7 rounded-full flex items-center justify-center">
+                            <Image
+                              src="/logo.png"
+                              alt="Niana Logo"
+                              width={24}
+                              height={24}
+                              className="animate-pulse"
+                            />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <span className="text-xs font-medium text-muted-foreground mb-1 block">
+                              Niana
+                            </span>
+                            <div className="flex gap-1">
+                              <span
+                                className="w-2 h-2 bg-primary/50 rounded-full animate-bounce"
+                                style={{ animationDelay: "0ms" }}
+                              ></span>
+                              <span
+                                className="w-2 h-2 bg-primary/50 rounded-full animate-bounce"
+                                style={{ animationDelay: "150ms" }}
+                              ></span>
+                              <span
+                                className="w-2 h-2 bg-primary/50 rounded-full animate-bounce"
+                                style={{ animationDelay: "300ms" }}
+                              ></span>
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    </div>
-                  )}
+                      );
+                    })()}
                   {/* End ref for scroll tracking */}
                   <div
                     className="min-h-[24px] min-w-[24px] shrink-0"
@@ -409,17 +439,39 @@ export function PromptSidebar({
           )}
         </SidebarContent>
 
-        {/* Footer - Always show prompt input with visual edits buttons */}
+        {/* Footer - Show fork button in read-only mode or prompt input in edit mode */}
         <SidebarFooter className="border-t border-white/5">
-          <PromptInput
-            input={input}
-            setInput={setInput}
-            isLoading={isLoading}
-            onSubmit={handleFormSubmit}
-            activeTab={activeTab}
-            onTabChange={onTabChange}
-            hasSelectedElement={!!selectedElement}
-          />
+          {isReadOnly ? (
+            // Read-only mode - Show fork button
+            <div className="p-4 space-y-3">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Lock className="w-4 h-4" />
+                <span>View-only mode</span>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                This is a community design. Fork it to make your own editable
+                copy.
+              </p>
+              <Button
+                onClick={onFork}
+                className="w-full gap-2 bg-linear-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white"
+              >
+                <GitFork className="w-4 h-4" />
+                Fork "{projectTitle}"
+              </Button>
+            </div>
+          ) : (
+            // Normal mode - Show prompt input
+            <PromptInput
+              input={input}
+              setInput={setInput}
+              isLoading={isLoading}
+              onSubmit={handleFormSubmit}
+              activeTab={activeTab}
+              onTabChange={onTabChange}
+              hasSelectedElement={!!selectedElement}
+            />
+          )}
         </SidebarFooter>
       </div>
       <SidebarRail />

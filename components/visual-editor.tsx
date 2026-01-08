@@ -34,7 +34,6 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { ScrollArea } from "@/components/ui/scroll-area";
 
 // Helper function to convert RGB to Hex for color picker
 function rgbToHex(rgb: string): string {
@@ -426,15 +425,15 @@ export function VisualEditor({
   ].includes(tagName);
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full overflow-hidden">
       {/* Header - Element Info */}
-      <div className="p-4 border-b">
+      <div className="p-4 border-b shrink-0">
         <div className="flex items-center gap-2 text-sm">
           <span className="text-muted-foreground">Colors</span>
         </div>
       </div>
 
-      <ScrollArea className="flex-1">
+      <div className="flex-1 overflow-y-auto min-h-0">
         <Accordion
           type="multiple"
           defaultValue={[
@@ -934,7 +933,7 @@ export function VisualEditor({
             </AccordionContent>
           </AccordionItem>
         </Accordion>
-      </ScrollArea>
+      </div>
 
       {/* Footer Actions */}
       <div className="p-4 border-t bg-muted/20">

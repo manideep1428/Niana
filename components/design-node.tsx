@@ -63,6 +63,7 @@ function DesignNodeComponent({ data, selected }: DesignNodeProps) {
     onDelete,
     onEnableEdit,
     isInteractive,
+    isStreaming,
     onElementSelect,
   } = data;
   const iframeRef = useRef<HTMLIFrameElement>(null);
@@ -78,7 +79,9 @@ function DesignNodeComponent({ data, selected }: DesignNodeProps) {
   const [figmaCopySuccess, setFigmaCopySuccess] = useState(false);
   const clipboardDataRef = useRef<string | null>(null);
 
-  const showSkeleton = !content;
+  // Show skeleton when no content, or streaming with insufficient content
+  const hasValidContent = content && content.length > 100;
+  const showSkeleton = !hasValidContent;
 
   useEffect(() => {
     const handleCopy = (e: ClipboardEvent) => {
@@ -515,7 +518,6 @@ function DesignNodeComponent({ data, selected }: DesignNodeProps) {
       description: "AI-powered regeneration will be available soon.",
     });
   };
-
   // Handle Edit - Enable visual editor mode
   const handleEdit = () => {
     if (onEnableEdit) {
@@ -542,13 +544,18 @@ function DesignNodeComponent({ data, selected }: DesignNodeProps) {
           : "bg-transparent"
       )}
     >
-      <NodeToolbar isVisible={selected} position={Position.Top} offset={20}>
+      <NodeToolbar
+        isVisible={selected || isStreaming}
+        position={Position.Top}
+        offset={20}
+      >
         <div className="flex items-center gap-1 p-1 bg-gray-900 rounded-xl shadow-xl border border-gray-800 text-white animate-in slide-in-from-bottom-2 fade-in duration-200">
           <Button
             variant="ghost"
             size="sm"
             onClick={handleGenerate}
-            className="text-white hover:bg-white/10 hover:text-white h-8 px-2.5 gap-2 rounded-lg font-medium text-xs"
+            disabled={isStreaming}
+            className="text-white hover:bg-white/10 hover:text-white h-8 px-2.5 gap-2 rounded-lg font-medium text-xs disabled:opacity-50"
           >
             <Sparkles className="w-3.5 h-3.5" />
             Generate
@@ -558,7 +565,8 @@ function DesignNodeComponent({ data, selected }: DesignNodeProps) {
             variant="ghost"
             size="sm"
             onClick={handleEdit}
-            className="text-white hover:bg-white/10 hover:text-white h-8 px-2.5 gap-2 rounded-lg font-medium text-xs"
+            disabled={isStreaming || showSkeleton}
+            className="text-white hover:bg-white/10 hover:text-white h-8 px-2.5 gap-2 rounded-lg font-medium text-xs disabled:opacity-50"
           >
             <Pencil className="w-3.5 h-3.5" />
             Edit
@@ -568,9 +576,9 @@ function DesignNodeComponent({ data, selected }: DesignNodeProps) {
             variant="ghost"
             size="sm"
             onClick={handleFigmaAction}
-            disabled={isFigmaLoading}
+            disabled={isFigmaLoading || isStreaming || showSkeleton}
             className={cn(
-              "h-8 px-2.5 gap-2 rounded-lg font-medium text-xs transition-all",
+              "h-8 px-2.5 gap-2 rounded-lg font-medium text-xs transition-all disabled:opacity-50",
               preparedFigmaData
                 ? "bg-green-500/20 text-green-400 hover:bg-green-500/30 hover:text-green-300 border border-green-500/50"
                 : "text-white hover:bg-white/10 hover:text-white"
@@ -606,7 +614,6 @@ function DesignNodeComponent({ data, selected }: DesignNodeProps) {
             className="text-red-400 hover:bg-red-500/20 hover:text-red-300 h-8 px-2.5 gap-2 rounded-lg font-medium text-xs"
           >
             <Trash2 className="w-3.5 h-3.5" />
-            Delete
           </Button>
         </div>
       </NodeToolbar>
@@ -676,22 +683,58 @@ function DesignNodeComponent({ data, selected }: DesignNodeProps) {
           title={title}
         />
 
-        {/* Skeleton Loader */}
+        {/* Skeleton Loader / Streaming Indicator */}
         {showSkeleton && (
           <div className="absolute inset-0 z-10 bg-background flex flex-col items-center justify-center p-6 space-y-4 min-h-[812px] w-[375px]">
-            <div className="w-full space-y-3">
-              <Skeleton className="h-[200px] w-full rounded-lg" />
-              <div className="space-y-2">
-                <Skeleton className="h-4 w-3/4" />
-                <Skeleton className="h-4 w-1/2" />
+            {isStreaming ? (
+              // Streaming indicator - show that content is being generated
+              <div className="w-full space-y-4 flex flex-col items-center">
+                <div className="w-12 h-12 rounded-full bg-linear-to-br from-pink-400 via-purple-400 to-pink-400 flex items-center justify-center animate-pulse">
+                  <span className="text-lg font-bold text-white">N</span>
+                </div>
+                <div className="text-center space-y-2">
+                  <p className="text-sm font-medium text-foreground">
+                    Generating {title}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Building your design...
+                  </p>
+                </div>
+                {/* Animated progress bar */}
+                <div className="w-full max-w-[200px] h-1 bg-muted rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-linear-to-r from-pink-400 via-purple-400 to-pink-400 rounded-full animate-[shimmer_1.5s_ease-in-out_infinite]"
+                    style={{
+                      width: "60%",
+                      animation: "shimmer 1.5s ease-in-out infinite",
+                    }}
+                  />
+                </div>
+                {/* Shimmer skeleton preview */}
+                <div className="w-full space-y-3 mt-4 opacity-50">
+                  <div className="h-[100px] w-full rounded-lg bg-muted animate-pulse" />
+                  <div className="space-y-2">
+                    <div className="h-3 w-3/4 bg-muted rounded animate-pulse" />
+                    <div className="h-3 w-1/2 bg-muted rounded animate-pulse" />
+                  </div>
+                </div>
               </div>
-              <div className="grid grid-cols-2 gap-2 pt-4">
-                <Skeleton className="h-24 rounded-md" />
-                <Skeleton className="h-24 rounded-md" />
-                <Skeleton className="h-24 rounded-md" />
-                <Skeleton className="h-24 rounded-md" />
+            ) : (
+              // Static skeleton - waiting for content
+              <div className="w-full space-y-3">
+                <Skeleton className="h-[200px] w-full rounded-lg" />
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-3/4" />
+                  <Skeleton className="h-4 w-1/2" />
+                </div>
+                <div className="grid grid-cols-2 gap-2 pt-4">
+                  <Skeleton className="h-24 rounded-md" />
+                  <Skeleton className="h-24 rounded-md" />
+                  <Skeleton className="h-24 rounded-md" />
+                  <Skeleton className="h-24 rounded-md" />
+                </div>
               </div>
-            </div>
+            )}
           </div>
         )}
 

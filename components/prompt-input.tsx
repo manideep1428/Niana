@@ -38,6 +38,7 @@ interface PromptInputProps {
     e: React.FormEvent<HTMLFormElement>,
     attachments: Attachment[]
   ) => void;
+  onStop?: () => void;
   // Visual edits props
   activeTab?: "chat" | "design";
   onTabChange?: (tab: "chat" | "design") => void;
@@ -48,6 +49,7 @@ export function PromptInput({
   input,
   setInput,
   onSubmit,
+  onStop,
   isLoading,
   activeTab = "chat",
   onTabChange,
@@ -398,6 +400,7 @@ export function PromptInput({
             <PromptSubmit
               status={isLoading ? "loading" : "streaming"}
               onSubmit={handleButtonClick}
+              onStop={onStop}
               className="bg-linear-to-r from-primary/60 to-primary/40 hover:from-primary/70 hover:to-primary/50 text-primary-foreground h-8 w-8 rounded-lg transition-colors shadow-sm"
             />
           </div>

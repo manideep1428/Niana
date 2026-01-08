@@ -50,6 +50,7 @@ interface PromptSidebarProps extends React.ComponentProps<typeof Sidebar> {
     e: React.FormEvent<HTMLFormElement>,
     attachments: Attachment[]
   ) => void;
+  onStop?: () => void;
   messages: Message[];
   onArtifactClick?: (artifactId: string) => void;
 
@@ -143,6 +144,7 @@ export function PromptSidebar({
   isLoading,
   isMessagesLoading,
   handleFormSubmit,
+  onStop,
   messages,
   onArtifactClick,
   activeTab,
@@ -467,6 +469,7 @@ export function PromptSidebar({
               setInput={setInput}
               isLoading={isLoading}
               onSubmit={handleFormSubmit}
+              onStop={onStop}
               activeTab={activeTab}
               onTabChange={onTabChange}
               hasSelectedElement={!!selectedElement}

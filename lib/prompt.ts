@@ -478,11 +478,6 @@ Always suggest 3-4 relevant additional screens based on the app type.
 </suggestions_instruction>
 `;
 
-// ============================================================
-// ITERATIVE GENERATION PROMPTS
-// These prompts enable progressive rendering - one screen at a time
-// ============================================================
-
 export const getIterativeSystemPrompt = () => `
 You are a mobile app screen planner. Given a user's request, analyze what screens should be created.
 

@@ -6,7 +6,6 @@ import { ConvexHttpClient } from "convex/browser";
 import { api } from "@/convex/_generated/api";
 import { withAuth } from "@workos-inc/authkit-nextjs";
 
-// Initialize Convex Client
 const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
 interface Attachment {
@@ -91,7 +90,7 @@ export async function POST(request: NextRequest) {
     async start(controller) {
       try {
         const planMessages = [
-          { role: "system" as const, content: getIterativeSystemPrompt() },
+          { role: "system" as const, content: testPrompt },
           ...messages.map(
             (m: {
               role: string;

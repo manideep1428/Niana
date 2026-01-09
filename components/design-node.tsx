@@ -538,7 +538,6 @@ function DesignNodeComponent({ data, selected }: DesignNodeProps) {
     <div
       className={cn(
         "transition-all duration-200 cursor-grab active:cursor-grabbing rounded-2xl relative group",
-        // Solid bg for skeleton, glass effect for generated design
         showSkeleton
           ? "bg-background border border-border shadow-lg"
           : "bg-transparent"
@@ -656,95 +655,139 @@ function DesignNodeComponent({ data, selected }: DesignNodeProps) {
         </DialogContent>
       </Dialog>
 
-      {/* Content Area */}
-      <div
-        className={cn(
-          "relative overflow-hidden rounded-2xl",
-          // Solid bg for skeleton, transparent for generated
-          showSkeleton ? "bg-background" : "bg-transparent",
-          selected
-            ? "border-primary border-2 ring-4 ring-primary/20 shadow-xl"
-            : "border-border hover:border-primary/50"
-        )}
-      >
-        {/* Iframe Preview */}
-        <iframe
-          ref={iframeRef}
-          name={artifactId}
-          srcDoc={contentWithScript}
-          className={cn(
-            "w-[375px] border-0 transition-all duration-300 block",
-            showSkeleton ? "opacity-0" : "opacity-100",
-            isInteractive ? "pointer-events-auto" : "pointer-events-none"
-          )}
-          style={{ height: iframeHeight }}
-          sandbox="allow-scripts allow-same-origin"
-          scrolling="no"
-          title={title}
-        />
-
-        {/* Skeleton Loader / Streaming Indicator */}
-        {showSkeleton && (
-          <div className="absolute inset-0 z-10 bg-background flex flex-col items-center justify-center p-6 space-y-4 min-h-[812px] w-[375px]">
-            {isStreaming ? (
-              // Streaming indicator - show that content is being generated
-              <div className="w-full space-y-4 flex flex-col items-center">
-                <div className="w-12 h-12 rounded-full bg-linear-to-br from-pink-400 via-purple-400 to-pink-400 flex items-center justify-center animate-pulse">
-                  <span className="text-lg font-bold text-white">N</span>
-                </div>
-                <div className="text-center space-y-2">
-                  <p className="text-sm font-medium text-foreground">
-                    Generating {title}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Building your design...
-                  </p>
-                </div>
-                {/* Animated progress bar */}
-                <div className="w-full max-w-[200px] h-1 bg-muted rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-linear-to-r from-pink-400 via-purple-400 to-pink-400 rounded-full animate-[shimmer_1.5s_ease-in-out_infinite]"
-                    style={{
-                      width: "60%",
-                      animation: "shimmer 1.5s ease-in-out infinite",
-                    }}
-                  />
-                </div>
-                {/* Shimmer skeleton preview */}
-                <div className="w-full space-y-3 mt-4 opacity-50">
-                  <div className="h-[100px] w-full rounded-lg bg-muted animate-pulse" />
-                  <div className="space-y-2">
-                    <div className="h-3 w-3/4 bg-muted rounded animate-pulse" />
-                    <div className="h-3 w-1/2 bg-muted rounded animate-pulse" />
-                  </div>
-                </div>
-              </div>
-            ) : (
-              // Static skeleton - waiting for content
-              <div className="w-full space-y-3">
-                <Skeleton className="h-[200px] w-full rounded-lg" />
-                <div className="space-y-2">
-                  <Skeleton className="h-4 w-3/4" />
-                  <Skeleton className="h-4 w-1/2" />
-                </div>
-                <div className="grid grid-cols-2 gap-2 pt-4">
-                  <Skeleton className="h-24 rounded-md" />
-                  <Skeleton className="h-24 rounded-md" />
-                  <Skeleton className="h-24 rounded-md" />
-                  <Skeleton className="h-24 rounded-md" />
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Overlay for dragging */}
+      {/* Mobile Device Frame */}
+      <div className={cn("relative", selected ? "ring-4 ring-primary/30" : "")}>
+        {/* Phone Frame - Outer Shell */}
         <div
           className={cn(
-            "absolute inset-0 transparent",
-            isInteractive ? "pointer-events-none" : "pointer-events-auto"
+            "relative rounded-[50px] p-[12px] transition-all duration-300",
+            // Device frame gradient - titanium look
+            "bg-linear-to-br from-zinc-700 via-zinc-800 to-zinc-900",
+            // Outer shadow for depth
+            "shadow-[0_0_0_1px_rgba(255,255,255,0.1),0_25px_50px_-12px_rgba(0,0,0,0.6),0_0_80px_-20px_rgba(0,0,0,0.3)]",
+            selected &&
+              "shadow-[0_0_0_1px_rgba(255,255,255,0.2),0_25px_50px_-12px_rgba(0,0,0,0.7),0_0_100px_-20px_rgba(124,58,237,0.3)]"
           )}
-        />
+        >
+          {/* Side Buttons - Left (Silent Switch + Volume) */}
+          <div className="absolute left-0 top-[100px] w-[3px] h-[28px] bg-zinc-600 rounded-l-sm shadow-inner" />
+          <div className="absolute left-0 top-[140px] w-[3px] h-[50px] bg-zinc-600 rounded-l-sm shadow-inner" />
+          <div className="absolute left-0 top-[200px] w-[3px] h-[50px] bg-zinc-600 rounded-l-sm shadow-inner" />
+
+          {/* Side Button - Right (Power) */}
+          <div className="absolute right-0 top-[160px] w-[3px] h-[70px] bg-zinc-600 rounded-r-sm shadow-inner" />
+
+          {/* Inner Screen Bezel */}
+          <div
+            className={cn(
+              "relative rounded-[40px] overflow-hidden",
+              "bg-black",
+              // Inner bezel shadow
+              "shadow-[inset_0_0_20px_rgba(0,0,0,0.5)]",
+              selected ? "ring-2 ring-primary/50" : ""
+            )}
+          >
+            {/* Dynamic Island / Notch */}
+            {/* <div className="absolute top-[12px] left-1/2 transform -translate-x-1/2 z-30 flex items-center gap-[6px]">
+              <div className="bg-black rounded-full px-[20px] py-[10px] flex items-center gap-[10px] shadow-lg">
+                <div className="w-[10px] h-[10px] rounded-full bg-zinc-800 ring-1 ring-zinc-700 flex items-center justify-center">
+                  <div className="w-[4px] h-[4px] rounded-full bg-zinc-600" />
+                </div>
+                <div className="w-[50px] h-[6px] rounded-full bg-zinc-800" />
+              </div>
+            </div> */}
+
+            {/* Screen Content Area */}
+            <div className="relative overflow-hidden bg-black">
+              {/* Iframe Preview */}
+              <iframe
+                ref={iframeRef}
+                name={artifactId}
+                srcDoc={contentWithScript}
+                className={cn(
+                  "w-[375px] border-0 transition-all duration-300 block",
+                  showSkeleton ? "opacity-0" : "opacity-100",
+                  isInteractive ? "pointer-events-auto" : "pointer-events-none"
+                )}
+                style={{ height: iframeHeight }}
+                sandbox="allow-scripts allow-same-origin"
+                scrolling="no"
+                title={title}
+              />
+
+              {/* Skeleton Loader / Streaming Indicator */}
+              {showSkeleton && (
+                <div className="absolute inset-0 z-10 bg-zinc-950 flex flex-col items-center justify-center p-6 space-y-4 min-h-[812px] w-[375px]">
+                  {isStreaming ? (
+                    // Streaming indicator - show that content is being generated
+                    <div className="w-full space-y-4 flex flex-col items-center">
+                      <div className="w-12 h-12 rounded-full bg-linear-to-br from-pink-400 via-purple-400 to-pink-400 flex items-center justify-center animate-pulse">
+                        <span className="text-lg font-bold text-white">N</span>
+                      </div>
+                      <div className="text-center space-y-2">
+                        <p className="text-sm font-medium text-white">
+                          Generating {title}
+                        </p>
+                        <p className="text-xs text-zinc-400">
+                          Building your design...
+                        </p>
+                      </div>
+                      {/* Animated progress bar */}
+                      <div className="w-full max-w-[200px] h-1 bg-zinc-800 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-linear-to-r from-pink-400 via-purple-400 to-pink-400 rounded-full animate-[shimmer_1.5s_ease-in-out_infinite]"
+                          style={{
+                            width: "60%",
+                            animation: "shimmer 1.5s ease-in-out infinite",
+                          }}
+                        />
+                      </div>
+                      {/* Shimmer skeleton preview */}
+                      <div className="w-full space-y-3 mt-4 opacity-50">
+                        <div className="h-[100px] w-full rounded-lg bg-zinc-800 animate-pulse" />
+                        <div className="space-y-2">
+                          <div className="h-3 w-3/4 bg-zinc-800 rounded animate-pulse" />
+                          <div className="h-3 w-1/2 bg-zinc-800 rounded animate-pulse" />
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    // Static skeleton - waiting for content
+                    <div className="w-full space-y-3">
+                      <div className="h-[200px] w-full rounded-lg bg-zinc-800 animate-pulse" />
+                      <div className="space-y-2">
+                        <div className="h-4 w-3/4 bg-zinc-800 rounded animate-pulse" />
+                        <div className="h-4 w-1/2 bg-zinc-800 rounded animate-pulse" />
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 pt-4">
+                        <div className="h-24 rounded-md bg-zinc-800 animate-pulse" />
+                        <div className="h-24 rounded-md bg-zinc-800 animate-pulse" />
+                        <div className="h-24 rounded-md bg-zinc-800 animate-pulse" />
+                        <div className="h-24 rounded-md bg-zinc-800 animate-pulse" />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Overlay for dragging */}
+              <div
+                className={cn(
+                  "absolute inset-0 transparent",
+                  isInteractive ? "pointer-events-none" : "pointer-events-auto"
+                )}
+              />
+            </div>
+
+            {/* Home Indicator Bar */}
+            <div className="absolute bottom-[8px] left-1/2 transform -translate-x-1/2 z-30">
+              <div className="w-[134px] h-[5px] rounded-full bg-white/30" />
+            </div>
+          </div>
+
+          {/* Screen Reflection Overlay */}
+          <div className="absolute inset-[12px] rounded-[40px] pointer-events-none bg-linear-to-br from-white/5 via-transparent to-transparent" />
+        </div>
       </div>
     </div>
   );

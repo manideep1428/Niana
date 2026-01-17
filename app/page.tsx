@@ -10,6 +10,7 @@ import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { Sparkles } from "lucide-react";
 import { useAuth } from "@workos-inc/authkit-nextjs/components";
+import type { Attachment } from "@/components/preview-attachment";
 
 export default function Home() {
   const router = useRouter();
@@ -26,12 +27,15 @@ export default function Home() {
     }
   }, [user]);
 
-  const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const onSubmit = async (
+    e: React.FormEvent<HTMLFormElement>,
+    attachments: Attachment[] = []
+  ) => {
     const formData = new FormData(e.currentTarget);
     const content = formData.get("content") as string;
 
-    if (!content?.trim()) {
-      toast.error("Please enter a prompt");
+    if (!content?.trim() && attachments.length === 0) {
+      toast.error("Please enter a prompt or attach a file");
       return;
     }
 
@@ -50,7 +54,15 @@ export default function Home() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ content }),
+        body: JSON.stringify({
+          content,
+          attachments: attachments.map((a) => ({
+            name: a.name,
+            url: a.url,
+            contentType: a.contentType,
+            storageId: a.storageId,
+          })),
+        }),
       });
 
       const data = await response.json();

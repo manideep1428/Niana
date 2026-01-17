@@ -16,18 +16,16 @@ export const saveFigmaData = mutation({
   args: {
     user_id: v.optional(v.string()),
     artifact_id: v.string(),
+    figmaid: v.optional(v.string()),
     content: v.string(),
   },
   handler: async (ctx, args) => {
-    // Check if it already exists to avoid duplicates (though simple logic here)
     const existing = await ctx.db
       .query("figma")
       .withIndex("by_artifact_id", (q) => q.eq("artifact_id", args.artifact_id))
       .first();
 
     if (existing) {
-      // Update if needed, or just return existing 'content' if we wanted,
-      // but here we just update timestamp or content
       await ctx.db.patch(existing._id, {
         content: args.content,
         updated_at: new Date().toISOString(),
@@ -36,7 +34,7 @@ export const saveFigmaData = mutation({
     }
 
     const id = await ctx.db.insert("figma", {
-      user_id: args.user_id || "system", // default if missing
+      user_id: args.user_id || "system",
       artifact_id: args.artifact_id,
       content: args.content,
       created_at: new Date().toISOString(),
@@ -49,7 +47,7 @@ export const saveFigmaData = mutation({
 export const getFigmaUserCount = query({
   args: {
     user_id: v.string(),
-    since: v.string(), // ISO date string
+    since: v.string(),
   },
   handler: async (ctx, args) => {
     const designs = await ctx.db

@@ -1,12 +1,13 @@
 import React from "react";
 import { Button } from "./ui/button";
-import { ArrowUp, Square } from "lucide-react";
+import { ArrowUp, Square, Loader2 } from "lucide-react";
 
 interface PromptSubmitProps {
   onSubmit: (e: React.MouseEvent<HTMLButtonElement>) => void;
   onStop?: () => void;
   status: string;
   className: string;
+  isResponding?: boolean;
 }
 
 export default function PromptSubmit({
@@ -14,14 +15,15 @@ export default function PromptSubmit({
   onStop,
   status,
   className,
+  isResponding = false,
 }: PromptSubmitProps) {
   const isLoading = status === "loading";
 
   const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
-    if (isLoading && onStop) {
+    if (isLoading && isResponding && onStop) {
       e.preventDefault();
       onStop();
-    } else {
+    } else if (!isLoading) {
       onSubmit(e);
     }
   };
@@ -30,11 +32,22 @@ export default function PromptSubmit({
     <div>
       <Button
         onClick={handleClick}
-        className={`${className} rounded-full ${isLoading ? "bg-red-500 hover:bg-red-600" : ""}`}
-        title={isLoading ? "Stop generating" : "Send message"}
+        disabled={isLoading && !isResponding}
+        className={`${className} rounded-full ${isResponding ? "bg-red-500 hover:bg-red-600" : ""}`}
+        title={
+          isResponding
+            ? "Stop generating"
+            : isLoading
+              ? "Loading..."
+              : "Send message"
+        }
       >
         {isLoading ? (
-          <Square className="h-4 w-4 fill-current" />
+          isResponding ? (
+            <Square className="h-4 w-4 fill-current" />
+          ) : (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          )
         ) : (
           <ArrowUp className="w-8 h-8" />
         )}

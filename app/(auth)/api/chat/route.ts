@@ -1,6 +1,11 @@
 import openai from "@/lib/openai";
-import { getSystemPrompt } from "@/lib/prompt";
-import { tools, CreateArtifactArgs, UpdateArtifactArgs } from "@/lib/tools";
+import { systemPrompt } from "@/lib/prompt";
+import {
+  tools,
+  CreateArtifactArgs,
+  UpdateArtifactArgs,
+  TOOL_NAMES,
+} from "@/lib/tools";
 import { NextRequest } from "next/server";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "@/convex/_generated/api";
@@ -8,8 +13,6 @@ import { withAuth } from "@workos-inc/authkit-nextjs";
 
 // Initialize Convex Client
 const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
-
-const systemPrompt = getSystemPrompt();
 
 interface Attachment {
   name: string;
@@ -31,7 +34,7 @@ export async function GET(request: Request) {
 
 function buildMessageContent(
   text: string,
-  attachments?: Attachment[]
+  attachments?: Attachment[],
 ): string | ContentPart[] {
   if (!attachments || attachments.length === 0) {
     return text;
@@ -63,8 +66,23 @@ function buildMessageContent(
     : parts;
 }
 
+// Stream event types - cleaner format like ai-chatbot
+type StreamEvent =
+  | { type: "text-delta"; content: string }
+  | {
+      type: "tool-call";
+      name: string;
+      args: CreateArtifactArgs | UpdateArtifactArgs;
+    }
+  | { type: "finish"; reason: string }
+  | { type: "error"; message: string };
+
+function encodeEvent(event: StreamEvent): string {
+  return `data: ${JSON.stringify(event)}\n\n`;
+}
+
 export async function POST(request: NextRequest) {
-  const { messages, projectId } = await request.json();
+  const { messages, projectId, selectedChatModel } = await request.json();
   const { user } = await withAuth();
 
   if (!user) {
@@ -76,7 +94,7 @@ export async function POST(request: NextRequest) {
     const subscription = await convex.query(api.quires.getUserSubscription, {
       user_id: user.id,
     });
-    const totalTokens = subscription?.tokens_total ?? 20000; // Default Free: 1 credit = 20k tokens
+    const totalTokens = subscription?.tokens_total ?? 20000;
     const usedTokens = subscription?.tokens_used ?? 0;
 
     if (usedTokens >= totalTokens) {
@@ -85,27 +103,27 @@ export async function POST(request: NextRequest) {
           error:
             "You have run out of credits. Please upgrade your plan to continue.",
         },
-        { status: 403 }
+        { status: 403 },
       );
     }
   } catch (e) {
     console.error("Credit check failed:", e);
   }
 
-  // Build the messages array with history, handling attachments
+  // Build the messages array with history
   const chatMessages = [
-    { role: "system" as const, content: systemPrompt },
+    { role: "system" as const, content: systemPrompt({ selectedChatModel }) },
     ...messages.map(
       (m: { role: string; content: string; attachments?: Attachment[] }) => ({
         role: m.role as "user" | "assistant",
         content: buildMessageContent(m.content, m.attachments),
-      })
+      }),
     ),
   ];
 
   try {
     const stream = await openai.chat.completions.create({
-      model: "gpt-5.1", // Use a model that supports tool calling
+      model: "gpt-4.1",
       messages: chatMessages,
       tools: tools,
       tool_choice: "auto",
@@ -120,64 +138,49 @@ export async function POST(request: NextRequest) {
       number,
       { id: string; name: string; arguments: string; sent: boolean }
     > = new Map();
-    let currentContent = "";
     let usageTokens = 0;
 
     const readable = new ReadableStream({
       async start(controller) {
-        // Helper function to try sending a tool call if its arguments are complete
-        const tryProcessToolCall = (
+        const processToolCall = (
           index: number,
           toolCall: {
             id: string;
             name: string;
             arguments: string;
             sent: boolean;
-          }
+          },
         ) => {
-          if (toolCall.sent) return; // Already sent
+          if (toolCall.sent) return;
 
           try {
-            // Try to parse - if successful, the arguments are complete
             const args = JSON.parse(toolCall.arguments);
 
-            if (toolCall.name === "create_artifact") {
-              const createArgs = args as CreateArtifactArgs;
+            if (toolCall.name === TOOL_NAMES.CREATE_ARTIFACT) {
               controller.enqueue(
                 encoder.encode(
-                  `data: ${JSON.stringify({
-                    type: "tool_call",
-                    tool: "create_artifact",
-                    projectId,
-                    data: {
-                      id: createArgs.id,
-                      title: createArgs.title,
-                      content: createArgs.content,
-                    },
-                  })}\n\n`
-                )
+                  encodeEvent({
+                    type: "tool-call",
+                    name: TOOL_NAMES.CREATE_ARTIFACT,
+                    args: args as CreateArtifactArgs,
+                  }),
+                ),
               );
               toolCall.sent = true;
-            } else if (toolCall.name === "update_artifact") {
-              const updateArgs = args as UpdateArtifactArgs;
+            } else if (toolCall.name === TOOL_NAMES.UPDATE_ARTIFACT) {
               controller.enqueue(
                 encoder.encode(
-                  `data: ${JSON.stringify({
-                    type: "tool_call",
-                    tool: "update_artifact",
-                    projectId,
-                    data: {
-                      id: updateArgs.id,
-                      title: updateArgs.title,
-                      content: updateArgs.content,
-                    },
-                  })}\n\n`
-                )
+                  encodeEvent({
+                    type: "tool-call",
+                    name: TOOL_NAMES.UPDATE_ARTIFACT,
+                    args: args as UpdateArtifactArgs,
+                  }),
+                ),
               );
               toolCall.sent = true;
             }
           } catch {
-            // JSON not complete yet, wait for more chunks
+            // JSON not complete yet
           }
         };
 
@@ -186,20 +189,17 @@ export async function POST(request: NextRequest) {
             const delta = chunk.choices[0]?.delta;
             const finishReason = chunk.choices[0]?.finish_reason;
 
-            // Capture usage if available (usually in the last chunk)
+            // Capture usage
             if (chunk.usage) {
-              // User requested: "every 10,000 output tokens ... will cosume a 1 token"
-              // We track output tokens (completion_tokens).
               usageTokens = chunk.usage.completion_tokens || 0;
             }
 
-            // Handle text content
+            // Stream text content directly
             if (delta?.content) {
-              currentContent += delta.content;
               controller.enqueue(
                 encoder.encode(
-                  `data: ${JSON.stringify({ type: "text", content: delta.content })}\n\n`
-                )
+                  encodeEvent({ type: "text-delta", content: delta.content }),
+                ),
               );
             }
 
@@ -229,26 +229,25 @@ export async function POST(request: NextRequest) {
                   current.arguments += toolCall.function.arguments;
                 }
 
-                // Try to process this tool call immediately if arguments are complete
-                tryProcessToolCall(index, current);
+                processToolCall(index, current);
               }
             }
 
-            // Final check: Process any remaining tool calls that weren't sent yet
+            // Process remaining tool calls on finish
             if (
               finishReason === "tool_calls" ||
               (finishReason === "stop" && toolCalls.size > 0)
             ) {
               for (const [index, toolCall] of toolCalls) {
                 if (!toolCall.sent) {
-                  tryProcessToolCall(index, toolCall);
+                  processToolCall(index, toolCall);
                 }
               }
               toolCalls.clear();
             }
           }
 
-          // Update token usage in DB if we have a user and usage data
+          // Update token usage
           if (user && usageTokens > 0) {
             try {
               await convex.mutation(api.mutations.updateTokenUsage, {
@@ -260,17 +259,17 @@ export async function POST(request: NextRequest) {
             }
           }
 
-          // Send done event
+          // Send finish event
           controller.enqueue(
-            encoder.encode(`data: ${JSON.stringify({ type: "done" })}\n\n`)
+            encoder.encode(encodeEvent({ type: "finish", reason: "stop" })),
           );
           controller.close();
         } catch (error) {
           console.error("Stream error:", error);
           controller.enqueue(
             encoder.encode(
-              `data: ${JSON.stringify({ type: "error", message: String(error) })}\n\n`
-            )
+              encodeEvent({ type: "error", message: String(error) }),
+            ),
           );
           controller.close();
         }
@@ -288,7 +287,7 @@ export async function POST(request: NextRequest) {
     console.error("Chat API error:", error);
     return Response.json(
       { error: "Failed to process chat request" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

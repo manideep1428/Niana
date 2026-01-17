@@ -37,9 +37,19 @@ interface TextEvent {
   content: string;
 }
 
+// New ai-chatbot style text delta event
+interface TextDeltaEvent {
+  type: "text-delta";
+  content: string;
+}
+
 interface ToolCallEvent {
   type: "tool_call";
-  tool: "create_artifact" | "update_artifact";
+  tool:
+    | "create_artifact"
+    | "update_artifact"
+    | "createArtifact"
+    | "updateArtifact";
   projectId: string;
   data: {
     id: string;
@@ -48,27 +58,49 @@ interface ToolCallEvent {
   };
 }
 
+// New ai-chatbot style tool call event
+interface NewToolCallEvent {
+  type: "tool-call";
+  name: "createArtifact" | "updateArtifact";
+  args: {
+    id: string;
+    title: string;
+    content: string;
+  };
+}
+
 interface ArtifactStartEvent {
-  type: "artifact_start";
-  data: {
+  type: "artifact_start" | "artifact-start";
+  id?: string;
+  title?: string;
+  data?: {
     id: string;
     title: string;
   };
 }
 
 interface ContentDeltaEvent {
-  type: "content_delta";
-  data: {
+  type: "content_delta" | "artifact-delta";
+  id?: string;
+  content?: string;
+  data?: {
     id: string;
     delta: string;
   };
 }
 
 interface ArtifactFinishEvent {
-  type: "artifact_finish";
-  tool: "create_artifact" | "update_artifact";
-  projectId: string;
-  data: {
+  type: "artifact_finish" | "artifact-finish";
+  tool?:
+    | "create_artifact"
+    | "update_artifact"
+    | "createArtifact"
+    | "updateArtifact";
+  projectId?: string;
+  id?: string;
+  title?: string;
+  content?: string;
+  data?: {
     id: string;
     title: string;
     content: string;
@@ -87,6 +119,12 @@ interface DoneEvent {
   type: "done";
 }
 
+// New ai-chatbot style finish event
+interface FinishEvent {
+  type: "finish";
+  reason: string;
+}
+
 interface ErrorEvent {
   type: "error";
   message: string;
@@ -94,12 +132,15 @@ interface ErrorEvent {
 
 type SSEEvent =
   | TextEvent
+  | TextDeltaEvent
   | ToolCallEvent
+  | NewToolCallEvent
   | ArtifactStartEvent
   | ContentDeltaEvent
   | ArtifactFinishEvent
   | SkeletonEvent
   | DoneEvent
+  | FinishEvent
   | ErrorEvent;
 
 // Message type for chat
@@ -128,6 +169,7 @@ interface EditAction {
 function DesignPageContent() {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isResponding, setIsResponding] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
@@ -180,7 +222,7 @@ function DesignPageContent() {
   const { user } = useAuth();
   const subscription = useQuery(
     api.quires.getUserSubscription,
-    user ? { user_id: user.id } : "skip"
+    user ? { user_id: user.id } : "skip",
   );
 
   // Check if current user is the owner of this project
@@ -204,7 +246,7 @@ function DesignPageContent() {
     ...dbDesigns,
     ...pendingDesigns.filter(
       (pending) =>
-        !dbDesigns.some((db) => db.artifact_id === pending.artifact_id)
+        !dbDesigns.some((db) => db.artifact_id === pending.artifact_id),
     ),
   ];
 
@@ -231,7 +273,7 @@ function DesignPageContent() {
         try {
           // Find current title
           const currentDesign = designs.find(
-            (d) => d.artifact_id === event.data.artifactId
+            (d) => d.artifact_id === event.data.artifactId,
           );
           await updateDesign({
             artifact_id: event.data.artifactId,
@@ -260,7 +302,7 @@ function DesignPageContent() {
       setSelectedElement(elementInfo);
       handleTabChange("design");
     },
-    [setSelectedArtifactId, handleTabChange]
+    [setSelectedArtifactId, handleTabChange],
   );
 
   // Helper to add action to history
@@ -273,7 +315,7 @@ function DesignPageContent() {
       });
       setHistoryIndex((prev) => prev + 1);
     },
-    [historyIndex]
+    [historyIndex],
   );
 
   const handleUpdateStyle = useCallback(
@@ -294,12 +336,12 @@ function DesignPageContent() {
 
       setHasUnsavedChanges(true);
       const iframe = document.getElementsByName(
-        selectedArtifactId
+        selectedArtifactId,
       )[0] as HTMLIFrameElement;
       if (iframe?.contentWindow) {
         iframe.contentWindow.postMessage(
           { type: "updateStyle", property, value },
-          "*"
+          "*",
         );
       }
       setSelectedElement((prev) =>
@@ -308,10 +350,10 @@ function DesignPageContent() {
               ...prev,
               styles: { ...prev.styles, [property]: value },
             }
-          : null
+          : null,
       );
     },
-    [selectedArtifactId, selectedElement, addToHistory]
+    [selectedArtifactId, selectedElement, addToHistory],
   );
 
   // Preview style change without recording to history (for color picker dragging)
@@ -321,12 +363,12 @@ function DesignPageContent() {
 
       setHasUnsavedChanges(true);
       const iframe = document.getElementsByName(
-        selectedArtifactId
+        selectedArtifactId,
       )[0] as HTMLIFrameElement;
       if (iframe?.contentWindow) {
         iframe.contentWindow.postMessage(
           { type: "updateStyle", property, value },
-          "*"
+          "*",
         );
       }
       // Update local state for preview
@@ -336,10 +378,10 @@ function DesignPageContent() {
               ...prev,
               styles: { ...prev.styles, [property]: value },
             }
-          : null
+          : null,
       );
     },
-    [selectedArtifactId]
+    [selectedArtifactId],
   );
 
   const handleUpdateContent = useCallback(
@@ -359,25 +401,25 @@ function DesignPageContent() {
 
       setHasUnsavedChanges(true);
       const iframe = document.getElementsByName(
-        selectedArtifactId
+        selectedArtifactId,
       )[0] as HTMLIFrameElement;
       if (iframe?.contentWindow) {
         iframe.contentWindow.postMessage(
           { type: "updateContent", value: content },
-          "*"
+          "*",
         );
       }
       setSelectedElement((prev) =>
-        prev ? { ...prev, textContent: content } : null
+        prev ? { ...prev, textContent: content } : null,
       );
     },
-    [selectedArtifactId, selectedElement, addToHistory]
+    [selectedArtifactId, selectedElement, addToHistory],
   );
 
   const handleSelectParent = useCallback(() => {
     if (!selectedArtifactId) return;
     const iframe = document.getElementsByName(
-      selectedArtifactId
+      selectedArtifactId,
     )[0] as HTMLIFrameElement;
     if (iframe?.contentWindow) {
       iframe.contentWindow.postMessage({ type: "selectParent" }, "*");
@@ -402,12 +444,12 @@ function DesignPageContent() {
 
       setHasUnsavedChanges(true);
       const iframe = document.getElementsByName(
-        selectedArtifactId
+        selectedArtifactId,
       )[0] as HTMLIFrameElement;
       if (iframe?.contentWindow) {
         iframe.contentWindow.postMessage(
           { type: "updateAttribute", attribute, value },
-          "*"
+          "*",
         );
       }
       setSelectedElement((prev) =>
@@ -416,10 +458,10 @@ function DesignPageContent() {
               ...prev,
               attributes: { ...prev.attributes, [attribute]: value },
             }
-          : null
+          : null,
       );
     },
-    [selectedArtifactId, selectedElement, addToHistory]
+    [selectedArtifactId, selectedElement, addToHistory],
   );
 
   // Undo handler
@@ -428,7 +470,7 @@ function DesignPageContent() {
 
     const action = editHistory[historyIndex];
     const iframe = document.getElementsByName(
-      action.artifactId
+      action.artifactId,
     )[0] as HTMLIFrameElement;
 
     if (iframe?.contentWindow) {
@@ -440,7 +482,7 @@ function DesignPageContent() {
             property: action.property,
             value: action.oldValue,
           },
-          "*"
+          "*",
         );
         setSelectedElement((prev) =>
           prev
@@ -448,15 +490,15 @@ function DesignPageContent() {
                 ...prev,
                 styles: { ...prev.styles, [action.property!]: action.oldValue },
               }
-            : null
+            : null,
         );
       } else if (action.type === "content") {
         iframe.contentWindow.postMessage(
           { type: "updateContent", value: action.oldValue },
-          "*"
+          "*",
         );
         setSelectedElement((prev) =>
-          prev ? { ...prev, textContent: action.oldValue } : null
+          prev ? { ...prev, textContent: action.oldValue } : null,
         );
       } else if (action.type === "attribute" && action.attribute) {
         iframe.contentWindow.postMessage(
@@ -465,7 +507,7 @@ function DesignPageContent() {
             attribute: action.attribute,
             value: action.oldValue,
           },
-          "*"
+          "*",
         );
         setSelectedElement((prev) =>
           prev
@@ -476,7 +518,7 @@ function DesignPageContent() {
                   [action.attribute!]: action.oldValue,
                 },
               }
-            : null
+            : null,
         );
       }
     }
@@ -490,7 +532,7 @@ function DesignPageContent() {
 
     const action = editHistory[historyIndex + 1];
     const iframe = document.getElementsByName(
-      action.artifactId
+      action.artifactId,
     )[0] as HTMLIFrameElement;
 
     if (iframe?.contentWindow) {
@@ -502,7 +544,7 @@ function DesignPageContent() {
             property: action.property,
             value: action.newValue,
           },
-          "*"
+          "*",
         );
         setSelectedElement((prev) =>
           prev
@@ -510,15 +552,15 @@ function DesignPageContent() {
                 ...prev,
                 styles: { ...prev.styles, [action.property!]: action.newValue },
               }
-            : null
+            : null,
         );
       } else if (action.type === "content") {
         iframe.contentWindow.postMessage(
           { type: "updateContent", value: action.newValue },
-          "*"
+          "*",
         );
         setSelectedElement((prev) =>
-          prev ? { ...prev, textContent: action.newValue } : null
+          prev ? { ...prev, textContent: action.newValue } : null,
         );
       } else if (action.type === "attribute" && action.attribute) {
         iframe.contentWindow.postMessage(
@@ -527,7 +569,7 @@ function DesignPageContent() {
             attribute: action.attribute,
             value: action.newValue,
           },
-          "*"
+          "*",
         );
         setSelectedElement((prev) =>
           prev
@@ -538,7 +580,7 @@ function DesignPageContent() {
                   [action.attribute!]: action.newValue,
                 },
               }
-            : null
+            : null,
         );
       }
     }
@@ -554,7 +596,7 @@ function DesignPageContent() {
     if (!selectedArtifactId) return;
     setIsSaving(true);
     const iframe = document.getElementsByName(
-      selectedArtifactId
+      selectedArtifactId,
     )[0] as HTMLIFrameElement;
     if (iframe?.contentWindow) {
       iframe.contentWindow.postMessage({ type: "getHtml" }, "*");
@@ -565,7 +607,7 @@ function DesignPageContent() {
     if (hasUnsavedChanges) {
       if (
         confirm(
-          "You have unsaved changes. Are you sure you want to discard them?"
+          "You have unsaved changes. Are you sure you want to discard them?",
         )
       ) {
         setHasUnsavedChanges(false);
@@ -608,7 +650,7 @@ function DesignPageContent() {
         handleCancelEditTitle();
       }
     },
-    [handleSaveTitle, handleCancelEditTitle]
+    [handleSaveTitle, handleCancelEditTitle],
   );
 
   // Load messages from Convex on mount
@@ -649,7 +691,7 @@ function DesignPageContent() {
       content: string,
       currentMessages: Message[],
       attachments: Attachment[] = [],
-      skipSaveUserMessage = false
+      skipSaveUserMessage = false,
     ) => {
       // Check credit limit before proceeding
       const totalTokens = subscription?.tokens_total ?? 10000;
@@ -668,6 +710,7 @@ function DesignPageContent() {
       }
 
       setIsLoading(true);
+      setIsResponding(false);
       isStoppedRef.current = false;
 
       // Create new AbortController for this request
@@ -758,7 +801,11 @@ function DesignPageContent() {
               try {
                 const event: SSEEvent = JSON.parse(line.slice(6));
 
-                if (event.type === "text") {
+                // Set isResponding to true on first event received
+                setIsResponding(true);
+
+                // Handle text events (both old and new format)
+                if (event.type === "text" || event.type === "text-delta") {
                   assistantContent += event.content;
                   setMessages([
                     ...newMessages,
@@ -769,27 +816,36 @@ function DesignPageContent() {
                       streamingDesigns: [...streamingDesigns],
                     },
                   ]);
-                } else if (event.type === "artifact_start") {
+                }
+                // Handle artifact start (both old and new format)
+                else if (
+                  event.type === "artifact_start" ||
+                  event.type === "artifact-start"
+                ) {
                   // Remove initial placeholder skeleton
                   if (!initialSkeletonRemoved) {
                     setPendingDesigns((prev) =>
-                      prev.filter((p) => p.artifact_id !== pendingSkeletonId)
+                      prev.filter((p) => p.artifact_id !== pendingSkeletonId),
                     );
                     initialSkeletonRemoved = true;
                   }
 
+                  // Handle both event data formats
+                  const artifactId = event.id || event.data?.id || "";
+                  const artifactTitle = event.title || event.data?.title || "";
+
                   // Add to streamingDesigns for chat display
                   streamingDesigns.push({
-                    id: event.data.id,
-                    title: event.data.title,
+                    id: artifactId,
+                    title: artifactTitle,
                     status: "creating",
                   });
 
                   // Add a skeleton design node with streaming state
                   const newStreamingDesign: Design = {
-                    _id: `streaming-${event.data.id}`,
-                    artifact_id: event.data.id,
-                    title: event.data.title,
+                    _id: `streaming-${artifactId}`,
+                    artifact_id: artifactId,
+                    title: artifactTitle,
                     content: "", // Empty = show skeleton loader
                     status: "streaming",
                     x: undefined,
@@ -807,10 +863,21 @@ function DesignPageContent() {
                       streamingDesigns: [...streamingDesigns],
                     },
                   ]);
-                } else if (event.type === "artifact_finish") {
+                }
+                // Handle artifact finish (both old and new format)
+                else if (
+                  event.type === "artifact_finish" ||
+                  event.type === "artifact-finish"
+                ) {
+                  // Handle both event data formats
+                  const artifactId = event.id || event.data?.id || "";
+                  const artifactTitle = event.title || event.data?.title || "";
+                  const artifactContent =
+                    event.content || event.data?.content || "";
+
                   // Update status in streamingDesigns
                   const designIndex = streamingDesigns.findIndex(
-                    (d) => d.id === event.data.id
+                    (d) => d.id === artifactId,
                   );
                   if (designIndex !== -1) {
                     streamingDesigns[designIndex].status = "completed";
@@ -818,20 +885,27 @@ function DesignPageContent() {
 
                   // Remove the streaming design
                   setPendingDesigns((prev) =>
-                    prev.filter((p) => p.artifact_id !== event.data.id)
+                    prev.filter((p) => p.artifact_id !== artifactId),
                   );
 
                   const designData = {
                     project_id: projectId,
-                    artifact_id: event.data.id,
-                    title: event.data.title,
-                    content: event.data.content,
+                    artifact_id: artifactId,
+                    title: artifactTitle,
+                    content: artifactContent,
                   };
 
+                  // Determine if create or update based on tool name
+                  const toolName = event.tool || "";
+                  const isCreate =
+                    toolName.includes("create") ||
+                    toolName === "createArtifact";
+
                   let designDbId;
-                  if (event.tool === "create_artifact") {
+                  if (isCreate || !toolName) {
+                    // Default to create if no tool specified
                     designDbId = await createDesign(designData);
-                  } else if (event.tool === "update_artifact") {
+                  } else {
                     designDbId = await updateDesign({
                       artifact_id: designData.artifact_id,
                       title: designData.title,
@@ -844,10 +918,10 @@ function DesignPageContent() {
                   }
 
                   artifacts.push({
-                    id: event.data.id,
-                    title: event.data.title,
+                    id: artifactId,
+                    title: artifactTitle,
                   });
-                  setSelectedArtifactId(event.data.id);
+                  setSelectedArtifactId(artifactId);
 
                   // Update messages with completed status
                   setMessages([
@@ -859,15 +933,68 @@ function DesignPageContent() {
                       streamingDesigns: [...streamingDesigns],
                     },
                   ]);
-                } else if (
+                }
+                // Handle new ai-chatbot style tool-call events
+                else if (event.type === "tool-call") {
+                  const { name, args } = event;
+
+                  // Remove any streaming skeleton
+                  setPendingDesigns((prev) =>
+                    prev.filter((p) => p.artifact_id !== args.id),
+                  );
+
+                  const designData = {
+                    project_id: projectId,
+                    artifact_id: args.id,
+                    title: args.title,
+                    content: args.content,
+                  };
+
+                  let designDbId;
+                  if (name === "createArtifact") {
+                    designDbId = await createDesign(designData);
+                  } else if (name === "updateArtifact") {
+                    designDbId = await updateDesign({
+                      artifact_id: designData.artifact_id,
+                      title: designData.title,
+                      content: designData.content,
+                    });
+                  }
+
+                  if (designDbId) {
+                    artifactDbIds.push(designDbId);
+                  }
+
+                  artifacts.push({
+                    id: args.id,
+                    title: args.title,
+                  });
+                  setSelectedArtifactId(args.id);
+
+                  // Update messages
+                  setMessages([
+                    ...newMessages,
+                    {
+                      role: "assistant",
+                      content: assistantContent,
+                      artifacts,
+                      streamingDesigns: [...streamingDesigns],
+                    },
+                  ]);
+                }
+                // Handle finish events (both old and new format)
+                else if (event.type === "done" || event.type === "finish") {
+                  // Stream complete - messages will be finalized after the loop
+                }
+                // Legacy event handling for backwards compatibility
+                else if (
                   event.type === "skeleton" ||
                   event.type === "tool_call"
                 ) {
-                  // Legacy event handling for backwards compatibility
                   if (event.type === "skeleton") {
                     if (!initialSkeletonRemoved) {
                       setPendingDesigns((prev) =>
-                        prev.filter((p) => p.artifact_id !== pendingSkeletonId)
+                        prev.filter((p) => p.artifact_id !== pendingSkeletonId),
                       );
                       initialSkeletonRemoved = true;
                     }
@@ -883,7 +1010,7 @@ function DesignPageContent() {
                     setPendingDesigns((prev) => [...prev, newSkeleton]);
                   } else if (event.type === "tool_call") {
                     setPendingDesigns((prev) =>
-                      prev.filter((p) => p.artifact_id !== event.data.id)
+                      prev.filter((p) => p.artifact_id !== event.data.id),
                     );
                     const designData = {
                       project_id: projectId,
@@ -892,9 +1019,15 @@ function DesignPageContent() {
                       content: event.data.content,
                     };
                     let designDbId;
-                    if (event.tool === "create_artifact") {
+                    if (
+                      event.tool === "create_artifact" ||
+                      event.tool === "createArtifact"
+                    ) {
                       designDbId = await createDesign(designData);
-                    } else if (event.tool === "update_artifact") {
+                    } else if (
+                      event.tool === "update_artifact" ||
+                      event.tool === "updateArtifact"
+                    ) {
                       designDbId = await updateDesign({
                         artifact_id: designData.artifact_id,
                         title: designData.title,
@@ -953,6 +1086,7 @@ function DesignPageContent() {
         }
       } finally {
         setIsLoading(false);
+        setIsResponding(false);
         // Clear any remaining pending designs (incomplete ones)
         setPendingDesigns([]);
         abortControllerRef.current = null;
@@ -965,14 +1099,14 @@ function DesignPageContent() {
       setSelectedArtifactId,
       saveMessage,
       subscription,
-    ]
+    ],
   );
 
   // Auto-process initial message
   useEffect(() => {
     if (messagesData && !isLoading) {
       const initialMsg = messagesData.find(
-        (m: any) => m.role === "user" && m.initial_status === false
+        (m: any) => m.role === "user" && m.initial_status === false,
       );
 
       if (initialMsg) {
@@ -983,7 +1117,7 @@ function DesignPageContent() {
           initialMsg.content,
           [],
           initialMsg.attachments || [],
-          true
+          true,
         );
       }
     }
@@ -993,7 +1127,7 @@ function DesignPageContent() {
   const handleSubmit = useCallback(
     async (
       e: React.FormEvent<HTMLFormElement>,
-      attachments: Attachment[] = []
+      attachments: Attachment[] = [],
     ) => {
       e.preventDefault();
       if (!input.trim() && attachments.length === 0) return;
@@ -1008,7 +1142,7 @@ function DesignPageContent() {
 
       await handleSendMessage(userMessage, messages, attachments);
     },
-    [input, isLoading, messages, handleSendMessage]
+    [input, isLoading, messages, handleSendMessage],
   );
 
   // Handle stop generation
@@ -1026,7 +1160,7 @@ function DesignPageContent() {
     (artifactId: string) => {
       setSelectedArtifactId(artifactId);
     },
-    [setSelectedArtifactId]
+    [setSelectedArtifactId],
   );
 
   // Handle fork project
@@ -1063,6 +1197,7 @@ function DesignPageContent() {
         messages={messages}
         setInput={setInput}
         isLoading={isLoading}
+        isResponding={isResponding}
         isMessagesLoading={messagesData === undefined}
         handleFormSubmit={handleSubmit}
         onStop={handleStop}
@@ -1144,7 +1279,7 @@ function DesignPageContent() {
                           toast.success(
                             result.is_public
                               ? "Project is now public! Others can view it in the community."
-                              : "Project is now private."
+                              : "Project is now private.",
                           );
                         }}
                       >

@@ -5,8 +5,8 @@ import { api } from "@/convex/_generated/api";
 
 import { withAuth } from "@workos-inc/authkit-nextjs";
 import { SUBSCRIPTION_PLANS } from "@/lib/razorpay";
+import { randomUUID } from "crypto";
 
-// Initialize Convex Client
 const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
 export async function convertHtmlToFigma(html: string, artifactId?: string) {
@@ -17,10 +17,7 @@ export async function convertHtmlToFigma(html: string, artifactId?: string) {
     return { success: false, error: "Unauthorized" };
   }
 
-  // Check Subscription Limits (if not serving from cache)
   try {
-    // 1. Check if we already have it cached (no cost)
-    // Note: Logic allows unlimited re-exports of cached items.
     let isCached = false;
     if (artifactId) {
       const cached = await convex.query(api.figma.getFigmaData, {
@@ -32,18 +29,15 @@ export async function convertHtmlToFigma(html: string, artifactId?: string) {
       }
     }
 
-    // 2. Check Limits
     const subscription = await convex.query(api.quires.getUserSubscription, {
       user_id: user.id,
     });
-    // Get limit from subscription plan, default to free plan limit
     const planKey = (subscription?.plan ||
       "free") as keyof typeof SUBSCRIPTION_PLANS;
     const limit =
       SUBSCRIPTION_PLANS[planKey]?.figmaLimit ??
       SUBSCRIPTION_PLANS.free.figmaLimit;
 
-    // Calculate start of current month
     const now = new Date();
     const startOfMonth = new Date(
       now.getFullYear(),
@@ -69,8 +63,6 @@ export async function convertHtmlToFigma(html: string, artifactId?: string) {
   }
 
   try {
-    // Cache check moved up. proceed to API.
-
     console.log("Figma Cache Miss - Calling API");
     const response = await fetch("https://api.to.design/html", {
       method: "POST",
@@ -81,7 +73,6 @@ export async function convertHtmlToFigma(html: string, artifactId?: string) {
       body: JSON.stringify({
         html,
         clip: true,
-        // Default options suitable for general usage
         width: 1280,
         height: 720,
         theme: "light",
@@ -100,10 +91,8 @@ export async function convertHtmlToFigma(html: string, artifactId?: string) {
       return { success: false, error: errorMessage };
     }
 
-    // When clip=true, API returns text (clipboard data)
     const clipboardData = await response.text();
 
-    // 2. Save result to Cache
     if (artifactId && clipboardData) {
       try {
         await convex.mutation(api.figma.saveFigmaData, {

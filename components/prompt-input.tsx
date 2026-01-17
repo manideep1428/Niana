@@ -28,18 +28,18 @@ const ALLOWED_TYPES = [
 ];
 
 const MAX_FILES = 5;
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const MAX_FILE_SIZE = 5 * 1024 * 1024;
 
 interface PromptInputProps {
   input: string;
   setInput: (value: string) => void;
   isLoading: boolean;
+  isResponding?: boolean;
   onSubmit: (
     e: React.FormEvent<HTMLFormElement>,
     attachments: Attachment[]
   ) => void;
   onStop?: () => void;
-  // Visual edits props
   activeTab?: "chat" | "design";
   onTabChange?: (tab: "chat" | "design") => void;
   hasSelectedElement?: boolean;
@@ -51,6 +51,7 @@ export function PromptInput({
   onSubmit,
   onStop,
   isLoading,
+  isResponding = false,
   activeTab = "chat",
   onTabChange,
   hasSelectedElement,
@@ -290,7 +291,6 @@ export function PromptInput({
   return (
     <div className="p-4 pt-0">
       <form onSubmit={handleSubmit}>
-        {/* Hidden file input */}
         <input
           ref={fileInputRef}
           type="file"
@@ -357,7 +357,6 @@ export function PromptInput({
 
           <div className="flex items-center justify-between px-3 pb-3">
             <div className="flex items-center gap-2">
-              {/* Add/Attach button */}
               <button
                 type="button"
                 disabled={!canAttach}
@@ -367,7 +366,6 @@ export function PromptInput({
                 <Plus className="w-4 h-4" />
               </button>
 
-              {/* Visual edits button - only show in chat mode */}
               {onTabChange && activeTab === "chat" && (
                 <button
                   type="button"
@@ -384,7 +382,6 @@ export function PromptInput({
                 </button>
               )}
 
-              {/* Chat button - only show in design mode */}
               {onTabChange && activeTab === "design" && (
                 <button
                   type="button"
@@ -401,6 +398,7 @@ export function PromptInput({
               status={isLoading ? "loading" : "streaming"}
               onSubmit={handleButtonClick}
               onStop={onStop}
+              isResponding={isResponding}
               className="bg-linear-to-r from-primary/60 to-primary/40 hover:from-primary/70 hover:to-primary/50 text-primary-foreground h-8 w-8 rounded-lg transition-colors shadow-sm"
             />
           </div>

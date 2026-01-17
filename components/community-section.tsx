@@ -144,9 +144,7 @@ function ProjectCard({ project, onLike, isLiked }: ProjectCardProps) {
 export function CommunitySection() {
   const { user } = useAuth();
   const [visibleCount, setVisibleCount] = useState(12);
-  const [activeTab, setActiveTab] = useState<"recent" | "my" | "templates">(
-    "recent"
-  );
+  const [activeTab, setActiveTab] = useState<"recent" | "my">("recent");
 
   const publicProjects = useQuery(api.quires.getPublicProjects, {
     limit: visibleCount,
@@ -184,26 +182,18 @@ export function CommunitySection() {
               >
                 Recently viewed
               </button>
-              <button
-                onClick={() => setActiveTab("my")}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                  activeTab === "my"
-                    ? "bg-black/10 dark:bg-white/10 text-gray-900 dark:text-white"
-                    : "text-gray-500 dark:text-white/60 hover:text-gray-900 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5"
-                }`}
-              >
-                My projects
-              </button>
-              <button
-                onClick={() => setActiveTab("templates")}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                  activeTab === "templates"
-                    ? "bg-black/10 dark:bg-white/10 text-gray-900 dark:text-white"
-                    : "text-gray-500 dark:text-white/60 hover:text-gray-900 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5"
-                }`}
-              >
-                Templates
-              </button>
+              {user && (
+                <button
+                  onClick={() => setActiveTab("my")}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                    activeTab === "my"
+                      ? "bg-black/10 dark:bg-white/10 text-gray-900 dark:text-white"
+                      : "text-gray-500 dark:text-white/60 hover:text-gray-900 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5"
+                  }`}
+                >
+                  My projects
+                </button>
+              )}
             </div>
             <Button
               variant="ghost"

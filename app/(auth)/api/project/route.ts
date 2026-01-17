@@ -6,9 +6,18 @@ import openai from "@/lib/openai";
 import { generateUUID } from "@/lib/utils";
 import { withAuth } from "@workos-inc/authkit-nextjs";
 
+interface Attachment {
+  name: string;
+  url: string;
+  contentType: string;
+  storageId?: string;
+}
 
 export async function POST(request: Request) {
-  const { content } = await request.json();
+  const { content, attachments = [] } = (await request.json()) as {
+    content: string;
+    attachments?: Attachment[];
+  };
   const { user } = await withAuth();
 
   if (!user)
@@ -69,6 +78,12 @@ export async function POST(request: Request) {
       project_id: id,
       title: title,
       content: content,
+      attachments: attachments.map((a) => ({
+        name: a.name,
+        url: a.url,
+        contentType: a.contentType,
+        storageId: a.storageId as any,
+      })),
     });
 
     return Response.json({ success: true, projectId: id });

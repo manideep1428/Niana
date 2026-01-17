@@ -87,6 +87,16 @@ export const saveProject = mutation({
     project_id: v.string(),
     title: v.string(),
     content: v.string(),
+    attachments: v.optional(
+      v.array(
+        v.object({
+          name: v.string(),
+          url: v.string(),
+          contentType: v.string(),
+          storageId: v.optional(v.id("_storage")),
+        })
+      )
+    ),
   },
 
   handler: async (ctx, args) => {
@@ -97,7 +107,7 @@ export const saveProject = mutation({
       project_id: args.project_id,
       title: args.title,
     });
-    // Insert initial message with content
+    // Insert initial message with content and attachments
     await ctx.db.insert("messages", {
       created_at: Date.now().toString(),
       project_id: args.project_id,
@@ -105,6 +115,7 @@ export const saveProject = mutation({
       role: "user",
       design_ids: [],
       initial_status: false,
+      attachments: args.attachments ?? [],
     });
   },
 });

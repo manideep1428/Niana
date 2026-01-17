@@ -45,6 +45,7 @@ interface PromptSidebarProps extends React.ComponentProps<typeof Sidebar> {
   input: string;
   setInput: (value: string) => void;
   isLoading: boolean;
+  isResponding?: boolean;
   isMessagesLoading?: boolean;
   handleFormSubmit: (
     e: React.FormEvent<HTMLFormElement>,
@@ -142,6 +143,7 @@ export function PromptSidebar({
   input,
   setInput,
   isLoading,
+  isResponding = false,
   isMessagesLoading,
   handleFormSubmit,
   onStop,
@@ -468,6 +470,7 @@ export function PromptSidebar({
               input={input}
               setInput={setInput}
               isLoading={isLoading}
+              isResponding={isResponding}
               onSubmit={handleFormSubmit}
               onStop={onStop}
               activeTab={activeTab}

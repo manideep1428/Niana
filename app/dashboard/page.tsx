@@ -222,80 +222,84 @@ export default function DashboardPage() {
             </Button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {filteredProjects?.map((project) => (
               <div
                 key={project.project_id}
-                className="group relative bg-white dark:bg-white/5 hover:bg-gray-50 dark:hover:bg-white/10 border border-gray-200 dark:border-white/10 rounded-xl p-4 transition-all cursor-pointer shadow-sm hover:shadow-md dark:shadow-none"
+                className="group relative bg-white dark:bg-white/5 hover:bg-gray-50 dark:hover:bg-white/10 border border-gray-200 dark:border-white/10 rounded-2xl overflow-hidden transition-all cursor-pointer shadow-sm hover:shadow-lg dark:shadow-none hover:scale-[1.02] duration-200"
                 onClick={() => handleOpenProject(project.project_id)}
               >
-                <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-white/10 flex items-center justify-center shrink-0">
-                    <Smartphone className="w-5 h-5 text-gray-500 dark:text-white/60" />
+                {/* Large Icon Area */}
+                <div className="aspect-square bg-gray-100 dark:bg-white/5 flex items-center justify-center relative overflow-hidden">
+                  {/* Icon */}
+                  <div className="relative w-20 h-20 rounded-2xl bg-white dark:bg-white/10 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-200">
+                    <Smartphone className="w-10 h-10 text-gray-700 dark:text-white/70" />
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="text-sm font-medium text-gray-900 dark:text-white truncate">
+
+                  {/* Favorite Button - Positioned absolutely */}
+                  <button
+                    onClick={(e) => handleToggleFavorite(project.project_id, e)}
+                    className={`absolute top-3 right-3 p-2 rounded-lg bg-white/80 dark:bg-black/40 backdrop-blur-sm hover:bg-white dark:hover:bg-black/60 transition-all ${
+                      project.is_favorite
+                        ? "text-yellow-500 hover:text-yellow-600 dark:text-yellow-400 dark:hover:text-yellow-300"
+                        : "text-gray-400 dark:text-white/40 hover:text-gray-600 dark:hover:text-white/80"
+                    }`}
+                  >
+                    <Star
+                      className={`w-5 h-5 ${project.is_favorite ? "fill-current" : ""}`}
+                    />
+                  </button>
+                </div>
+
+                {/* Content Area */}
+                <div className="p-5">
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <h3 className="text-base font-semibold text-gray-900 dark:text-white line-clamp-2 flex-1">
                       {project.title}
                     </h3>
-                    <p className="text-xs text-gray-500 dark:text-white/50 mt-1">
-                      {formatTimeAgo(project.created_at)}
-                    </p>
-                  </div>
-                  <div
-                    className="flex items-center gap-1"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <button
-                      onClick={(e) =>
-                        handleToggleFavorite(project.project_id, e)
-                      }
-                      className={`p-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 transition-colors ${
-                        project.is_favorite
-                          ? "text-yellow-500 hover:text-yellow-600 dark:text-yellow-400 dark:hover:text-yellow-300"
-                          : "text-gray-400 dark:text-white/40 hover:text-gray-600 dark:hover:text-white/80"
-                      }`}
-                    >
-                      <Star
-                        className={`w-4 h-4 ${project.is_favorite ? "fill-current" : ""}`}
-                      />
-                    </button>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <button className="p-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 text-gray-400 dark:text-white/40 hover:text-gray-600 dark:hover:text-white/80 transition-colors">
-                          <MoreHorizontal className="w-4 h-4" />
-                        </button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent
-                        align="end"
-                        className="bg-white dark:bg-zinc-900 border-gray-200 dark:border-white/10"
-                      >
-                        <DropdownMenuItem
-                          onClick={() =>
-                            handleRenameClick({
-                              id: project.project_id,
-                              title: project.title,
-                            })
-                          }
-                          className="text-gray-700 dark:text-white/80 hover:text-gray-900 dark:hover:text-white focus:text-gray-900 dark:focus:text-white cursor-pointer"
+                    <div onClick={(e) => e.stopPropagation()}>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <button className="p-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 text-gray-400 dark:text-white/40 hover:text-gray-600 dark:hover:text-white/80 transition-colors">
+                            <MoreHorizontal className="w-5 h-5" />
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent
+                          align="end"
+                          className="bg-white dark:bg-zinc-900 border-gray-200 dark:border-white/10"
                         >
-                          <Pencil className="w-4 h-4 mr-2" />
-                          Rename
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() =>
-                            handleDeleteClick({
-                              id: project.project_id,
-                              title: project.title,
-                            })
-                          }
-                          className="text-red-500 dark:text-red-400 hover:text-red-600 dark:hover:text-red-300 focus:text-red-600 dark:focus:text-red-300 cursor-pointer"
-                        >
-                          <Trash2 className="w-4 h-4 mr-2" />
-                          Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                          <DropdownMenuItem
+                            onClick={() =>
+                              handleRenameClick({
+                                id: project.project_id,
+                                title: project.title,
+                              })
+                            }
+                            className="text-gray-700 dark:text-white/80 hover:text-gray-900 dark:hover:text-white focus:text-gray-900 dark:focus:text-white cursor-pointer"
+                          >
+                            <Pencil className="w-4 h-4 mr-2" />
+                            Rename
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() =>
+                              handleDeleteClick({
+                                id: project.project_id,
+                                title: project.title,
+                              })
+                            }
+                            className="text-red-500 dark:text-red-400 hover:text-red-600 dark:hover:text-red-300 focus:text-red-600 dark:focus:text-red-300 cursor-pointer"
+                          >
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
                   </div>
+
+                  <p className="text-sm text-gray-500 dark:text-white/50">
+                    {formatTimeAgo(project.created_at)}
+                  </p>
                 </div>
               </div>
             ))}

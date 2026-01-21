@@ -1,7 +1,21 @@
-import openai from "@/lib/openai";
+// ============================================
+// OPTION 1: OpenAI (Commented out)
+// ============================================
+// import openai from "@/lib/openai";
+// import { systemPrompt } from "@/lib/prompt";
+// import {
+//   tools,
+//   CreateArtifactArgs,
+//   UpdateArtifactArgs,
+//   TOOL_NAMES,
+// } from "@/lib/tools";
+
+// ============================================
+// OPTION 2: Google Gemini with Vertex AI (Active)
+// ============================================
+import { GoogleGenAI, Type } from "@google/genai";
 import { systemPrompt } from "@/lib/prompt";
 import {
-  tools,
   CreateArtifactArgs,
   UpdateArtifactArgs,
   TOOL_NAMES,
@@ -10,6 +24,70 @@ import { NextRequest } from "next/server";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "@/convex/_generated/api";
 import { withAuth } from "@workos-inc/authkit-nextjs";
+
+// Initialize Gemini AI with Vertex AI
+const geminiAI = new GoogleGenAI({
+  vertexai: true,
+  project: process.env.GOOGLE_CLOUD_PROJECT || "",
+  location: process.env.GOOGLE_CLOUD_LOCATION || "us-central1",
+});
+
+// Gemini model to use
+const GEMINI_MODEL = "gemini-2.5-flash";
+
+// Define tools for Gemini (function declarations)
+const geminiTools = [
+  {
+    functionDeclarations: [
+      {
+        name: TOOL_NAMES.CREATE_ARTIFACT,
+        description: "Create a new UI artifact/screen with HTML content",
+        parameters: {
+          type: Type.OBJECT,
+          properties: {
+            id: {
+              type: Type.STRING,
+              description:
+                "Unique identifier for the artifact (e.g., 'home-screen', 'login-page')",
+            },
+            title: {
+              type: Type.STRING,
+              description: "Display title for the artifact",
+            },
+            content: {
+              type: Type.STRING,
+              description:
+                "Complete HTML content for the artifact including inline CSS and JavaScript",
+            },
+          },
+          required: ["id", "title", "content"],
+        },
+      },
+      {
+        name: TOOL_NAMES.UPDATE_ARTIFACT,
+        description: "Update an existing UI artifact/screen",
+        parameters: {
+          type: Type.OBJECT,
+          properties: {
+            id: {
+              type: Type.STRING,
+              description: "The ID of the artifact to update",
+            },
+            title: {
+              type: Type.STRING,
+              description: "New title for the artifact (optional)",
+            },
+            content: {
+              type: Type.STRING,
+              description: "Updated HTML content for the artifact",
+            },
+          },
+          required: ["id", "content"],
+        },
+      },
+    ],
+  },
+];
 
 // Initialize Convex Client
 const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
@@ -21,49 +99,42 @@ interface Attachment {
   storageId?: string;
 }
 
-type TextPart = { type: "text"; text: string };
-type ImagePart = {
-  type: "image_url";
-  image_url: { url: string; detail?: "auto" | "low" | "high" };
-};
-type ContentPart = TextPart | ImagePart;
+// Gemini content parts
+type GeminiTextPart = { text: string };
+type GeminiInlineDataPart = { inlineData: { mimeType: string; data: string } };
+type GeminiPart = GeminiTextPart | GeminiInlineDataPart;
 
 export async function GET(request: Request) {
-  return Response.json({ message: "Chat API is running" });
+  return Response.json({ message: "Chat API is running (Gemini)" });
 }
 
-function buildMessageContent(
+function buildGeminiContent(
   text: string,
   attachments?: Attachment[],
-): string | ContentPart[] {
-  if (!attachments || attachments.length === 0) {
-    return text;
-  }
+): GeminiPart[] {
+  const parts: GeminiPart[] = [];
 
-  const parts: ContentPart[] = [];
-
-  for (const attachment of attachments) {
-    if (attachment.contentType.startsWith("image/")) {
-      parts.push({
-        type: "image_url",
-        image_url: { url: attachment.url, detail: "auto" },
-      });
-    } else {
-      parts.push({
-        type: "text",
-        text: `[Attached file: ${attachment.name} (${attachment.contentType})]`,
-      });
+  if (attachments && attachments.length > 0) {
+    for (const attachment of attachments) {
+      if (attachment.contentType.startsWith("image/")) {
+        // For images, we'd need to fetch and convert to base64
+        // For now, add as text reference
+        parts.push({
+          text: `[Attached image: ${attachment.name}] URL: ${attachment.url}`,
+        });
+      } else {
+        parts.push({
+          text: `[Attached file: ${attachment.name} (${attachment.contentType})]`,
+        });
+      }
     }
   }
 
-  // Add the text content
   if (text) {
-    parts.push({ type: "text", text });
+    parts.push({ text });
   }
 
-  return parts.length === 1 && parts[0].type === "text"
-    ? (parts[0] as TextPart).text
-    : parts;
+  return parts;
 }
 
 // Stream event types - cleaner format like ai-chatbot
@@ -110,140 +181,75 @@ export async function POST(request: NextRequest) {
     console.error("Credit check failed:", e);
   }
 
-  // Build the messages array with history
-  const chatMessages = [
-    { role: "system" as const, content: systemPrompt({ selectedChatModel }) },
-    ...messages.map(
-      (m: { role: string; content: string; attachments?: Attachment[] }) => ({
-        role: m.role as "user" | "assistant",
-        content: buildMessageContent(m.content, m.attachments),
-      }),
-    ),
-  ];
+  // Build Gemini contents from messages
+  const geminiContents = messages.map(
+    (m: { role: string; content: string; attachments?: Attachment[] }) => ({
+      role: m.role === "assistant" ? "model" : "user",
+      parts: buildGeminiContent(m.content, m.attachments),
+    }),
+  );
 
   try {
-    const stream = await openai.chat.completions.create({
-      model: "gpt-4.1",
-      messages: chatMessages,
-      tools: tools,
-      tool_choice: "auto",
-      stream: true,
-      stream_options: { include_usage: true },
+    const response = await geminiAI.models.generateContentStream({
+      model: GEMINI_MODEL,
+      contents: geminiContents,
+      config: {
+        systemInstruction: systemPrompt({ selectedChatModel }),
+        tools: geminiTools,
+      },
     });
 
     const encoder = new TextEncoder();
-
-    // Track tool calls as they stream
-    const toolCalls: Map<
-      number,
-      { id: string; name: string; arguments: string; sent: boolean }
-    > = new Map();
     let usageTokens = 0;
 
     const readable = new ReadableStream({
       async start(controller) {
-        const processToolCall = (
-          index: number,
-          toolCall: {
-            id: string;
-            name: string;
-            arguments: string;
-            sent: boolean;
-          },
-        ) => {
-          if (toolCall.sent) return;
-
-          try {
-            const args = JSON.parse(toolCall.arguments);
-
-            if (toolCall.name === TOOL_NAMES.CREATE_ARTIFACT) {
-              controller.enqueue(
-                encoder.encode(
-                  encodeEvent({
-                    type: "tool-call",
-                    name: TOOL_NAMES.CREATE_ARTIFACT,
-                    args: args as CreateArtifactArgs,
-                  }),
-                ),
-              );
-              toolCall.sent = true;
-            } else if (toolCall.name === TOOL_NAMES.UPDATE_ARTIFACT) {
-              controller.enqueue(
-                encoder.encode(
-                  encodeEvent({
-                    type: "tool-call",
-                    name: TOOL_NAMES.UPDATE_ARTIFACT,
-                    args: args as UpdateArtifactArgs,
-                  }),
-                ),
-              );
-              toolCall.sent = true;
-            }
-          } catch {
-            // JSON not complete yet
-          }
-        };
-
         try {
-          for await (const chunk of stream) {
-            const delta = chunk.choices[0]?.delta;
-            const finishReason = chunk.choices[0]?.finish_reason;
-
-            // Capture usage
-            if (chunk.usage) {
-              usageTokens = chunk.usage.completion_tokens || 0;
-            }
-
-            // Stream text content directly
-            if (delta?.content) {
+          for await (const chunk of response) {
+            // Handle text content
+            if (chunk.text) {
               controller.enqueue(
                 encoder.encode(
-                  encodeEvent({ type: "text-delta", content: delta.content }),
+                  encodeEvent({ type: "text-delta", content: chunk.text }),
                 ),
               );
             }
 
-            // Handle tool calls
-            if (delta?.tool_calls) {
-              for (const toolCall of delta.tool_calls) {
-                const index = toolCall.index;
+            // Handle function calls from Gemini
+            if (chunk.candidates?.[0]?.content?.parts) {
+              for (const part of chunk.candidates[0].content.parts) {
+                if (part.functionCall) {
+                  const funcCall = part.functionCall;
+                  const args = funcCall.args as Record<string, unknown>;
 
-                if (!toolCalls.has(index)) {
-                  toolCalls.set(index, {
-                    id: toolCall.id || "",
-                    name: toolCall.function?.name || "",
-                    arguments: "",
-                    sent: false,
-                  });
+                  if (funcCall.name === TOOL_NAMES.CREATE_ARTIFACT) {
+                    controller.enqueue(
+                      encoder.encode(
+                        encodeEvent({
+                          type: "tool-call",
+                          name: TOOL_NAMES.CREATE_ARTIFACT,
+                          args: args as unknown as CreateArtifactArgs,
+                        }),
+                      ),
+                    );
+                  } else if (funcCall.name === TOOL_NAMES.UPDATE_ARTIFACT) {
+                    controller.enqueue(
+                      encoder.encode(
+                        encodeEvent({
+                          type: "tool-call",
+                          name: TOOL_NAMES.UPDATE_ARTIFACT,
+                          args: args as unknown as UpdateArtifactArgs,
+                        }),
+                      ),
+                    );
+                  }
                 }
-
-                const current = toolCalls.get(index)!;
-
-                if (toolCall.id) {
-                  current.id = toolCall.id;
-                }
-                if (toolCall.function?.name) {
-                  current.name = toolCall.function.name;
-                }
-                if (toolCall.function?.arguments) {
-                  current.arguments += toolCall.function.arguments;
-                }
-
-                processToolCall(index, current);
               }
             }
 
-            // Process remaining tool calls on finish
-            if (
-              finishReason === "tool_calls" ||
-              (finishReason === "stop" && toolCalls.size > 0)
-            ) {
-              for (const [index, toolCall] of toolCalls) {
-                if (!toolCall.sent) {
-                  processToolCall(index, toolCall);
-                }
-              }
-              toolCalls.clear();
+            // Capture usage metadata if available
+            if (chunk.usageMetadata) {
+              usageTokens = chunk.usageMetadata.candidatesTokenCount || 0;
             }
           }
 

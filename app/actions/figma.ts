@@ -5,11 +5,21 @@ import { api } from "@/convex/_generated/api";
 
 import { withAuth } from "@workos-inc/authkit-nextjs";
 import { SUBSCRIPTION_PLANS } from "@/lib/razorpay";
-import { randomUUID } from "crypto";
 
 const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
-export async function convertHtmlToFigma(html: string, artifactId?: string) {
+/**
+ * Convert HTML to Figma format
+ *
+ * Instead of using artifact_id (which can be shared across customers),
+ * we use figma_export_id - a unique UUID per design that ensures
+ * each user's design has its own cache key.
+ */
+export async function convertHtmlToFigma(
+  html: string,
+  artifactId?: string,
+  projectId?: string,
+) {
   const API_KEY = process.env.CONVERT_FIGMA_API_KEY!;
   const { user } = await withAuth();
 
@@ -17,18 +27,29 @@ export async function convertHtmlToFigma(html: string, artifactId?: string) {
     return { success: false, error: "Unauthorized" };
   }
 
+  let figmaExportId: string | null = null;
+
   try {
-    let isCached = false;
-    if (artifactId) {
-      const cached = await convex.query(api.figma.getFigmaData, {
+    // Get or create a unique figma_export_id for this design
+    if (artifactId && projectId) {
+      const result = await convex.mutation(api.figma.getOrCreateFigmaExportId, {
         artifact_id: artifactId,
+        project_id: projectId,
       });
+      figmaExportId = result.figma_export_id;
+
+      // Check cache using the unique figma_export_id
+      const cached = await convex.query(api.figma.getFigmaData, {
+        figma_export_id: figmaExportId,
+      });
+
       if (cached && cached.content) {
-        console.log("Figma Cache Hit for", artifactId);
+        console.log("Figma Cache Hit for figma_export_id:", figmaExportId);
         return { success: true, data: cached.content, cached: true };
       }
     }
 
+    // Check subscription limits
     const subscription = await convex.query(api.quires.getUserSubscription, {
       user_id: user.id,
     });
@@ -42,7 +63,7 @@ export async function convertHtmlToFigma(html: string, artifactId?: string) {
     const startOfMonth = new Date(
       now.getFullYear(),
       now.getMonth(),
-      1
+      1,
     ).toISOString();
 
     const usage = await convex.query(api.figma.getFigmaUserCount, {
@@ -58,12 +79,14 @@ export async function convertHtmlToFigma(html: string, artifactId?: string) {
     }
   } catch (e) {
     console.error("Limit check failed:", e);
-    // Fallback? Or block? Block is safer.
     return { success: false, error: "Failed to verify usage limits." };
   }
 
   try {
-    console.log("Figma Cache Miss - Calling API");
+    console.log(
+      "Figma Cache Miss - Calling API for figma_export_id:",
+      figmaExportId,
+    );
     const response = await fetch("https://api.to.design/html", {
       method: "POST",
       headers: {
@@ -93,14 +116,15 @@ export async function convertHtmlToFigma(html: string, artifactId?: string) {
 
     const clipboardData = await response.text();
 
-    if (artifactId && clipboardData) {
+    // Save to cache using the unique figma_export_id
+    if (figmaExportId && clipboardData) {
       try {
         await convex.mutation(api.figma.saveFigmaData, {
-          artifact_id: artifactId,
+          figma_export_id: figmaExportId,
           content: clipboardData,
           user_id: user.id,
         });
-        console.log("Saved to cache:", artifactId);
+        console.log("Saved to cache with figma_export_id:", figmaExportId);
       } catch (e) {
         console.error("Failed to cache result:", e);
       }

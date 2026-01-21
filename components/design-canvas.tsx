@@ -54,6 +54,7 @@ export interface Design {
 interface DesignCanvasProps {
   designs: Design[];
   selectedArtifactId: string | null;
+  projectId: string; // Added for Figma export caching
   onNodeSelect?: (artifactId: string | null) => void;
   onElementSelect?: (
     artifactId: string,
@@ -64,7 +65,7 @@ interface DesignCanvasProps {
       textContent?: string;
       styles: any;
       path: string[];
-    }
+    },
   ) => void;
   onSave?: () => void;
   hasUnsavedChanges?: boolean;
@@ -81,6 +82,7 @@ interface DesignCanvasProps {
 export function DesignCanvas({
   designs,
   selectedArtifactId,
+  projectId,
   onNodeSelect,
   onElementSelect,
   onSave,
@@ -132,7 +134,7 @@ export function DesignCanvas({
         console.error("Error deleting design:", error);
       }
     },
-    [deleteDesign]
+    [deleteDesign],
   );
 
   // Convert designs to React Flow nodes
@@ -143,7 +145,7 @@ export function DesignCanvas({
         id: d.artifact_id,
         x: d.x,
         y: d.y,
-      }))
+      })),
     );
 
     return designs.map((design, index) => {
@@ -163,7 +165,7 @@ export function DesignCanvas({
 
       console.log(
         `Node ${design.artifact_id}: hasValidDbPosition=${hasValidDbPosition}, position=`,
-        position
+        position,
       );
 
       return {
@@ -172,6 +174,7 @@ export function DesignCanvas({
         position,
         data: {
           artifactId: design.artifact_id,
+          projectId: projectId, // Pass projectId for Figma export caching
           title: design.title,
           content: design.content,
           isStreaming: design.status === "streaming",
@@ -182,7 +185,13 @@ export function DesignCanvas({
         selected: design.artifact_id === selectedArtifactId,
       };
     });
-  }, [designs, selectedArtifactId, handleDeleteDesign, onElementSelect]);
+  }, [
+    designs,
+    selectedArtifactId,
+    projectId,
+    handleDeleteDesign,
+    onElementSelect,
+  ]);
 
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
 
@@ -223,7 +232,7 @@ export function DesignCanvas({
             }
           }
           return node;
-        })
+        }),
       );
     }
   }, [initialNodes, setNodes]);
@@ -243,7 +252,7 @@ export function DesignCanvas({
           };
         }
         return node;
-      })
+      }),
     );
   }, [toolMode, onElementSelect, setNodes]);
 
@@ -257,7 +266,7 @@ export function DesignCanvas({
           setCenter(
             selectedNode.position.x + 187.5, // Center of 375px width
             selectedNode.position.y + 406, // Center of 812px height (6.1 inch phone)
-            { zoom: 0.8, duration: 500 }
+            { zoom: 0.8, duration: 500 },
           );
         }
       }, 0);
@@ -278,7 +287,7 @@ export function DesignCanvas({
         onNodeSelect?.(null);
       }
     },
-    [onNodeSelect]
+    [onNodeSelect],
   );
 
   const onNodeDragStop = useCallback(
@@ -296,7 +305,7 @@ export function DesignCanvas({
         console.error("Error updating coordinates:", error);
       }
     },
-    [updateCoordinates]
+    [updateCoordinates],
   );
 
   return (

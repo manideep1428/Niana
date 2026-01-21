@@ -55,7 +55,7 @@ export default defineSchema({
     role: v.union(
       v.literal("user"),
       v.literal("assistant"),
-      v.literal("system")
+      v.literal("system"),
     ),
     design_ids: v.array(v.id("designs")),
     attachments: v.optional(v.array(attachmentSchema)), // File attachments
@@ -72,11 +72,13 @@ export default defineSchema({
     status: v.union(v.literal("streaming"), v.literal("idle")), // Current state
     x: v.optional(v.number()),
     y: v.optional(v.number()),
+    figma_export_id: v.optional(v.string()), // Unique UUID for Figma caching - per-design, not per-artifact
     created_at: v.number(),
     updated_at: v.number(),
   })
     .index("by_project", ["project_id"])
-    .index("by_artifact_id", ["artifact_id"]),
+    .index("by_artifact_id", ["artifact_id"])
+    .index("by_figma_export_id", ["figma_export_id"]),
 
   // Subscription plans for users
   subscriptions: defineTable({
@@ -85,7 +87,7 @@ export default defineSchema({
       v.literal("free"),
       v.literal("base"),
       v.literal("standard"),
-      v.literal("premium")
+      v.literal("premium"),
     ),
     tokens_total: v.number(), // Total tokens allocated
     tokens_used: v.number(), // Tokens consumed
@@ -93,7 +95,7 @@ export default defineSchema({
     status: v.union(
       v.literal("active"),
       v.literal("expired"),
-      v.literal("cancelled")
+      v.literal("cancelled"),
     ),
     razorpay_payment_id: v.optional(v.string()), // Optional for free plans
     razorpay_order_id: v.optional(v.string()), // Optional for free plans
@@ -113,14 +115,14 @@ export default defineSchema({
       v.literal("free"),
       v.literal("base"),
       v.literal("standard"),
-      v.literal("premium")
+      v.literal("premium"),
     ),
     amount: v.number(),
     currency: v.string(),
     status: v.union(
       v.literal("created"),
       v.literal("paid"),
-      v.literal("failed")
+      v.literal("failed"),
     ),
     razorpay_payment_id: v.optional(v.string()),
     razorpay_signature: v.optional(v.string()),
@@ -132,13 +134,11 @@ export default defineSchema({
 
   figma: defineTable({
     user_id: v.string(),
-    figma_id: v.optional(v.string()),
-    artifact_id: v.string(),
+    figma_export_id: v.string(), // Unique UUID from designs table - ensures per-design caching
     content: v.string(),
     created_at: v.string(),
     updated_at: v.string(),
-    // We can index by artifact_id to quickly look up if we have it
   })
     .index("by_user", ["user_id"])
-    .index("by_artifact_id", ["artifact_id"]),
+    .index("by_figma_export_id", ["figma_export_id"]),
 });

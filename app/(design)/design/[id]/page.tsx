@@ -16,10 +16,8 @@ import { api } from "@/convex/_generated/api";
 import { ArtifactProvider, useArtifact } from "@/hooks/use-artifact";
 import type { Attachment } from "@/components/preview-attachment";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Pencil, Check, X, Moon, Sun, Lock, Unlock } from "lucide-react";
 import { useTheme } from "next-themes";
-import Image from "next/image";
 import {
   Tooltip,
   TooltipContent,
@@ -30,120 +28,9 @@ import { TokenUsageDisplay } from "@/components/token-usage-display";
 import type { SelectedElement } from "@/components/visual-editor";
 import { toast } from "sonner";
 import { useAuth } from "@workos-inc/authkit-nextjs/components";
+import { SSEEvent } from "@/lib/types";
+import { ExportDialog } from "@/components/export-dialog";
 
-// Types for SSE events
-interface TextEvent {
-  type: "text";
-  content: string;
-}
-
-// New ai-chatbot style text delta event
-interface TextDeltaEvent {
-  type: "text-delta";
-  content: string;
-}
-
-interface ToolCallEvent {
-  type: "tool_call";
-  tool:
-    | "create_artifact"
-    | "update_artifact"
-    | "createArtifact"
-    | "updateArtifact";
-  projectId: string;
-  data: {
-    id: string;
-    title: string;
-    content: string;
-  };
-}
-
-// New ai-chatbot style tool call event
-interface NewToolCallEvent {
-  type: "tool-call";
-  name: "createArtifact" | "updateArtifact";
-  args: {
-    id: string;
-    title: string;
-    content: string;
-  };
-}
-
-interface ArtifactStartEvent {
-  type: "artifact_start" | "artifact-start";
-  id?: string;
-  title?: string;
-  data?: {
-    id: string;
-    title: string;
-  };
-}
-
-interface ContentDeltaEvent {
-  type: "content_delta" | "artifact-delta";
-  id?: string;
-  content?: string;
-  data?: {
-    id: string;
-    delta: string;
-  };
-}
-
-interface ArtifactFinishEvent {
-  type: "artifact_finish" | "artifact-finish";
-  tool?:
-    | "create_artifact"
-    | "update_artifact"
-    | "createArtifact"
-    | "updateArtifact";
-  projectId?: string;
-  id?: string;
-  title?: string;
-  content?: string;
-  data?: {
-    id: string;
-    title: string;
-    content: string;
-  };
-}
-
-interface SkeletonEvent {
-  type: "skeleton";
-  data: {
-    id: string;
-    title: string;
-  };
-}
-
-interface DoneEvent {
-  type: "done";
-}
-
-// New ai-chatbot style finish event
-interface FinishEvent {
-  type: "finish";
-  reason: string;
-}
-
-interface ErrorEvent {
-  type: "error";
-  message: string;
-}
-
-type SSEEvent =
-  | TextEvent
-  | TextDeltaEvent
-  | ToolCallEvent
-  | NewToolCallEvent
-  | ArtifactStartEvent
-  | ContentDeltaEvent
-  | ArtifactFinishEvent
-  | SkeletonEvent
-  | DoneEvent
-  | FinishEvent
-  | ErrorEvent;
-
-// Message type for chat
 interface Message {
   role: "user" | "assistant";
   content: string;
@@ -156,7 +43,6 @@ interface Message {
   attachments?: Attachment[];
 }
 
-// Edit action type for undo/redo history
 interface EditAction {
   type: "style" | "content" | "attribute";
   artifactId: string;
@@ -1226,44 +1112,52 @@ function DesignPageContent() {
               className="mr-2 data-[orientation=vertical]:h-4"
             />
             {isEditingTitle ? (
-              <div className="flex items-center gap-1">
-                <Input
-                  ref={titleInputRef}
-                  value={editedTitle}
-                  onChange={(e) => setEditedTitle(e.target.value)}
-                  onKeyDown={handleTitleKeyDown}
-                  className="h-8 w-64"
-                />
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8"
-                  onClick={handleSaveTitle}
-                >
-                  <Check className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8"
-                  onClick={handleCancelEditTitle}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
+              <div className="flex items-center gap-2 group">
+                <div className="relative">
+                  <input
+                    ref={titleInputRef}
+                    value={editedTitle}
+                    onChange={(e) => setEditedTitle(e.target.value)}
+                    onKeyDown={handleTitleKeyDown}
+                    className="bg-transparent border-0 border-b-2 border-violet-500 focus:border-purple-500 outline-none px-1 py-1 text-base font-medium w-64 transition-all duration-300 placeholder:text-muted-foreground/50"
+                    placeholder="Enter project name..."
+                    autoFocus
+                  />
+                  <div className="absolute bottom-0 left-0 w-full h-0.5 bg-linear-to-r from-violet-500 via-purple-500 to-pink-500 animate-pulse" />
+                </div>
+                <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 rounded-full hover:bg-green-500/10 hover:text-green-500 transition-colors"
+                    onClick={handleSaveTitle}
+                  >
+                    <Check className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 rounded-full hover:bg-red-500/10 hover:text-red-500 transition-colors"
+                    onClick={handleCancelEditTitle}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+                <span className="text-xs text-muted-foreground/60 ml-1">
+                  Press Enter ↵
+                </span>
               </div>
             ) : (
-              <div className="flex items-center gap-1">
-                <span className="font-medium">
-                  {project?.title || "Building Your Application"}
-                </span>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8"
+              <div className="flex items-center gap-2 group/title">
+                <button
                   onClick={handleStartEditTitle}
+                  className="flex items-center gap-2 px-2 py-1 -mx-2 rounded-lg hover:bg-accent/50 transition-all duration-200 group/btn cursor-text"
                 >
-                  <Pencil className="h-3.5 w-3.5" />
-                </Button>
+                  <span className="font-semibold text-base bg-linear-to-r from-foreground to-foreground bg-clip-text group-hover/btn:from-violet-500 group-hover/btn:to-purple-500 group-hover/btn:text-transparent transition-all duration-300">
+                    {project?.title || "Untitled Project"}
+                  </span>
+                  <Pencil className="h-3.5 w-3.5 text-muted-foreground/40 group-hover/btn:text-violet-500 transition-colors duration-200" />
+                </button>
                 {/* Privacy Toggle */}
                 <TooltipProvider>
                   <Tooltip>
@@ -1271,7 +1165,7 @@ function DesignPageContent() {
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8"
+                        className="h-8 w-8 rounded-full"
                         onClick={async () => {
                           const result = await toggleVisibility({
                             project_id: projectId,
@@ -1303,54 +1197,18 @@ function DesignPageContent() {
             )}
           </div>
           <div className="flex items-center gap-3 px-4">
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Image
-                    onClick={() =>
-                      toast.info("Coming Soon!", {
-                        description:
-                          "Export to Bolt.new will be available soon.",
-                      })
-                    }
-                    src="/Bolt.new.png"
-                    alt="Bolt.new"
-                    width={80}
-                    height={28}
-                    className="cursor-pointer rounded-md hover:opacity-80 transition-opacity h-7 w-auto"
-                  />
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Export to bolt.new (Coming Soon)</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Image
-                    onClick={() =>
-                      toast.info("Coming Soon!", {
-                        description:
-                          "Export to Lovable will be available soon.",
-                      })
-                    }
-                    src={
-                      theme === "dark"
-                        ? "/lovable-logo-bg-dark.png"
-                        : "/lovable-logo-bg-light.png"
-                    }
-                    alt="Lovable"
-                    width={80}
-                    height={28}
-                    className="cursor-pointer rounded-md hover:opacity-80 transition-opacity h-7 w-auto"
-                  />
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Export to lovable.dev (Coming Soon)</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+            <ExportDialog
+              projectId={projectId}
+              projectTitle={project?.title || "Untitled"}
+              messages={messages}
+              designs={designs}
+              onFigmaExport={() => {
+                toast.info("Figma Export", {
+                  description:
+                    "Use the Figma button on each design card to export individual screens.",
+                });
+              }}
+            />
             <TokenUsageDisplay />
             <Button
               variant="ghost"
@@ -1369,6 +1227,7 @@ function DesignPageContent() {
             <DesignCanvas
               designs={designs}
               selectedArtifactId={selectedArtifactId}
+              projectId={projectId}
               onNodeSelect={setSelectedArtifactId}
               onElementSelect={handleElementSelect}
               onSave={handleSave}

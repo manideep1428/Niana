@@ -8,6 +8,128 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Heart, Eye, ArrowRight } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { useTheme } from "next-themes";
+
+// Vibrant neon colors for dark mode
+const darkModeColors = [
+  "#FF6B6B", // Coral red
+  "#FF8E53", // Orange
+  "#FFD93D", // Yellow
+  "#6BCB77", // Green
+  "#4D96FF", // Blue
+  "#9B59B6", // Purple
+  "#FF6B9D", // Pink
+  "#00D4FF", // Cyan
+];
+
+// Deeper, richer colors for light mode
+const lightModeColors = [
+  "#DC2626", // Deep red
+  "#EA580C", // Deep orange
+  "#CA8A04", // Deep yellow/gold
+  "#16A34A", // Deep green
+  "#2563EB", // Deep blue
+  "#7C3AED", // Deep purple
+  "#DB2777", // Deep pink
+  "#0891B2", // Deep cyan
+];
+
+// Glow shadows for dark mode (stronger glow)
+const darkModeGlows = [
+  "0 0 20px rgba(255, 107, 107, 0.9)",
+  "0 0 20px rgba(255, 142, 83, 0.9)",
+  "0 0 20px rgba(255, 217, 61, 0.9)",
+  "0 0 20px rgba(107, 203, 119, 0.9)",
+  "0 0 20px rgba(77, 150, 255, 0.9)",
+  "0 0 20px rgba(155, 89, 182, 0.9)",
+  "0 0 20px rgba(255, 107, 157, 0.9)",
+  "0 0 20px rgba(0, 212, 255, 0.9)",
+];
+
+// Subtle shadows for light mode
+const lightModeGlows = [
+  "0 2px 8px rgba(220, 38, 38, 0.4)",
+  "0 2px 8px rgba(234, 88, 12, 0.4)",
+  "0 2px 8px rgba(202, 138, 4, 0.4)",
+  "0 2px 8px rgba(22, 163, 74, 0.4)",
+  "0 2px 8px rgba(37, 99, 235, 0.4)",
+  "0 2px 8px rgba(124, 58, 237, 0.4)",
+  "0 2px 8px rgba(219, 39, 119, 0.4)",
+  "0 2px 8px rgba(8, 145, 178, 0.4)",
+];
+
+// Animated center letter component for the card thumbnail placeholder
+function AnimatedCenterLetter({
+  letter,
+  isHovered,
+  isDarkMode,
+}: {
+  letter: string;
+  isHovered: boolean;
+  isDarkMode: boolean;
+}) {
+  // Text color based on theme - dark text for light mode, white for dark mode
+  const textColor = isDarkMode ? "#FFFFFF" : "#1F2937";
+  const textShadow = isDarkMode
+    ? "0 2px 10px rgba(0, 0, 0, 0.5)"
+    : "0 2px 8px rgba(255, 255, 255, 0.8)";
+
+  return (
+    <div className="w-full h-full flex items-center justify-center relative overflow-hidden">
+      {/* Animated colorful gradient background */}
+      <motion.div
+        className="absolute inset-0"
+        animate={{
+          background: [
+            "linear-gradient(135deg, #FF6B6B 0%, #FF8E53 25%, #FFD93D 50%, #6BCB77 75%, #4D96FF 100%)",
+            "linear-gradient(135deg, #FF8E53 0%, #FFD93D 25%, #6BCB77 50%, #4D96FF 75%, #9B59B6 100%)",
+            "linear-gradient(135deg, #FFD93D 0%, #6BCB77 25%, #4D96FF 50%, #9B59B6 75%, #FF6B9D 100%)",
+            "linear-gradient(135deg, #6BCB77 0%, #4D96FF 25%, #9B59B6 50%, #FF6B9D 75%, #00D4FF 100%)",
+            "linear-gradient(135deg, #4D96FF 0%, #9B59B6 25%, #FF6B9D 50%, #00D4FF 75%, #FF6B6B 100%)",
+            "linear-gradient(135deg, #9B59B6 0%, #FF6B9D 25%, #00D4FF 50%, #FF6B6B 75%, #FF8E53 100%)",
+            "linear-gradient(135deg, #FF6B9D 0%, #00D4FF 25%, #FF6B6B 50%, #FF8E53 75%, #FFD93D 100%)",
+            "linear-gradient(135deg, #00D4FF 0%, #FF6B6B 25%, #FF8E53 50%, #FFD93D 75%, #6BCB77 100%)",
+            "linear-gradient(135deg, #FF6B6B 0%, #FF8E53 25%, #FFD93D 50%, #6BCB77 75%, #4D96FF 100%)",
+          ],
+        }}
+        transition={{
+          duration: 8,
+          repeat: Infinity,
+          ease: "linear",
+        }}
+      />
+
+      {/* Overlay for better text readability */}
+      <div
+        className={`absolute inset-0 ${isDarkMode ? "bg-black/20" : "bg-white/30"}`}
+      />
+
+      {/* Animated letter with theme-dependent color */}
+      <motion.div
+        className="text-6xl font-bold relative z-10"
+        style={{
+          color: textColor,
+          textShadow: textShadow,
+        }}
+        initial={{ scale: 1 }}
+        animate={
+          isHovered
+            ? {
+                scale: [1, 1.2, 1],
+                rotate: [0, 5, -5, 0],
+              }
+            : { scale: 1, rotate: 0 }
+        }
+        transition={{
+          duration: 0.6,
+          ease: "easeInOut",
+        }}
+      >
+        {letter}
+      </motion.div>
+    </div>
+  );
+}
 
 interface ProjectCardProps {
   project: {
@@ -39,7 +161,11 @@ function formatNumber(num: number): string {
 
 function ProjectCard({ project, onLike, isLiked }: ProjectCardProps) {
   const router = useRouter();
+  const { theme, resolvedTheme } = useTheme();
   const [imageError, setImageError] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
+
+  const isDarkMode = theme === "dark" || resolvedTheme === "dark";
 
   const handleClick = () => {
     router.push(`/design/${project.project_id}`);
@@ -60,9 +186,11 @@ function ProjectCard({ project, onLike, isLiked }: ProjectCardProps) {
       transition={{ duration: 0.3 }}
       className="group relative rounded-xl overflow-hidden cursor-pointer"
       onClick={handleClick}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
     >
       {/* Card Container - Light and Dark mode support */}
-      <div className="relative bg-white/80 dark:bg-zinc-900/80 rounded-xl overflow-hidden border border-black/10 dark:border-white/10 hover:border-black/20 dark:hover:border-white/20 transition-all duration-300 shadow-sm hover:shadow-md dark:shadow-none">
+      <div className="relative bg-card/80 dark:bg-zinc-900/80 rounded-xl overflow-hidden border border-border dark:border-white/10 hover:border-border dark:hover:border-white/20 transition-all duration-300 shadow-sm hover:shadow-md dark:shadow-none">
         {/* Thumbnail */}
         <div className="aspect-16/10 relative overflow-hidden bg-linear-to-br from-gray-100 to-gray-200 dark:from-zinc-800 dark:to-zinc-900">
           {project.thumbnail && !imageError ? (
@@ -73,11 +201,11 @@ function ProjectCard({ project, onLike, isLiked }: ProjectCardProps) {
               onError={() => setImageError(true)}
             />
           ) : (
-            <div className="w-full h-full flex items-center justify-center">
-              <div className="text-4xl font-bold text-black/10 dark:text-white/20">
-                {project.title.charAt(0).toUpperCase()}
-              </div>
-            </div>
+            <AnimatedCenterLetter
+              letter={project.title.charAt(0).toUpperCase()}
+              isHovered={isHovered}
+              isDarkMode={isDarkMode}
+            />
           )}
 
           {/* Overlay gradient on hover */}
@@ -167,7 +295,7 @@ export function CommunitySection() {
   return (
     <section className="w-full">
       {/* Dark/Light mode container */}
-      <div className="bg-gray-50/95 dark:bg-zinc-950/95 backdrop-blur-xl rounded-t-3xl border-t border-black/5 dark:border-white/10 min-h-[50vh]">
+      <div className="bg-background/95 dark:bg-zinc-950/95 backdrop-blur-xl rounded-t-3xl border-t border-border dark:border-white/10 min-h-[50vh]">
         <div className="max-w-7xl mx-auto px-6 py-6">
           {/* Tab Navigation */}
           <div className="flex items-center justify-between mb-8">

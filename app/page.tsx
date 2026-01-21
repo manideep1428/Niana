@@ -29,7 +29,7 @@ export default function Home() {
 
   const onSubmit = async (
     e: React.FormEvent<HTMLFormElement>,
-    attachments: Attachment[] = []
+    attachments: Attachment[] = [],
   ) => {
     const formData = new FormData(e.currentTarget);
     const content = formData.get("content") as string;
@@ -82,9 +82,9 @@ export default function Home() {
   };
 
   return (
-    <div className="relative overflow-x-hidden bg-white dark:bg-black">
+    <div className="relative overflow-x-hidden bg-background">
       <div className="fixed inset-0 pointer-events-none z-0">
-        <div className="absolute inset-0 bg-linear-to-b from-white via-white to-white/80 dark:from-black dark:via-black dark:to-black/80" />
+        <div className="absolute inset-0 bg-linear-to-b from-background via-background to-background/80 dark:from-black dark:via-black dark:to-black/80" />
         <div className="absolute bottom-0 left-0 right-0 h-[70%]">
           <div className="absolute inset-0 bg-linear-to-t from-orange-600/40 via-pink-600/20 to-transparent" />
           <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[80%] h-[500px] bg-linear-to-t from-orange-500/50 via-pink-500/30 to-transparent blur-3xl" />

@@ -14,7 +14,6 @@ import {
   Figma,
   AlertTriangle,
 } from "lucide-react";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { NodeToolbar, Position } from "@xyflow/react";
 import { convertHtmlToFigma } from "@/app/actions/figma";
@@ -31,6 +30,7 @@ import Image from "next/image";
 
 export interface DesignNodeData extends Record<string, unknown> {
   artifactId: string;
+  projectId: string; // Added for Figma export caching
   title: string;
   content: string;
   isStreaming?: boolean;
@@ -46,7 +46,7 @@ export interface DesignNodeData extends Record<string, unknown> {
       textContent?: string;
       styles: Record<string, string>;
       path: string[];
-    }
+    },
   ) => void;
 }
 
@@ -58,6 +58,7 @@ interface DesignNodeProps {
 function DesignNodeComponent({ data, selected }: DesignNodeProps) {
   const {
     artifactId,
+    projectId,
     title,
     content,
     onDelete,
@@ -74,7 +75,7 @@ function DesignNodeComponent({ data, selected }: DesignNodeProps) {
 
   const [isFigmaLoading, setIsFigmaLoading] = useState(false);
   const [preparedFigmaData, setPreparedFigmaData] = useState<string | null>(
-    null
+    null,
   );
   const [figmaCopySuccess, setFigmaCopySuccess] = useState(false);
   const clipboardDataRef = useRef<string | null>(null);
@@ -115,7 +116,7 @@ function DesignNodeComponent({ data, selected }: DesignNodeProps) {
 
     setIsFigmaLoading(true);
     try {
-      const result = await convertHtmlToFigma(content, artifactId);
+      const result = await convertHtmlToFigma(content, artifactId, projectId);
 
       if (result.success && result.data) {
         // Attempt direct async copy (Modern Browsers: Chrome, Edge, Safari 13.1+)
@@ -146,7 +147,7 @@ function DesignNodeComponent({ data, selected }: DesignNodeProps) {
         } catch (copyErr: any) {
           console.warn(
             "Async copy failed, falling back to manual copy:",
-            copyErr
+            copyErr,
           );
 
           // If the error is due to usage interaction (NotAllowedError), we MUST use the fallback
@@ -526,7 +527,7 @@ function DesignNodeComponent({ data, selected }: DesignNodeProps) {
     // Also trigger a click in the iframe to select the first element
     if (iframeRef.current?.contentDocument?.body) {
       const firstElement = iframeRef.current.contentDocument.body.querySelector(
-        "div, section, main, header, article"
+        "div, section, main, header, article",
       );
       if (firstElement) {
         (firstElement as HTMLElement).click();
@@ -540,7 +541,7 @@ function DesignNodeComponent({ data, selected }: DesignNodeProps) {
         "transition-all duration-200 cursor-grab active:cursor-grabbing rounded-2xl relative group",
         showSkeleton
           ? "bg-background border border-border shadow-lg"
-          : "bg-transparent"
+          : "bg-transparent",
       )}
     >
       <NodeToolbar
@@ -580,7 +581,7 @@ function DesignNodeComponent({ data, selected }: DesignNodeProps) {
               "h-8 px-2.5 gap-2 rounded-lg font-medium text-xs transition-all disabled:opacity-50",
               preparedFigmaData
                 ? "bg-green-500/20 text-green-400 hover:bg-green-500/30 hover:text-green-300 border border-green-500/50"
-                : "text-white hover:bg-white/10 hover:text-white"
+                : "text-white hover:bg-white/10 hover:text-white",
             )}
           >
             {isFigmaLoading ? (
@@ -666,7 +667,7 @@ function DesignNodeComponent({ data, selected }: DesignNodeProps) {
             // Outer shadow for depth
             "shadow-[0_0_0_1px_rgba(255,255,255,0.1),0_25px_50px_-12px_rgba(0,0,0,0.6),0_0_80px_-20px_rgba(0,0,0,0.3)]",
             selected &&
-              "shadow-[0_0_0_1px_rgba(255,255,255,0.2),0_25px_50px_-12px_rgba(0,0,0,0.7),0_0_100px_-20px_rgba(124,58,237,0.3)]"
+              "shadow-[0_0_0_1px_rgba(255,255,255,0.2),0_25px_50px_-12px_rgba(0,0,0,0.7),0_0_100px_-20px_rgba(124,58,237,0.3)]",
           )}
         >
           {/* Side Buttons - Left (Silent Switch + Volume) */}
@@ -684,7 +685,7 @@ function DesignNodeComponent({ data, selected }: DesignNodeProps) {
               "bg-black",
               // Inner bezel shadow
               "shadow-[inset_0_0_20px_rgba(0,0,0,0.5)]",
-              selected ? "ring-2 ring-primary/50" : ""
+              selected ? "ring-2 ring-primary/50" : "",
             )}
           >
             {/* Dynamic Island / Notch */}
@@ -707,7 +708,7 @@ function DesignNodeComponent({ data, selected }: DesignNodeProps) {
                 className={cn(
                   "w-[375px] border-0 transition-all duration-300 block",
                   showSkeleton ? "opacity-0" : "opacity-100",
-                  isInteractive ? "pointer-events-auto" : "pointer-events-none"
+                  isInteractive ? "pointer-events-auto" : "pointer-events-none",
                 )}
                 style={{ height: iframeHeight }}
                 sandbox="allow-scripts allow-same-origin"
@@ -774,7 +775,7 @@ function DesignNodeComponent({ data, selected }: DesignNodeProps) {
               <div
                 className={cn(
                   "absolute inset-0 transparent",
-                  isInteractive ? "pointer-events-none" : "pointer-events-auto"
+                  isInteractive ? "pointer-events-none" : "pointer-events-auto",
                 )}
               />
             </div>

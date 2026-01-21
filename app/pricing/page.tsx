@@ -69,7 +69,7 @@ export default function PricingPage() {
   // Get user's current subscription
   const subscription = useQuery(
     api.quires.getUserSubscription,
-    user ? { user_id: user.id } : "skip"
+    user ? { user_id: user.id } : "skip",
   );
   const currentPlanId = subscription?.plan ?? "free";
 
@@ -183,7 +183,7 @@ export default function PricingPage() {
   const handleContactSales = () => {
     window.open(
       "https://cal.com/manideep-zgprs5/15min?overlayCalendar=true",
-      "_blank"
+      "_blank",
     );
   };
 
@@ -197,7 +197,7 @@ export default function PricingPage() {
 
   return (
     <>
-      <div className="min-h-screen relative overflow-hidden bg-gray-50 dark:bg-[#0a0a0a]">
+      <div className="min-h-screen relative overflow-hidden bg-background">
         {/* Gradient Background */}
         <div className="absolute inset-0">
           <div className="absolute bottom-0 left-0 right-0 h-[40%]">
@@ -284,7 +284,7 @@ export default function PricingPage() {
                               ? "bg-gradient-to-b from-emerald-500/10 to-emerald-600/5 border-2 border-emerald-500/50"
                               : plan.popular
                                 ? "bg-gradient-to-b from-orange-500/10 to-orange-600/5 border-2 border-orange-500/50"
-                                : "bg-white dark:bg-white/[0.02] border border-gray-200 dark:border-white/10 shadow-sm dark:shadow-none"
+                                : "bg-card dark:bg-white/[0.02] border border-border dark:border-white/10 shadow-sm dark:shadow-none"
                           }`}
                         >
                           <div className="p-6 flex flex-col h-full">
@@ -444,7 +444,7 @@ export default function PricingPage() {
                         </div>
                       </motion.div>
                     );
-                  }
+                  },
                 )}
               </div>
 

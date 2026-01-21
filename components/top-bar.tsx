@@ -40,7 +40,7 @@ export default function TopBar() {
   // Fetch subscription for credits display in dropdown
   const subscription = useQuery(
     api.quires.getUserSubscription,
-    user ? { user_id: user.id } : "skip"
+    user ? { user_id: user.id } : "skip",
   );
 
   // Calculate start of current month for Figma usage
@@ -48,13 +48,13 @@ export default function TopBar() {
   const startOfMonth = new Date(
     now.getFullYear(),
     now.getMonth(),
-    1
+    1,
   ).toISOString();
 
   // Fetch Figma usage count for current month
   const figmaUsage = useQuery(
     api.figma.getFigmaUserCount,
-    user ? { user_id: user.id, since: startOfMonth } : "skip"
+    user ? { user_id: user.id, since: startOfMonth } : "skip",
   );
 
   // Credit calculations
@@ -81,7 +81,7 @@ export default function TopBar() {
     <header className="fixed top-0 left-0 right-0 z-50 px-6 py-4 animate-in slide-in-from-top-4 fade-in duration-500">
       <div className="mx-auto max-w-7xl">
         {/* Liquid glass effect - light/dark adaptive */}
-        <div className="relative rounded-2xl border border-black/10 dark:border-white/10 bg-white/60 dark:bg-black/20 px-6 py-3 shadow-lg backdrop-blur-xl transition-all hover:bg-white/70 dark:hover:bg-black/30 before:absolute before:inset-0 before:rounded-2xl before:bg-linear-to-b before:from-white/20 before:to-transparent before:pointer-events-none dark:before:from-white/5">
+        <div className="relative rounded-2xl border border-border dark:border-white/10 bg-card/60 dark:bg-black/20 px-6 py-3 shadow-lg backdrop-blur-xl transition-all hover:bg-card/70 dark:hover:bg-black/30 before:absolute before:inset-0 before:rounded-2xl before:bg-linear-to-b before:from-card/20 before:to-transparent before:pointer-events-none dark:before:from-white/5">
           <div className="flex items-center justify-between relative">
             {/* Logo Section */}
             <div className="flex items-center gap-3">
@@ -146,7 +146,7 @@ export default function TopBar() {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent
                       align="end"
-                      className="w-64 rounded-xl border border-black/10 dark:border-white/10 bg-white/90 dark:bg-black/80 px-2 py-2 text-black/90 dark:text-white/90 backdrop-blur-xl"
+                      className="w-64 rounded-xl border border-border dark:border-white/10 bg-card/90 dark:bg-black/80 px-2 py-2 text-foreground backdrop-blur-xl"
                     >
                       <DropdownMenuLabel className="font-normal">
                         <div className="flex flex-col space-y-1">

@@ -1,10 +1,42 @@
-import openai from "@/lib/openai";
-import { tools, CreateArtifactArgs, TOOL_NAMES } from "@/lib/tools";
+import { CreateArtifactArgs, TOOL_NAMES } from "@/lib/tools";
 import { NextRequest } from "next/server";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "@/convex/_generated/api";
 import { withAuth } from "@workos-inc/authkit-nextjs";
 import { systemPrompt } from "@/lib/prompt";
+import { Type } from "@google/genai";
+import { gemini } from "@/lib/gemini";
+
+const geminiTools = [
+  {
+    functionDeclarations: [
+      {
+        name: TOOL_NAMES.CREATE_ARTIFACT,
+        description: "Create a new UI artifact/screen with HTML content",
+        parameters: {
+          type: Type.OBJECT,
+          properties: {
+            id: {
+              type: Type.STRING,
+              description:
+                "Unique identifier for the artifact (e.g., 'home-screen', 'login-page')",
+            },
+            title: {
+              type: Type.STRING,
+              description: "Display title for the artifact",
+            },
+            content: {
+              type: Type.STRING,
+              description:
+                "Complete HTML content for the artifact including inline CSS and JavaScript",
+            },
+          },
+          required: ["id", "title", "content"],
+        },
+      },
+    ],
+  },
+];
 
 const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
@@ -15,12 +47,9 @@ interface Attachment {
   storageId?: string;
 }
 
-type TextPart = { type: "text"; text: string };
-type ImagePart = {
-  type: "image_url";
-  image_url: { url: string; detail?: "auto" | "low" | "high" };
-};
-type ContentPart = TextPart | ImagePart;
+// Gemini content parts
+type GeminiTextPart = { text: string };
+type GeminiPart = GeminiTextPart;
 
 // Stream event types - matching ai-chatbot style
 type StreamEvent =
@@ -35,37 +64,31 @@ function encodeEvent(event: StreamEvent): string {
   return `data: ${JSON.stringify(event)}\n\n`;
 }
 
-function buildMessageContent(
+function buildGeminiContent(
   text: string,
   attachments?: Attachment[],
-): string | ContentPart[] {
-  if (!attachments || attachments.length === 0) {
-    return text;
-  }
+): GeminiPart[] {
+  const parts: GeminiPart[] = [];
 
-  const parts: ContentPart[] = [];
-
-  for (const attachment of attachments) {
-    if (attachment.contentType.startsWith("image/")) {
-      parts.push({
-        type: "image_url",
-        image_url: { url: attachment.url, detail: "auto" },
-      });
-    } else {
-      parts.push({
-        type: "text",
-        text: `[Attached file: ${attachment.name} (${attachment.contentType})]`,
-      });
+  if (attachments && attachments.length > 0) {
+    for (const attachment of attachments) {
+      if (attachment.contentType.startsWith("image/")) {
+        parts.push({
+          text: `[Attached image: ${attachment.name}] URL: ${attachment.url}`,
+        });
+      } else {
+        parts.push({
+          text: `[Attached file: ${attachment.name} (${attachment.contentType})]`,
+        });
+      }
     }
   }
 
   if (text) {
-    parts.push({ type: "text", text });
+    parts.push({ text });
   }
 
-  return parts.length === 1 && parts[0].type === "text"
-    ? (parts[0] as TextPart).text
-    : parts;
+  return parts;
 }
 
 export async function POST(request: NextRequest) {
@@ -104,7 +127,6 @@ export async function POST(request: NextRequest) {
       try {
         const basePrompt = systemPrompt({ selectedChatModel });
 
-        // Planning phase - determine screens to create
         const planningPrompt = `${basePrompt}
 
 PLANNING MODE:
@@ -118,29 +140,33 @@ You MUST respond with valid JSON in this exact format:
 
 Follow the INTELLIGENT SCREEN DECISION rules from your system prompt to determine the right number of screens.`;
 
-        const planMessages = [
-          { role: "system" as const, content: planningPrompt },
-          ...messages.map(
-            (m: {
-              role: string;
-              content: string;
-              attachments?: Attachment[];
-            }) => ({
-              role: m.role as "user" | "assistant",
-              content: buildMessageContent(m.content, m.attachments),
-            }),
-          ),
-        ];
+        // Build Gemini contents for planning
+        const planContents = messages.map(
+          (m: {
+            role: string;
+            content: string;
+            attachments?: Attachment[];
+          }) => ({
+            role: m.role === "assistant" ? "model" : "user",
+            parts: buildGeminiContent(m.content, m.attachments),
+          }),
+        );
 
-        const planResponse = await openai.chat.completions.create({
-          model: "gpt-4.1",
-          messages: planMessages,
-          response_format: { type: "json_object" },
-          stream: false,
+        // Planning step - get screen plan from Gemini
+        const planResponse = await gemini.models.generateContent({
+          model: "gemini-3-pro-preview",
+          contents: planContents,
+          config: {
+            systemInstruction: planningPrompt,
+            responseMimeType: "application/json",
+          },
         });
 
-        const planContent = planResponse.choices[0]?.message?.content || "{}";
-        totalUsageTokens += planResponse.usage?.completion_tokens || 0;
+        const planContent = planResponse.text || "{}";
+        if (planResponse.usageMetadata) {
+          totalUsageTokens +=
+            planResponse.usageMetadata.candidatesTokenCount || 0;
+        }
 
         let plan: {
           screens: Array<{ id: string; title: string; description: string }>;
@@ -188,62 +214,86 @@ Follow the INTELLIGENT SCREEN DECISION rules from your system prompt to determin
               ),
             );
 
-            const screenMessages = [
-              { role: "system" as const, content: basePrompt },
+            // Build screen generation contents
+            const screenContents = [
               ...messages.map(
                 (m: {
                   role: string;
                   content: string;
                   attachments?: Attachment[];
                 }) => ({
-                  role: m.role as "user" | "assistant",
-                  content: buildMessageContent(m.content, m.attachments),
+                  role: m.role === "assistant" ? "model" : "user",
+                  parts: buildGeminiContent(m.content, m.attachments),
                 }),
               ),
               {
                 role: "user" as const,
-                content: `Generate ONLY the "${screen.title}" screen (ID: ${screen.id}). Description: ${screen.description}. This is screen ${i + 1} of ${plan.screens.length}. Use the ${TOOL_NAMES.CREATE_ARTIFACT} tool with id="${screen.id}" and title="${screen.title}".`,
+                parts: [
+                  {
+                    text: `Generate ONLY the "${screen.title}" screen (ID: ${screen.id}). Description: ${screen.description}. This is screen ${i + 1} of ${plan.screens.length}. Use the ${TOOL_NAMES.CREATE_ARTIFACT} tool with id="${screen.id}" and title="${screen.title}".`,
+                  },
+                ],
               },
             ];
 
-            const screenStream = await openai.chat.completions.create({
-              model: "gpt-4.1",
-              messages: screenMessages,
-              tools: tools,
-              tool_choice: {
-                type: "function",
-                function: { name: TOOL_NAMES.CREATE_ARTIFACT },
+            // Generate screen using Gemini with function calling
+            const screenResponse = await gemini.models.generateContent({
+              model: "gemini-3-pro-preview",
+              contents: screenContents,
+              config: {
+                systemInstruction: basePrompt,
+                tools: geminiTools,
               },
-              stream: true,
-              stream_options: { include_usage: true },
             });
 
-            let toolArguments = "";
+            if (screenResponse.usageMetadata) {
+              totalUsageTokens +=
+                screenResponse.usageMetadata.candidatesTokenCount || 0;
+            }
 
-            for await (const chunk of screenStream) {
-              const delta = chunk.choices[0]?.delta;
+            // Extract function call result
+            let args: CreateArtifactArgs | null = null;
 
-              if (chunk.usage) {
-                totalUsageTokens += chunk.usage.completion_tokens || 0;
-              }
-
-              if (delta?.tool_calls?.[0]?.function?.arguments) {
-                toolArguments += delta.tool_calls[0].function.arguments;
+            if (screenResponse.candidates?.[0]?.content?.parts) {
+              for (const part of screenResponse.candidates[0].content.parts) {
+                if (
+                  part.functionCall &&
+                  part.functionCall.name === TOOL_NAMES.CREATE_ARTIFACT
+                ) {
+                  args = part.functionCall
+                    .args as unknown as CreateArtifactArgs;
+                  break;
+                }
               }
             }
 
-            // Parse and send artifact finish
-            const args = JSON.parse(toolArguments) as CreateArtifactArgs;
-            controller.enqueue(
-              encoder.encode(
-                encodeEvent({
-                  type: "artifact-finish",
-                  id: args.id || screen.id,
-                  title: args.title || screen.title,
-                  content: args.content,
-                }),
-              ),
-            );
+            if (args) {
+              controller.enqueue(
+                encoder.encode(
+                  encodeEvent({
+                    type: "artifact-finish",
+                    id: args.id || screen.id,
+                    title: args.title || screen.title,
+                    content: args.content,
+                  }),
+                ),
+              );
+            } else {
+              // Fallback: try to extract HTML from text response
+              const textContent = screenResponse.text || "";
+              if (textContent) {
+                controller.enqueue(
+                  encoder.encode(
+                    encodeEvent({
+                      type: "artifact-finish",
+                      id: screen.id,
+                      title: screen.title,
+                      content: textContent,
+                    }),
+                  ),
+                );
+              }
+            }
           } catch (e) {
             console.error(`Failed to generate screen ${screen.id}:`, e);
             controller.enqueue(

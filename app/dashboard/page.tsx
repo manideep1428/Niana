@@ -66,7 +66,7 @@ export default function DashboardPage() {
 
   const projects = useQuery(
     api.quires.getUserProjects,
-    user?.id ? { user_id: user.id } : "skip"
+    user?.id ? { user_id: user.id } : "skip",
   );
 
   const deleteProject = useMutation(api.mutations.deleteProject);
@@ -83,7 +83,7 @@ export default function DashboardPage() {
 
   const handleToggleFavorite = async (
     projectId: string,
-    e: React.MouseEvent
+    e: React.MouseEvent,
   ) => {
     e.stopPropagation();
     try {
@@ -143,7 +143,7 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-black">
+    <div className="min-h-screen bg-background">
       <TopBar />
 
       <div className="max-w-6xl mx-auto px-6 py-8 pt-28">
@@ -226,20 +226,20 @@ export default function DashboardPage() {
             {filteredProjects?.map((project) => (
               <div
                 key={project.project_id}
-                className="group relative bg-white dark:bg-white/5 hover:bg-gray-50 dark:hover:bg-white/10 border border-gray-200 dark:border-white/10 rounded-2xl overflow-hidden transition-all cursor-pointer shadow-sm hover:shadow-lg dark:shadow-none hover:scale-[1.02] duration-200"
+                className="group relative bg-card dark:bg-white/5 hover:bg-accent dark:hover:bg-white/10 border border-border dark:border-white/10 rounded-2xl overflow-hidden transition-all cursor-pointer shadow-sm hover:shadow-lg dark:shadow-none hover:scale-[1.02] duration-200"
                 onClick={() => handleOpenProject(project.project_id)}
               >
                 {/* Large Icon Area */}
-                <div className="aspect-square bg-gray-100 dark:bg-white/5 flex items-center justify-center relative overflow-hidden">
+                <div className="aspect-square bg-secondary dark:bg-white/5 flex items-center justify-center relative overflow-hidden">
                   {/* Icon */}
-                  <div className="relative w-20 h-20 rounded-2xl bg-white dark:bg-white/10 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-200">
+                  <div className="relative w-20 h-20 rounded-2xl bg-card dark:bg-white/10 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-200">
                     <Smartphone className="w-10 h-10 text-gray-700 dark:text-white/70" />
                   </div>
 
                   {/* Favorite Button - Positioned absolutely */}
                   <button
                     onClick={(e) => handleToggleFavorite(project.project_id, e)}
-                    className={`absolute top-3 right-3 p-2 rounded-lg bg-white/80 dark:bg-black/40 backdrop-blur-sm hover:bg-white dark:hover:bg-black/60 transition-all ${
+                    className={`absolute top-3 right-3 p-2 rounded-lg bg-card/80 dark:bg-black/40 backdrop-blur-sm hover:bg-card dark:hover:bg-black/60 transition-all ${
                       project.is_favorite
                         ? "text-yellow-500 hover:text-yellow-600 dark:text-yellow-400 dark:hover:text-yellow-300"
                         : "text-gray-400 dark:text-white/40 hover:text-gray-600 dark:hover:text-white/80"
@@ -266,7 +266,7 @@ export default function DashboardPage() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent
                           align="end"
-                          className="bg-white dark:bg-zinc-900 border-gray-200 dark:border-white/10"
+                          className="bg-card dark:bg-zinc-900 border-border dark:border-white/10"
                         >
                           <DropdownMenuItem
                             onClick={() =>
@@ -309,7 +309,7 @@ export default function DashboardPage() {
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent className="bg-white dark:bg-zinc-900 border-gray-200 dark:border-white/10 text-gray-900 dark:text-white">
+        <DialogContent className="bg-card dark:bg-zinc-900 border-border dark:border-white/10 text-foreground">
           <DialogHeader>
             <div className="flex items-center gap-3 mb-2">
               <div className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-500/20 flex items-center justify-center">
@@ -362,7 +362,7 @@ export default function DashboardPage() {
 
       {/* Rename Dialog */}
       <Dialog open={renameDialogOpen} onOpenChange={setRenameDialogOpen}>
-        <DialogContent className="bg-white dark:bg-zinc-900 border-gray-200 dark:border-white/10 text-gray-900 dark:text-white">
+        <DialogContent className="bg-card dark:bg-zinc-900 border-border dark:border-white/10 text-foreground">
           <DialogHeader>
             <DialogTitle className="text-gray-900 dark:text-white">
               Rename Project
@@ -375,7 +375,7 @@ export default function DashboardPage() {
             value={newTitle}
             onChange={(e) => setNewTitle(e.target.value)}
             placeholder="Project name"
-            className="bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-white/10 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-white/40"
+            className="bg-secondary dark:bg-white/5 border-border dark:border-white/10 text-foreground placeholder:text-muted-foreground"
             onKeyDown={(e) => {
               if (e.key === "Enter") confirmRename();
             }}

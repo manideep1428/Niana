@@ -34,7 +34,7 @@ export const saveFile = mutation({
     // Validate file type
     if (!ALLOWED_FILE_TYPES.includes(args.contentType)) {
       throw new Error(
-        `Invalid file type: ${args.contentType}. Allowed types: images, PDF, Word documents.`
+        `Invalid file type: ${args.contentType}. Allowed types: images, PDF, Word documents.`,
       );
     }
 
@@ -94,9 +94,10 @@ export const saveProject = mutation({
           url: v.string(),
           contentType: v.string(),
           storageId: v.optional(v.id("_storage")),
-        })
-      )
+        }),
+      ),
     ),
+    is_public: v.optional(v.boolean()),
   },
 
   handler: async (ctx, args) => {
@@ -106,6 +107,7 @@ export const saveProject = mutation({
       user_id: args.user_id,
       project_id: args.project_id,
       title: args.title,
+      is_public: args.is_public ?? false, // Default to private
     });
     // Insert initial message with content and attachments
     await ctx.db.insert("messages", {
@@ -163,7 +165,7 @@ export const updateDesign = mutation({
 
     if (!existing) {
       throw new Error(
-        `Design with artifact_id "${args.artifact_id}" not found`
+        `Design with artifact_id "${args.artifact_id}" not found`,
       );
     }
 
@@ -235,7 +237,7 @@ export const deleteDesign = mutation({
 
     if (!design) {
       throw new Error(
-        `Design with artifact_id "${args.artifact_id}" not found`
+        `Design with artifact_id "${args.artifact_id}" not found`,
       );
     }
 
@@ -268,7 +270,7 @@ export const saveMessage = mutation({
     role: v.union(
       v.literal("user"),
       v.literal("assistant"),
-      v.literal("system")
+      v.literal("system"),
     ),
     design_ids: v.array(v.id("designs")),
     attachments: v.optional(
@@ -278,8 +280,8 @@ export const saveMessage = mutation({
           url: v.string(),
           contentType: v.string(),
           storageId: v.optional(v.id("_storage")),
-        })
-      )
+        }),
+      ),
     ),
     initial_status: v.optional(v.boolean()), // Optional, defaults to true (already processed)
   },
@@ -443,14 +445,14 @@ export const createPayment = mutation({
       v.literal("free"),
       v.literal("base"),
       v.literal("standard"),
-      v.literal("premium")
+      v.literal("premium"),
     ),
     amount: v.number(),
     currency: v.string(),
     status: v.union(
       v.literal("created"),
       v.literal("paid"),
-      v.literal("failed")
+      v.literal("failed"),
     ),
   },
   handler: async (ctx, args) => {
@@ -470,7 +472,7 @@ export const updatePaymentStatus = mutation({
     status: v.union(
       v.literal("created"),
       v.literal("paid"),
-      v.literal("failed")
+      v.literal("failed"),
     ),
     razorpay_payment_id: v.optional(v.string()),
     razorpay_signature: v.optional(v.string()),
@@ -504,7 +506,7 @@ export const createSubscription = mutation({
       v.literal("free"),
       v.literal("base"),
       v.literal("standard"),
-      v.literal("premium")
+      v.literal("premium"),
     ),
     tokens_total: v.number(),
     tokens_used: v.number(),
@@ -512,7 +514,7 @@ export const createSubscription = mutation({
     status: v.union(
       v.literal("active"),
       v.literal("expired"),
-      v.literal("cancelled")
+      v.literal("cancelled"),
     ),
     razorpay_payment_id: v.string(),
     razorpay_order_id: v.string(),
@@ -723,7 +725,7 @@ export const toggleProjectLike = mutation({
     const existingLike = await ctx.db
       .query("project_likes")
       .withIndex("by_user_project", (q) =>
-        q.eq("user_id", args.user_id).eq("project_id", args.project_id)
+        q.eq("user_id", args.user_id).eq("project_id", args.project_id),
       )
       .first();
 
@@ -879,7 +881,7 @@ export const forkProject = mutation({
 
     if (!sourceProject) {
       throw new Error(
-        `Source project with id "${args.source_project_id}" not found`
+        `Source project with id "${args.source_project_id}" not found`,
       );
     }
 
@@ -908,7 +910,7 @@ export const forkProject = mutation({
     const sourceDesigns = await ctx.db
       .query("designs")
       .withIndex("by_project", (q) =>
-        q.eq("project_id", args.source_project_id)
+        q.eq("project_id", args.source_project_id),
       )
       .collect();
 
@@ -935,7 +937,7 @@ export const forkProject = mutation({
     const sourceMessages = await ctx.db
       .query("messages")
       .withIndex("by_project", (q) =>
-        q.eq("project_id", args.source_project_id)
+        q.eq("project_id", args.source_project_id),
       )
       .collect();
 

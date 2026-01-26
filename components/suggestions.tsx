@@ -112,7 +112,7 @@ function SuggestionCard({
         y: e.clientY - rect.top,
       });
     },
-    []
+    [],
   );
 
   const handleMouseEnter = useCallback(() => {
@@ -137,7 +137,7 @@ function SuggestionCard({
       onMouseMove={handleMouseMove}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
-      className="relative px-4 py-2 rounded-full text-secondary-foreground transition-all duration-200 text-sm font-medium cursor-pointer overflow-hidden group"
+      className="relative px-6 py-3 rounded-full text-secondary-foreground transition-all duration-200 text-base font-medium cursor-pointer overflow-hidden group"
       style={{
         background: "transparent",
       }}
@@ -191,7 +191,7 @@ export function Suggestions({ onSelect }: SuggestionsProps) {
   };
 
   return (
-    <div className="flex flex-wrap justify-center gap-2 mt-4">
+    <div className="flex flex-wrap justify-center gap-3 mt-4">
       {suggestions.map((suggestion, index) => (
         <SuggestionCard
           key={index}

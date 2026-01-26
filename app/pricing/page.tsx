@@ -50,13 +50,6 @@ interface RazorpayResponse {
 }
 
 // Free plan config (not in SUBSCRIPTION_PLANS as it's not purchasable)
-const FREE_PLAN = {
-  name: "Free",
-  description: "Good for trying out",
-  credits: 1, // 1 credit = 20k tokens
-  messages: "~20 messages",
-  features: ["1 project", "Basic code exports", "Community support"],
-};
 
 export default function PricingPage() {
   const { user } = useAuth();
@@ -397,13 +390,13 @@ export default function PricingPage() {
                                 <span className="text-lg font-semibold">
                                   {isEnterprise
                                     ? "Custom Credits"
-                                    : `${plan.credits} Credits / ${isYearly ? "year" : "month"}`}
+                                    : `${isYearly ? plan.credits * 12 : plan.credits} Credits / ${isYearly ? "year" : "month"}`}
                                 </span>
                               </div>
                               <p className="text-xs text-gray-400 dark:text-white/40">
                                 {isEnterprise
                                   ? "Unlimited messages"
-                                  : `~${Math.floor(plan.tokens / 1000)} messages (${(plan.tokens / 1000).toLocaleString()}K tokens)`}
+                                  : `~${Math.floor((isYearly ? plan.tokens * 12 : plan.tokens) / 1000)} messages (${((isYearly ? plan.tokens * 12 : plan.tokens) / 1000).toLocaleString()}K tokens)`}
                               </p>
                             </div>
 

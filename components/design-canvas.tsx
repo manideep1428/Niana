@@ -16,19 +16,8 @@ import {
 import "@xyflow/react/dist/style.css";
 import { DesignNode, DesignNodeData } from "./design-node";
 import { Button } from "@/components/ui/button";
-import {
-  ZoomIn,
-  ZoomOut,
-  Maximize,
-  Hand,
-  MousePointer,
-  Undo2,
-  Redo2,
-  Loader2,
-} from "lucide-react";
+import { ZoomIn, ZoomOut, Maximize } from "lucide-react";
 
-// Tool modes
-export type ToolMode = "hand" | "mouse";
 import { useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 
@@ -56,26 +45,6 @@ interface DesignCanvasProps {
   selectedArtifactId: string | null;
   projectId: string; // Added for Figma export caching
   onNodeSelect?: (artifactId: string | null) => void;
-  onElementSelect?: (
-    artifactId: string,
-    elementInfo: {
-      tagName: string;
-      id?: string;
-      className?: string;
-      textContent?: string;
-      styles: any;
-      path: string[];
-    },
-  ) => void;
-  onSave?: () => void;
-  hasUnsavedChanges?: boolean;
-  onUndo?: () => void;
-  onRedo?: () => void;
-  canUndo?: boolean;
-  canRedo?: boolean;
-  isSaving?: boolean;
-  toolMode?: ToolMode;
-  onToolModeChange?: (mode: ToolMode) => void;
   isReadOnly?: boolean;
 }
 
@@ -84,16 +53,6 @@ export function DesignCanvas({
   selectedArtifactId,
   projectId,
   onNodeSelect,
-  onElementSelect,
-  onSave,
-  hasUnsavedChanges,
-  onUndo,
-  onRedo,
-  canUndo,
-  canRedo,
-  isSaving,
-  toolMode: controlledToolMode,
-  onToolModeChange,
   isReadOnly = false,
 }: DesignCanvasProps) {
   const { fitView, setCenter, zoomIn, zoomOut } = useReactFlow();
@@ -101,24 +60,8 @@ export function DesignCanvas({
   const updateCoordinates = useMutation(api.mutations.updateDesignCoordinates);
   const deleteDesign = useMutation(api.mutations.deleteDesign);
 
-  // Tool mode state - can be controlled from parent or internal
-  const [internalToolMode, setInternalToolMode] = useState<ToolMode>("hand");
-
-  // Use controlled mode if provided, otherwise use internal state
-  const toolMode = controlledToolMode ?? internalToolMode;
-  const setToolMode = (mode: ToolMode) => {
-    if (onToolModeChange) {
-      onToolModeChange(mode);
-    } else {
-      setInternalToolMode(mode);
-    }
-  };
-
   // Track if selection came from canvas interaction (to skip centering)
   const isInternalSelection = useRef(false);
-
-  // Track if we've done the initial position load from DB
-  const hasLoadedPositions = useRef(false);
 
   // Check if zoom in/out is possible
   const canZoomIn = zoom < MAX_ZOOM;
@@ -139,15 +82,6 @@ export function DesignCanvas({
 
   // Convert designs to React Flow nodes
   const initialNodes: Node<DesignNodeData>[] = useMemo(() => {
-    console.log(
-      "Creating initial nodes from designs:",
-      designs.map((d) => ({
-        id: d.artifact_id,
-        x: d.x,
-        y: d.y,
-      })),
-    );
-
     return designs.map((design, index) => {
       // Use DB position only if it's valid (not default 0,0)
       const hasValidDbPosition =
@@ -163,11 +97,6 @@ export function DesignCanvas({
             y: Math.floor(index / 3) * 850,
           };
 
-      console.log(
-        `Node ${design.artifact_id}: hasValidDbPosition=${hasValidDbPosition}, position=`,
-        position,
-      );
-
       return {
         id: design.artifact_id,
         type: "design",
@@ -179,19 +108,12 @@ export function DesignCanvas({
           content: design.content,
           isStreaming: design.status === "streaming",
           onDelete: handleDeleteDesign,
-          onElementSelect: onElementSelect,
-          isInteractive: toolMode === "mouse",
+          isInteractive: false,
         },
         selected: design.artifact_id === selectedArtifactId,
       };
     });
-  }, [
-    designs,
-    selectedArtifactId,
-    projectId,
-    handleDeleteDesign,
-    onElementSelect,
-  ]);
+  }, [designs, selectedArtifactId, projectId, handleDeleteDesign]);
 
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
 
@@ -236,25 +158,6 @@ export function DesignCanvas({
       );
     }
   }, [initialNodes, setNodes]);
-
-  // Update nodes interactive state when tool mode changes
-  useEffect(() => {
-    setNodes((nds) =>
-      nds.map((node) => {
-        if (node.type === "design") {
-          return {
-            ...node,
-            data: {
-              ...node.data,
-              isInteractive: toolMode === "mouse",
-              onElementSelect: onElementSelect, // Update callback if changed
-            },
-          };
-        }
-        return node;
-      }),
-    );
-  }, [toolMode, onElementSelect, setNodes]);
 
   // Focus on selected node when selection comes from external source (chat click)
   useEffect(() => {
@@ -323,85 +226,14 @@ export function DesignCanvas({
         maxZoom={MAX_ZOOM}
         defaultViewport={{ x: 0, y: 0, zoom: 0.5 }}
         proOptions={{ hideAttribution: true }}
-        panOnDrag={toolMode === "hand" ? [0, 1, 2] : false}
-        selectionOnDrag={toolMode === "mouse"}
+        panOnDrag={[0, 1, 2]}
+        selectionOnDrag={false}
       >
         <Background variant={BackgroundVariant.Dots} gap={12} size={1} />
-
-        {/* Save/Undo/Redo Toolbar - only visible in mouse mode and not read-only */}
-        {toolMode === "mouse" && !isReadOnly && (
-          <Panel position="top-center" className="mt-4">
-            <div className="flex items-center gap-1 rounded-lg border bg-background/95 p-1 shadow-md backdrop-blur-sm">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-7 px-2.5 text-xs font-medium gap-1.5"
-                onClick={onSave}
-                disabled={!hasUnsavedChanges || isSaving}
-              >
-                {isSaving && <Loader2 className="h-3 w-3 animate-spin" />}
-                {isSaving ? "Saving..." : "Save"}
-              </Button>
-              <div className="w-px h-4 bg-border" />
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-7 w-7 p-0"
-                title="Undo"
-                onClick={onUndo}
-                disabled={!canUndo}
-              >
-                <Undo2 className="h-3.5 w-3.5" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-7 w-7 p-0"
-                title="Redo"
-                onClick={onRedo}
-                disabled={!canRedo}
-              >
-                <Redo2 className="h-3.5 w-3.5" />
-              </Button>
-            </div>
-          </Panel>
-        )}
 
         {/* Custom Controls */}
         <Panel position="bottom-center" className="mb-8">
           <div className="flex items-center gap-2 rounded-full border bg-background/95 p-2 shadow-lg backdrop-blur-sm">
-            {/* Tool Mode Selector */}
-            <div className="flex items-center gap-1 border-r pr-2 mr-1">
-              <Button
-                variant={toolMode === "hand" ? "secondary" : "ghost"}
-                size="icon"
-                onClick={() => setToolMode("hand")}
-                className={`h-9 w-9 rounded-full ${
-                  toolMode === "hand"
-                    ? "bg-primary/10 text-primary ring-1 ring-primary/20"
-                    : "hover:bg-muted"
-                }`}
-                title="Hand tool - Pan canvas"
-              >
-                <Hand className="h-4 w-4" />
-              </Button>
-              {!isReadOnly && (
-                <Button
-                  variant={toolMode === "mouse" ? "secondary" : "ghost"}
-                  size="icon"
-                  onClick={() => setToolMode("mouse")}
-                  className={`h-9 w-9 rounded-full ${
-                    toolMode === "mouse"
-                      ? "bg-primary/10 text-primary ring-1 ring-primary/20"
-                      : "hover:bg-muted"
-                  }`}
-                  title="Mouse tool - Select elements"
-                >
-                  <MousePointer className="h-4 w-4" />
-                </Button>
-              )}
-            </div>
-
             {/* Zoom Controls */}
             {canZoomOut && (
               <Button

@@ -1,8 +1,14 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import {
+  Geist,
+  Geist_Mono,
+  Bitcount_Single,
+  Lobster_Two,
+} from "next/font/google";
 import "./globals.css";
 import Providers from "./providers";
 import "@xyflow/react/dist/style.css";
+
 import { Toaster } from "sonner";
 
 const geistSans = Geist({
@@ -13,6 +19,17 @@ const geistSans = Geist({
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+});
+
+const bitcountSingle = Bitcount_Single({
+  variable: "--font-bitcount-single",
+  subsets: ["latin"],
+});
+
+const lobsterTwo = Lobster_Two({
+  variable: "--font-lobster-two",
+  subsets: ["latin"],
+  weight: "400",
 });
 
 export const metadata: Metadata = {
@@ -28,7 +45,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} ${bitcountSingle.variable} ${lobsterTwo.variable} antialiased`}
       >
         <Providers>{children}</Providers>
         <Toaster />

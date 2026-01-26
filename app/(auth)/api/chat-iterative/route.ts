@@ -49,7 +49,8 @@ interface Attachment {
 
 // Gemini content parts
 type GeminiTextPart = { text: string };
-type GeminiPart = GeminiTextPart;
+type GeminiInlineDataPart = { inlineData: { mimeType: string; data: string } };
+type GeminiPart = GeminiTextPart | GeminiInlineDataPart;
 
 // Stream event types - matching ai-chatbot style
 type StreamEvent =
@@ -64,18 +65,46 @@ function encodeEvent(event: StreamEvent): string {
   return `data: ${JSON.stringify(event)}\n\n`;
 }
 
-function buildGeminiContent(
+async function buildGeminiContent(
   text: string,
   attachments?: Attachment[],
-): GeminiPart[] {
+): Promise<GeminiPart[]> {
   const parts: GeminiPart[] = [];
 
   if (attachments && attachments.length > 0) {
     for (const attachment of attachments) {
-      if (attachment.contentType.startsWith("image/")) {
-        parts.push({
-          text: `[Attached image: ${attachment.name}] URL: ${attachment.url}`,
-        });
+      if (
+        attachment.contentType.startsWith("image/") ||
+        attachment.contentType === "application/pdf"
+      ) {
+        try {
+          const response = await fetch(attachment.url);
+          if (response.ok) {
+            const arrayBuffer = await response.arrayBuffer();
+            const base64String = Buffer.from(arrayBuffer).toString("base64");
+
+            parts.push({
+              inlineData: {
+                mimeType: attachment.contentType,
+                data: base64String,
+              },
+            });
+          } else {
+            console.error(`Failed to fetch attachment: ${attachment.url}`);
+            // Fallback to text description if fetch fails
+            parts.push({
+              text: `[Attached file: ${attachment.name}] (Download: ${attachment.url})`,
+            });
+          }
+        } catch (error) {
+          console.error(
+            `Error processing attachment ${attachment.name}:`,
+            error,
+          );
+          parts.push({
+            text: `[Attached file: ${attachment.name}] (Download: ${attachment.url})`,
+          });
+        }
       } else {
         parts.push({
           text: `[Attached file: ${attachment.name} (${attachment.contentType})]`,
@@ -141,15 +170,17 @@ You MUST respond with valid JSON in this exact format:
 Follow the INTELLIGENT SCREEN DECISION rules from your system prompt to determine the right number of screens.`;
 
         // Build Gemini contents for planning
-        const planContents = messages.map(
-          (m: {
-            role: string;
-            content: string;
-            attachments?: Attachment[];
-          }) => ({
-            role: m.role === "assistant" ? "model" : "user",
-            parts: buildGeminiContent(m.content, m.attachments),
-          }),
+        const planContents = await Promise.all(
+          messages.map(
+            async (m: {
+              role: string;
+              content: string;
+              attachments?: Attachment[];
+            }) => ({
+              role: m.role === "assistant" ? "model" : "user",
+              parts: await buildGeminiContent(m.content, m.attachments),
+            }),
+          ),
         );
 
         // Planning step - get screen plan from Gemini
@@ -216,16 +247,18 @@ Follow the INTELLIGENT SCREEN DECISION rules from your system prompt to determin
 
             // Build screen generation contents
             const screenContents = [
-              ...messages.map(
-                (m: {
-                  role: string;
-                  content: string;
-                  attachments?: Attachment[];
-                }) => ({
-                  role: m.role === "assistant" ? "model" : "user",
-                  parts: buildGeminiContent(m.content, m.attachments),
-                }),
-              ),
+              ...(await Promise.all(
+                messages.map(
+                  async (m: {
+                    role: string;
+                    content: string;
+                    attachments?: Attachment[];
+                  }) => ({
+                    role: m.role === "assistant" ? "model" : "user",
+                    parts: await buildGeminiContent(m.content, m.attachments),
+                  }),
+                ),
+              )),
               {
                 role: "user" as const,
                 parts: [

@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/sidebar";
 import { useCallback, useEffect, useState, useRef } from "react";
 import { Separator } from "@radix-ui/react-separator";
-import { DesignCanvas, Design, ToolMode } from "@/components/design-canvas";
+import { DesignCanvas, Design } from "@/components/design-canvas";
 import { ReactFlowProvider } from "@xyflow/react";
 import { useParams } from "next/navigation";
 import { useQuery, useMutation } from "convex/react";
@@ -25,7 +25,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { TokenUsageDisplay } from "@/components/token-usage-display";
-import type { SelectedElement } from "@/components/visual-editor";
+
 import { toast } from "sonner";
 import { useAuth } from "@workos-inc/authkit-nextjs/components";
 import { SSEEvent } from "@/lib/types";
@@ -43,15 +43,6 @@ interface Message {
   attachments?: Attachment[];
 }
 
-interface EditAction {
-  type: "style" | "content" | "attribute";
-  artifactId: string;
-  property?: string;
-  attribute?: string;
-  oldValue: string;
-  newValue: string;
-}
-
 function DesignPageContent() {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -61,31 +52,12 @@ function DesignPageContent() {
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [editedTitle, setEditedTitle] = useState("");
 
-  // Visual Editor State
-  const [activeTab, setActiveTab] = useState<"chat" | "design">("chat");
-  const [selectedElement, setSelectedElement] =
-    useState<SelectedElement | null>(null);
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  const [toolMode, setToolMode] = useState<ToolMode>("hand");
-
   // Pending skeleton designs (shown while AI is generating)
   const [pendingDesigns, setPendingDesigns] = useState<Design[]>([]);
 
   // AbortController for stopping generation
   const abortControllerRef = useRef<AbortController | null>(null);
   const isStoppedRef = useRef(false);
-
-  // Handle tab change - auto switch to pointer mode when switching to design tab
-  const handleTabChange = useCallback((tab: "chat" | "design") => {
-    setActiveTab(tab);
-    if (tab === "design") {
-      setToolMode("mouse");
-    }
-  }, []);
-
-  // Undo/Redo History
-  const [editHistory, setEditHistory] = useState<EditAction[]>([]);
-  const [historyIndex, setHistoryIndex] = useState(-1);
 
   const titleInputRef = useRef<HTMLInputElement>(null);
   const { id: projectId } = useParams<{ id: string }>();
@@ -136,375 +108,13 @@ function DesignPageContent() {
     ),
   ];
 
-  // Warn before unload if unsaved changes
-  useEffect(() => {
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (hasUnsavedChanges) {
-        e.preventDefault();
-        e.returnValue = "";
-      }
-    };
-    window.addEventListener("beforeunload", handleBeforeUnload);
-    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
-  }, [hasUnsavedChanges]);
-
-  // Handle messages from iframe (e.g. returnHtml)
-  useEffect(() => {
-    const handleMessage = async (event: MessageEvent) => {
-      if (
-        event.data?.type === "returnHtml" &&
-        event.data?.artifactId &&
-        event.data?.html
-      ) {
-        try {
-          // Find current title
-          const currentDesign = designs.find(
-            (d) => d.artifact_id === event.data.artifactId,
-          );
-          await updateDesign({
-            artifact_id: event.data.artifactId,
-            title: currentDesign?.title || "Untitled",
-            content: event.data.html,
-          });
-          setHasUnsavedChanges(false);
-          // Clear history after successful save
-          setEditHistory([]);
-          setHistoryIndex(-1);
-        } catch (e) {
-          console.error("Failed to save design:", e);
-        } finally {
-          setIsSaving(false);
-        }
-      }
-    };
-    window.addEventListener("message", handleMessage);
-    return () => window.removeEventListener("message", handleMessage);
-  }, [designs, updateDesign]);
-
-  // Visual Editor Handlers
-  const handleElementSelect = useCallback(
-    (artifactId: string, elementInfo: any) => {
-      setSelectedArtifactId(artifactId);
-      setSelectedElement(elementInfo);
-      handleTabChange("design");
-    },
-    [setSelectedArtifactId, handleTabChange],
-  );
-
-  // Helper to add action to history
-  const addToHistory = useCallback(
-    (action: EditAction) => {
-      setEditHistory((prev) => {
-        // Remove any future history if we're not at the end
-        const newHistory = prev.slice(0, historyIndex + 1);
-        return [...newHistory, action];
-      });
-      setHistoryIndex((prev) => prev + 1);
-    },
-    [historyIndex],
-  );
-
-  const handleUpdateStyle = useCallback(
-    (property: string, value: string) => {
-      if (!selectedArtifactId || !selectedElement) return;
-
-      // Get old value for undo
-      const oldValue = selectedElement.styles?.[property] || "";
-
-      // Add to history
-      addToHistory({
-        type: "style",
-        artifactId: selectedArtifactId,
-        property,
-        oldValue,
-        newValue: value,
-      });
-
-      setHasUnsavedChanges(true);
-      const iframe = document.getElementsByName(
-        selectedArtifactId,
-      )[0] as HTMLIFrameElement;
-      if (iframe?.contentWindow) {
-        iframe.contentWindow.postMessage(
-          { type: "updateStyle", property, value },
-          "*",
-        );
-      }
-      setSelectedElement((prev) =>
-        prev
-          ? {
-              ...prev,
-              styles: { ...prev.styles, [property]: value },
-            }
-          : null,
-      );
-    },
-    [selectedArtifactId, selectedElement, addToHistory],
-  );
-
-  // Preview style change without recording to history (for color picker dragging)
-  const handlePreviewStyle = useCallback(
-    (property: string, value: string) => {
-      if (!selectedArtifactId) return;
-
-      setHasUnsavedChanges(true);
-      const iframe = document.getElementsByName(
-        selectedArtifactId,
-      )[0] as HTMLIFrameElement;
-      if (iframe?.contentWindow) {
-        iframe.contentWindow.postMessage(
-          { type: "updateStyle", property, value },
-          "*",
-        );
-      }
-      // Update local state for preview
-      setSelectedElement((prev) =>
-        prev
-          ? {
-              ...prev,
-              styles: { ...prev.styles, [property]: value },
-            }
-          : null,
-      );
-    },
-    [selectedArtifactId],
-  );
-
-  const handleUpdateContent = useCallback(
-    (content: string) => {
-      if (!selectedArtifactId || !selectedElement) return;
-
-      // Get old value for undo
-      const oldValue = selectedElement.textContent || "";
-
-      // Add to history
-      addToHistory({
-        type: "content",
-        artifactId: selectedArtifactId,
-        oldValue,
-        newValue: content,
-      });
-
-      setHasUnsavedChanges(true);
-      const iframe = document.getElementsByName(
-        selectedArtifactId,
-      )[0] as HTMLIFrameElement;
-      if (iframe?.contentWindow) {
-        iframe.contentWindow.postMessage(
-          { type: "updateContent", value: content },
-          "*",
-        );
-      }
-      setSelectedElement((prev) =>
-        prev ? { ...prev, textContent: content } : null,
-      );
-    },
-    [selectedArtifactId, selectedElement, addToHistory],
-  );
-
-  const handleSelectParent = useCallback(() => {
-    if (!selectedArtifactId) return;
-    const iframe = document.getElementsByName(
-      selectedArtifactId,
-    )[0] as HTMLIFrameElement;
-    if (iframe?.contentWindow) {
-      iframe.contentWindow.postMessage({ type: "selectParent" }, "*");
-    }
-  }, [selectedArtifactId]);
-
-  const handleUpdateAttribute = useCallback(
-    (attribute: string, value: string) => {
-      if (!selectedArtifactId || !selectedElement) return;
-
-      // Get old value for undo
-      const oldValue = selectedElement.attributes?.[attribute] || "";
-
-      // Add to history
-      addToHistory({
-        type: "attribute",
-        artifactId: selectedArtifactId,
-        attribute,
-        oldValue: String(oldValue),
-        newValue: value,
-      });
-
-      setHasUnsavedChanges(true);
-      const iframe = document.getElementsByName(
-        selectedArtifactId,
-      )[0] as HTMLIFrameElement;
-      if (iframe?.contentWindow) {
-        iframe.contentWindow.postMessage(
-          { type: "updateAttribute", attribute, value },
-          "*",
-        );
-      }
-      setSelectedElement((prev) =>
-        prev
-          ? {
-              ...prev,
-              attributes: { ...prev.attributes, [attribute]: value },
-            }
-          : null,
-      );
-    },
-    [selectedArtifactId, selectedElement, addToHistory],
-  );
-
-  // Undo handler
-  const handleUndo = useCallback(() => {
-    if (historyIndex < 0) return;
-
-    const action = editHistory[historyIndex];
-    const iframe = document.getElementsByName(
-      action.artifactId,
-    )[0] as HTMLIFrameElement;
-
-    if (iframe?.contentWindow) {
-      // Apply the reverse of the action
-      if (action.type === "style" && action.property) {
-        iframe.contentWindow.postMessage(
-          {
-            type: "updateStyle",
-            property: action.property,
-            value: action.oldValue,
-          },
-          "*",
-        );
-        setSelectedElement((prev) =>
-          prev
-            ? {
-                ...prev,
-                styles: { ...prev.styles, [action.property!]: action.oldValue },
-              }
-            : null,
-        );
-      } else if (action.type === "content") {
-        iframe.contentWindow.postMessage(
-          { type: "updateContent", value: action.oldValue },
-          "*",
-        );
-        setSelectedElement((prev) =>
-          prev ? { ...prev, textContent: action.oldValue } : null,
-        );
-      } else if (action.type === "attribute" && action.attribute) {
-        iframe.contentWindow.postMessage(
-          {
-            type: "updateAttribute",
-            attribute: action.attribute,
-            value: action.oldValue,
-          },
-          "*",
-        );
-        setSelectedElement((prev) =>
-          prev
-            ? {
-                ...prev,
-                attributes: {
-                  ...prev.attributes,
-                  [action.attribute!]: action.oldValue,
-                },
-              }
-            : null,
-        );
-      }
-    }
-
-    setHistoryIndex((prev) => prev - 1);
-  }, [editHistory, historyIndex]);
-
-  // Redo handler
-  const handleRedo = useCallback(() => {
-    if (historyIndex >= editHistory.length - 1) return;
-
-    const action = editHistory[historyIndex + 1];
-    const iframe = document.getElementsByName(
-      action.artifactId,
-    )[0] as HTMLIFrameElement;
-
-    if (iframe?.contentWindow) {
-      // Re-apply the action
-      if (action.type === "style" && action.property) {
-        iframe.contentWindow.postMessage(
-          {
-            type: "updateStyle",
-            property: action.property,
-            value: action.newValue,
-          },
-          "*",
-        );
-        setSelectedElement((prev) =>
-          prev
-            ? {
-                ...prev,
-                styles: { ...prev.styles, [action.property!]: action.newValue },
-              }
-            : null,
-        );
-      } else if (action.type === "content") {
-        iframe.contentWindow.postMessage(
-          { type: "updateContent", value: action.newValue },
-          "*",
-        );
-        setSelectedElement((prev) =>
-          prev ? { ...prev, textContent: action.newValue } : null,
-        );
-      } else if (action.type === "attribute" && action.attribute) {
-        iframe.contentWindow.postMessage(
-          {
-            type: "updateAttribute",
-            attribute: action.attribute,
-            value: action.newValue,
-          },
-          "*",
-        );
-        setSelectedElement((prev) =>
-          prev
-            ? {
-                ...prev,
-                attributes: {
-                  ...prev.attributes,
-                  [action.attribute!]: action.newValue,
-                },
-              }
-            : null,
-        );
-      }
-    }
-
-    setHistoryIndex((prev) => prev + 1);
-  }, [editHistory, historyIndex]);
-
-  // Check if undo/redo is possible
-  const canUndo = historyIndex >= 0;
-  const canRedo = historyIndex < editHistory.length - 1;
-
   const handleSave = useCallback(() => {
-    if (!selectedArtifactId) return;
-    setIsSaving(true);
-    const iframe = document.getElementsByName(
-      selectedArtifactId,
-    )[0] as HTMLIFrameElement;
-    if (iframe?.contentWindow) {
-      iframe.contentWindow.postMessage({ type: "getHtml" }, "*");
-    }
-  }, [selectedArtifactId]);
+    // No-op or removed functionality
+  }, []);
 
   const handleCancel = useCallback(() => {
-    if (hasUnsavedChanges) {
-      if (
-        confirm(
-          "You have unsaved changes. Are you sure you want to discard them?",
-        )
-      ) {
-        setHasUnsavedChanges(false);
-        // To revert visual changes, we can reload the page or try to reset iframe.
-        // For now, reloading page is the safest way to ensure clean state
-        window.location.reload();
-      }
-    } else {
-      setActiveTab("chat");
-    }
-  }, [hasUnsavedChanges]);
+    // No-op or removed functionality
+  }, []);
 
   // Title editing handlers
   const handleStartEditTitle = useCallback(() => {
@@ -1088,17 +698,6 @@ function DesignPageContent() {
         handleFormSubmit={handleSubmit}
         onStop={handleStop}
         onArtifactClick={handleArtifactClick}
-        activeTab={activeTab}
-        onTabChange={handleTabChange}
-        selectedElement={selectedElement}
-        onUpdateStyle={handleUpdateStyle}
-        onPreviewStyle={handlePreviewStyle}
-        onUpdateContent={handleUpdateContent}
-        onUpdateAttribute={handleUpdateAttribute}
-        onSelectParent={handleSelectParent}
-        onSave={handleSave}
-        onCancel={handleCancel}
-        hasUnsavedChanges={hasUnsavedChanges}
         isReadOnly={isReadOnly}
         onFork={handleForkProject}
         projectTitle={project?.title || "Untitled"}
@@ -1229,16 +828,6 @@ function DesignPageContent() {
               selectedArtifactId={selectedArtifactId}
               projectId={projectId}
               onNodeSelect={setSelectedArtifactId}
-              onElementSelect={handleElementSelect}
-              onSave={handleSave}
-              hasUnsavedChanges={hasUnsavedChanges}
-              onUndo={handleUndo}
-              onRedo={handleRedo}
-              canUndo={canUndo}
-              canRedo={canRedo}
-              isSaving={isSaving}
-              toolMode={toolMode}
-              onToolModeChange={setToolMode}
               isReadOnly={isReadOnly}
             />
           </ReactFlowProvider>

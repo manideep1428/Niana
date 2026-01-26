@@ -2,18 +2,7 @@
 
 import { memo, useState, useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
-import {
-  Columns3,
-  MoreVertical,
-  Trash2,
-  Sparkles,
-  Pencil,
-  MoreHorizontal,
-  Check,
-  Loader2,
-  Figma,
-  AlertTriangle,
-} from "lucide-react";
+import { Trash2, Sparkles, Check, Loader2, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { NodeToolbar, Position } from "@xyflow/react";
 import { convertHtmlToFigma } from "@/app/actions/figma";
@@ -36,18 +25,6 @@ export interface DesignNodeData extends Record<string, unknown> {
   isStreaming?: boolean;
   isInteractive?: boolean;
   onDelete?: (artifactId: string) => void;
-  onEnableEdit?: (artifactId: string) => void;
-  onElementSelect?: (
-    artifactId: string,
-    elementInfo: {
-      tagName: string;
-      id?: string;
-      className?: string;
-      textContent?: string;
-      styles: Record<string, string>;
-      path: string[];
-    },
-  ) => void;
 }
 
 interface DesignNodeProps {
@@ -62,10 +39,8 @@ function DesignNodeComponent({ data, selected }: DesignNodeProps) {
     title,
     content,
     onDelete,
-    onEnableEdit,
     isInteractive,
     isStreaming,
-    onElementSelect,
   } = data;
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [iframeHeight, setIframeHeight] = useState(812);
@@ -281,195 +256,10 @@ function DesignNodeComponent({ data, selected }: DesignNodeProps) {
         setTimeout(sendHeight, 300);
         setTimeout(sendHeight, 500);
 
-        // Inspector logic
-        let isInteractive = ${isInteractive};
-        const highlight = document.getElementById('inspector-highlight');
-        let selectedEl = null;
-
-        function getElementPath(el) {
-          const path = [];
-          while (el && el.nodeType === Node.ELEMENT_NODE) {
-            let selector = el.nodeName.toLowerCase();
-            if (el.id) {
-              selector += '#' + el.id;
-            } else if (el.className && typeof el.className === 'string' && el.className.trim()) {
-              selector += '.' + el.className.trim().split(/\s+/).join('.');
-            }
-            path.unshift(selector);
-            el = el.parentNode;
-          }
-          return path;
-        }
-
-        function getComputedStyles(el) {
-          const s = window.getComputedStyle(el);
-          return {
-            color: s.color,
-            backgroundColor: s.backgroundColor,
-            margin: s.margin,
-            marginTop: s.marginTop,
-            marginRight: s.marginRight,
-            marginBottom: s.marginBottom,
-            marginLeft: s.marginLeft,
-            padding: s.padding,
-            paddingTop: s.paddingTop,
-            paddingRight: s.paddingRight,
-            paddingBottom: s.paddingBottom,
-            paddingLeft: s.paddingLeft,
-            fontSize: s.fontSize,
-            fontWeight: s.fontWeight,
-            textAlign: s.textAlign,
-            display: s.display,
-            width: s.width,
-            height: s.height,
-            borderRadius: s.borderRadius,
-            borderWidth: s.borderWidth,
-            borderColor: s.borderColor,
-            borderStyle: s.borderStyle,
-            opacity: s.opacity,
-            flexDirection: s.flexDirection,
-            justifyContent: s.justifyContent,
-            alignItems: s.alignItems,
-            gap: s.gap,
-          };
-        }
-
-        function getAttributes(el) {
-          const tag = el.tagName.toLowerCase();
-          const attrs = {};
-          
-          // Common attributes
-          if (el.id) attrs.id = el.id;
-          if (el.className && typeof el.className === 'string') attrs.className = el.className;
-          
-          // Tag-specific attributes
-          if (tag === 'input') {
-            attrs.type = el.type || 'text';
-            attrs.name = el.name || '';
-            attrs.placeholder = el.placeholder || '';
-            attrs.value = el.value || '';
-            attrs.disabled = el.disabled;
-            attrs.required = el.required;
-          } else if (tag === 'img') {
-            attrs.src = el.src || '';
-            attrs.alt = el.alt || '';
-          } else if (tag === 'a') {
-            attrs.href = el.href || '';
-            attrs.target = el.target || '';
-          } else if (tag === 'button') {
-            attrs.type = el.type || 'button';
-            attrs.disabled = el.disabled;
-          } else if (tag === 'textarea') {
-            attrs.name = el.name || '';
-            attrs.placeholder = el.placeholder || '';
-            attrs.rows = el.rows;
-            attrs.disabled = el.disabled;
-          } else if (tag === 'select') {
-            attrs.name = el.name || '';
-            attrs.disabled = el.disabled;
-          } else if (tag === 'label') {
-            attrs.for = el.htmlFor || '';
-          } else if (tag === 'i' || tag === 'span') {
-            // Icon elements - check for font-awesome classes
-            if (el.className && el.className.includes('fa-')) {
-              attrs.iconClass = el.className;
-            }
-          }
-          
-          return attrs;
-        }
-
-        window.addEventListener('message', (event) => {
-          if (event.data.type === 'setInteractive') {
-            isInteractive = event.data.value;
-            if (!isInteractive) {
-              highlight.style.display = 'none';
-            }
-          } else if (event.data.type === 'updateStyle' && selectedEl) {
-             selectedEl.style[event.data.property] = event.data.value;
-             updateHighlight(selectedEl);
-          } else if (event.data.type === 'updateContent' && selectedEl) {
-             selectedEl.textContent = event.data.value;
-             updateHighlight(selectedEl);
-          } else if (event.data.type === 'updateAttribute' && selectedEl) {
-             selectedEl.setAttribute(event.data.attribute, event.data.value);
-          } else if (event.data.type === 'selectParent' && selectedEl) {
-             if (selectedEl.parentElement && selectedEl.parentElement.tagName !== 'BODY') {
-                selectedEl = selectedEl.parentElement;
-                updateHighlight(selectedEl);
-                notifySelection(selectedEl);
-             }
-          } else if (event.data.type === 'getHtml') {
-            // Clean up inspector elements before sending
-            const clone = document.documentElement.cloneNode(true);
-            const inspectorDiv = clone.querySelector('#inspector-highlight');
-            if (inspectorDiv) inspectorDiv.remove();
-            
-            window.parent.postMessage({
-              type: 'returnHtml', 
-              artifactId: '${artifactId}',
-              html: clone.innerHTML
-            }, '*');
-          }
-        });
-
-        function updateHighlight(el) {
-          const rect = el.getBoundingClientRect();
-          const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-          const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
-          const computedStyle = window.getComputedStyle(el);
-
-          highlight.style.width = rect.width + 'px';
-          highlight.style.height = rect.height + 'px';
-          highlight.style.top = (rect.top + scrollTop) + 'px';
-          highlight.style.left = (rect.left + scrollLeft) + 'px';
-          highlight.style.display = 'block';
-          
-          // Match element's border-radius for proper outline on circles/pills
-          highlight.style.borderRadius = computedStyle.borderRadius || '0px';
-        }
-        
-        function notifySelection(el) {
-          window.parent.postMessage({
-            type: 'elementSelected',
-            artifactId: '${artifactId}',
-            elementInfo: {
-              tagName: el.tagName.toLowerCase(),
-              id: el.id,
-              className: el.className,
-              textContent: el.childNodes.length === 1 && el.childNodes[0].nodeType === Node.TEXT_NODE 
-                ? el.textContent.trim().substring(0, 100) 
-                : '',
-              styles: getComputedStyles(el),
-              attributes: getAttributes(el),
-              path: getElementPath(el)
-            }
-          }, '*');
-        }
-
-        document.addEventListener('mouseover', (e) => {
-          if (!isInteractive) return;
-          if (e.target === highlight || highlight.contains(e.target)) return;
-          if (e.target.tagName === 'BODY' || e.target.tagName === 'HTML') return;
-          
-          updateHighlight(e.target);
-        });
-
-        document.addEventListener('click', (e) => {
-          if (!isInteractive) return;
-          if (e.target === highlight || highlight.contains(e.target)) return;
-          
-          e.preventDefault();
-          e.stopPropagation();
-          
-          selectedEl = e.target;
-          updateHighlight(selectedEl);
-          notifySelection(selectedEl);
-        }, true);
-
-        window.addEventListener('scroll', () => {
-          if (selectedEl && isInteractive) updateHighlight(selectedEl);
-        });
+        // Initial delayed checks (immediate, not debounced)
+        setTimeout(sendHeight, 100);
+        setTimeout(sendHeight, 300);
+        setTimeout(sendHeight, 500);
         
       })();
     </script>`
@@ -480,19 +270,14 @@ function DesignNodeComponent({ data, selected }: DesignNodeProps) {
       if (event.data?.artifactId !== artifactId) return;
 
       if (event.data?.type === "resize") {
-        // Use actual height from content, with minimum height for 6.1 inch phone (812px)
         setIframeHeight(Math.max(812, event.data.height));
         setIsLoaded(true);
-      } else if (event.data?.type === "elementSelected") {
-        if (onElementSelect) {
-          onElementSelect(artifactId, event.data.elementInfo);
-        }
       }
     };
 
     window.addEventListener("message", handleMessage);
     return () => window.removeEventListener("message", handleMessage);
-  }, [artifactId, onElementSelect]);
+  }, [artifactId]);
 
   // Reset loaded state when content changes
   useEffect(() => {
@@ -519,21 +304,6 @@ function DesignNodeComponent({ data, selected }: DesignNodeProps) {
       description: "AI-powered regeneration will be available soon.",
     });
   };
-  // Handle Edit - Enable visual editor mode
-  const handleEdit = () => {
-    if (onEnableEdit) {
-      onEnableEdit(artifactId);
-    }
-    // Also trigger a click in the iframe to select the first element
-    if (iframeRef.current?.contentDocument?.body) {
-      const firstElement = iframeRef.current.contentDocument.body.querySelector(
-        "div, section, main, header, article",
-      );
-      if (firstElement) {
-        (firstElement as HTMLElement).click();
-      }
-    }
-  };
 
   return (
     <div
@@ -559,17 +329,6 @@ function DesignNodeComponent({ data, selected }: DesignNodeProps) {
           >
             <Sparkles className="w-3.5 h-3.5" />
             Generate
-          </Button>
-
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleEdit}
-            disabled={isStreaming || showSkeleton}
-            className="text-white hover:bg-white/10 hover:text-white h-8 px-2.5 gap-2 rounded-lg font-medium text-xs disabled:opacity-50"
-          >
-            <Pencil className="w-3.5 h-3.5" />
-            Edit
           </Button>
 
           <Button

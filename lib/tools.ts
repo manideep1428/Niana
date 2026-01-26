@@ -15,14 +15,11 @@ export type UpdateArtifactArgs = {
 
 export type ToolCallArgs = CreateArtifactArgs | UpdateArtifactArgs;
 
-// Tool name constants for type safety - using camelCase like ai-chatbot
 export const TOOL_NAMES = {
   CREATE_ARTIFACT: "createArtifact",
   UPDATE_ARTIFACT: "updateArtifact",
 } as const;
 
-// Tool definitions for OpenAI function calling
-// Using camelCase naming convention following ai-chatbot pattern
 export const tools: ChatCompletionTool[] = [
   {
     type: "function",

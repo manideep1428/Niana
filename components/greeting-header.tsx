@@ -111,7 +111,8 @@ export function GreetingHeader() {
         className="text-2xl sm:text-3xl text-muted-foreground font-medium flex flex-col sm:flex-row items-center justify-center gap-2"
       >
         <span>Your personal</span>
-        <Typewriter words={["mobile designer", "websites design"]} />
+        <Typewriter words={["mobile designer", "websites designer"]} />
+        <span> is here</span>
       </motion.div>
     </div>
   );

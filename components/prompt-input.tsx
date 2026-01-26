@@ -406,7 +406,7 @@ export function PromptInput({
                 disabled={isLoading && !isResponding}
                 onClick={handleButtonClick}
                 className={cn(
-                  "flex items-center gap-2 px-6 py-2.5 rounded-full font-semibold transition-all duration-200 transform active:scale-95 shadow-md hover:shadow-lg",
+                  "flex items-center gap-2 px-6 py-2.5 rounded-full font-semibold transition-all duration-200 transform active:scale-95 shadow-md hover:shadow-lg cursor-pointer",
                   isLoading
                     ? "bg-slate-200 text-slate-500 cursor-not-allowed"
                     : "bg-[#FF9F68] hover:bg-[#ff8f4d] text-white",

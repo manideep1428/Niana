@@ -2,13 +2,15 @@
 
 import { PromptInput } from "@/components/prompt-input";
 import { Suggestions } from "@/components/suggestions";
-import { CommunitySection } from "@/components/community-section";
 import TopBar from "@/components/top-bar";
+import {
+  RepublicDayBanner,
+  useRepublicDayBanner,
+} from "@/components/republic-day-banner";
 import { setLocalStore, getLocalStore } from "@/lib/local-store";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
-import { Sparkles } from "lucide-react";
 import { useAuth } from "@workos-inc/authkit-nextjs/components";
 import type { Attachment } from "@/components/preview-attachment";
 
@@ -19,6 +21,9 @@ export default function Home() {
   const { user } = useAuth();
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+
+  // Use the banner hook for layout calculations
+  const { showBanner, bannerHeight, contentPadding } = useRepublicDayBanner();
 
   useEffect(() => {
     const savedPrompt = getLocalStore("pendingPrompt");
@@ -87,7 +92,7 @@ export default function Home() {
 
   return (
     <div className="relative min-h-screen bg-background selection:bg-primary/20">
-      {/* Background Pattern - Subtle diagonal lines if possible, or just clean white */}
+      {/* Background Pattern */}
       <div
         className="fixed inset-0 pointer-events-none z-0 opacity-[0.03]"
         style={{
@@ -95,10 +100,18 @@ export default function Home() {
         }}
       />
 
-      <div className="relative z-10 font-sans">
-        <TopBar />
+      {/* Republic Day Offer Banner */}
+      <RepublicDayBanner />
 
-        <div className="flex flex-col items-center justify-center min-h-screen pt-20 px-4 pb-10">
+      <div className="relative z-10 font-sans">
+        {/* TopBar with dynamic offset based on banner visibility */}
+        <TopBar topOffset={bannerHeight} />
+
+        {/* Main content with padding for both banner and topbar */}
+        <div
+          className="flex flex-col items-center justify-center min-h-screen px-4 pb-10"
+          style={{ paddingTop: contentPadding }}
+        >
           <div className="w-full">
             <GreetingHeader />
           </div>

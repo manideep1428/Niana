@@ -200,6 +200,28 @@ export default function PricingPage() {
         </div>
 
         <div className="relative z-10">
+          {/* Republic Day Offer Banner */}
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="bg-gradient-to-r from-orange-500 via-white to-green-500 text-center py-3 px-4"
+          >
+            <div className="max-w-6xl mx-auto flex items-center justify-center gap-3 flex-wrap">
+              <span className="text-2xl">🇮🇳</span>
+              <span className="font-bold text-gray-900 text-sm sm:text-base">
+                🎉 Republic Day Special Offer!
+              </span>
+              <span className="bg-gray-900 text-white px-3 py-1 rounded-full text-xs sm:text-sm font-bold animate-pulse">
+                7 DAYS UNLIMITED FREE
+              </span>
+              <span className="text-gray-800 text-sm hidden sm:inline">
+                No credit card required • Limited time only
+              </span>
+              <span className="text-2xl">🎊</span>
+            </div>
+          </motion.div>
+
           <TopBar />
 
           {/* Main Content */}
@@ -249,9 +271,128 @@ export default function PricingPage() {
 
               {/* Pricing Cards */}
               <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-5">
+                {/* FREE Plan Card - Special Republic Day Edition */}
+                <motion.div
+                  initial={{ opacity: 0, y: 30 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: 0 }}
+                  className="relative"
+                >
+                  {/* Republic Day Ribbon */}
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10">
+                    <span className="px-4 py-1.5 rounded-full bg-gradient-to-r from-orange-500 via-white to-green-500 text-gray-900 text-xs font-bold shadow-lg whitespace-nowrap animate-pulse">
+                      🇮🇳 7 DAYS UNLIMITED
+                    </span>
+                  </div>
+
+                  {/* Card */}
+                  <div
+                    className={`relative h-full rounded-2xl overflow-hidden transition-all duration-300 ${
+                      currentPlanId === "free"
+                        ? "bg-gradient-to-b from-emerald-500/10 to-emerald-600/5 border-2 border-emerald-500/50"
+                        : "bg-gradient-to-b from-orange-500/20 via-white/10 to-green-500/20 border-2 border-orange-400/50 dark:border-orange-500/30"
+                    }`}
+                  >
+                    <div className="p-6 flex flex-col h-full">
+                      {/* Plan Header */}
+                      <div className="flex items-center justify-between mb-2 mt-2">
+                        <h3 className="text-xl font-bold text-gray-900 dark:text-white">
+                          Free
+                        </h3>
+                        {currentPlanId === "free" ? (
+                          <span className="px-2 py-1 rounded text-[10px] font-bold uppercase bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
+                            CURRENT
+                          </span>
+                        ) : (
+                          <span className="px-2 py-1 rounded text-[10px] font-bold uppercase bg-gradient-to-r from-orange-500 to-green-500 text-white">
+                            REPUBLIC OFFER
+                          </span>
+                        )}
+                      </div>
+
+                      <p className="text-sm text-gray-500 dark:text-white/50 mb-4">
+                        Perfect for getting started
+                      </p>
+
+                      {/* Price */}
+                      <div className="flex items-baseline gap-2 mb-6">
+                        <span className="text-3xl font-bold text-gray-900 dark:text-white">
+                          ₹0
+                        </span>
+                        <span className="text-gray-500 dark:text-white/50">
+                          /forever
+                        </span>
+                      </div>
+
+                      {/* CTA Button */}
+                      <button
+                        onClick={() => {
+                          if (!user) {
+                            toast.info("Please sign in to get started");
+                            router.push("/sign-in");
+                          } else {
+                            router.push("/");
+                          }
+                        }}
+                        disabled={currentPlanId === "free"}
+                        className={`w-full py-3 px-6 rounded-xl font-medium transition-all duration-300 mb-6 ${
+                          currentPlanId === "free"
+                            ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 cursor-default"
+                            : "bg-gradient-to-r from-orange-500 via-orange-400 to-green-500 text-white hover:from-orange-600 hover:via-orange-500 hover:to-green-600 shadow-lg shadow-orange-500/20"
+                        } disabled:opacity-50 disabled:cursor-not-allowed`}
+                      >
+                        {currentPlanId === "free" ? (
+                          <span className="flex items-center justify-center gap-2">
+                            <Check className="w-4 h-4" />
+                            Current Plan
+                          </span>
+                        ) : (
+                          "Get Started Free"
+                        )}
+                      </button>
+
+                      {/* Credits Info */}
+                      <div className="mb-4 pb-4 border-b border-gray-200 dark:border-white/10">
+                        <div className="flex items-center gap-2 text-orange-500 dark:text-orange-400 mb-1">
+                          <span className="text-lg font-semibold">
+                            ∞ Unlimited Credits
+                          </span>
+                        </div>
+                        <p className="text-xs text-gray-400 dark:text-white/40">
+                          No limits for 7 days! 🎉
+                        </p>
+                      </div>
+
+                      {/* INCLUDES Header */}
+                      <p className="text-xs text-gray-400 dark:text-white/40 uppercase tracking-wider mb-3">
+                        INCLUDES:
+                      </p>
+
+                      {/* Features */}
+                      <ul className="space-y-2.5 flex-grow">
+                        {[
+                          "Unlimited Credits",
+                          "Unlimited projects",
+                          "Unlimited Figma exports",
+                          "Community support",
+                          "No credit card required",
+                        ].map((feature, i) => (
+                          <li key={i} className="flex items-start gap-2.5">
+                            <Check className="w-4 h-4 mt-0.5 flex-shrink-0 text-green-500 dark:text-green-400" />
+                            <span className="text-sm text-gray-600 dark:text-white/70">
+                              {feature}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                </motion.div>
+
                 {/* Paid Plan Cards */}
-                {(Object.keys(SUBSCRIPTION_PLANS) as PlanType[]).map(
-                  (planId, index) => {
+                {(Object.keys(SUBSCRIPTION_PLANS) as PlanType[])
+                  .filter((planId) => planId !== "free")
+                  .map((planId, index) => {
                     const plan = SUBSCRIPTION_PLANS[planId];
                     const isCurrentPlan = currentPlanId === planId;
                     const isLoading = loadingPlan === planId;
@@ -437,8 +578,7 @@ export default function PricingPage() {
                         </div>
                       </motion.div>
                     );
-                  },
-                )}
+                  })}
               </div>
 
               {/* Trust badges */}

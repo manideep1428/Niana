@@ -480,50 +480,82 @@ function DesignNodeComponent({ data, selected }: DesignNodeProps) {
                 <div className="absolute inset-0 z-10 bg-zinc-950 flex flex-col items-center justify-center p-6 space-y-4 min-h-[812px] w-[375px]">
                   {isStreaming ? (
                     // Streaming indicator - show that content is being generated
-                    <div className="w-full space-y-4 flex flex-col items-center">
-                      <div className="w-12 h-12 rounded-full bg-linear-to-br from-pink-400 via-purple-400 to-pink-400 flex items-center justify-center animate-pulse">
-                        <span className="text-lg font-bold text-white">N</span>
+                    <div className="w-full h-full flex flex-col relative">
+                      {/* Animated Wireframe Skeleton */}
+                      <div className="w-full h-full p-4 space-y-6 opacity-50">
+                        {/* Header */}
+                        <div className="flex items-center justify-between">
+                          <div className="w-8 h-8 rounded-full bg-zinc-800 animate-pulse" />
+                          <div className="w-32 h-4 rounded bg-zinc-800 animate-pulse" />
+                          <div className="w-8 h-8 rounded-full bg-zinc-800 animate-pulse" />
+                        </div>
+
+                        {/* Hero Section */}
+                        <div className="w-full h-48 rounded-xl bg-zinc-800 animate-pulse" />
+
+                        {/* Text Lines */}
+                        <div className="space-y-3">
+                          <div className="w-3/4 h-6 rounded bg-zinc-800 animate-pulse" />
+                          <div className="w-full h-4 rounded bg-zinc-800/80 animate-pulse delay-75" />
+                          <div className="w-full h-4 rounded bg-zinc-800/80 animate-pulse delay-100" />
+                          <div className="w-2/3 h-4 rounded bg-zinc-800/80 animate-pulse delay-150" />
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="aspect-4/5 rounded-xl bg-zinc-800 animate-pulse delay-200" />
+                          <div className="aspect-4/5 rounded-xl bg-zinc-800 animate-pulse delay-200" />
+                        </div>
                       </div>
-                      <div className="text-center space-y-2">
-                        <p className="text-sm font-medium text-white">
-                          Generating {title}
-                        </p>
-                        <p className="text-xs text-zinc-400">
-                          Building your design...
-                        </p>
-                      </div>
-                      {/* Animated progress bar */}
-                      <div className="w-full max-w-[200px] h-1 bg-zinc-800 rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-linear-to-r from-pink-400 via-purple-400 to-pink-400 rounded-full animate-[shimmer_1.5s_ease-in-out_infinite]"
-                          style={{
-                            width: "60%",
-                            animation: "shimmer 1.5s ease-in-out infinite",
-                          }}
-                        />
-                      </div>
-                      {/* Shimmer skeleton preview */}
-                      <div className="w-full space-y-3 mt-4 opacity-50">
-                        <div className="h-[100px] w-full rounded-lg bg-zinc-800 animate-pulse" />
-                        <div className="space-y-2">
-                          <div className="h-3 w-3/4 bg-zinc-800 rounded animate-pulse" />
-                          <div className="h-3 w-1/2 bg-zinc-800 rounded animate-pulse" />
+
+                      {/* Overlay branding */}
+                      <div className="absolute inset-0 flex flex-col items-center justify-center bg-zinc-950/80 backdrop-blur-sm z-50">
+                        {/* Glowing Orb */}
+                        <div className="relative mb-6">
+                          <div className="w-20 h-20 rounded-full bg-zinc-900 border border-white/10 flex items-center justify-center shadow-2xl relative overflow-hidden ring-1 ring-white/5">
+                            <div className="absolute inset-0 bg-linear-to-tr from-orange-500/20 via-transparent to-purple-500/20 animate-spin-slow duration-[3s]" />
+                            <Sparkles className="w-8 h-8 text-orange-400 animate-pulse duration-[2s]" />
+                          </div>
+                          {/* Orbiting particles */}
+                          <div className="absolute inset-0 w-full h-full animate-spin-reverse duration-[8s]">
+                            <div className="absolute top-0 left-1/2 w-1.5 h-1.5 bg-purple-500 rounded-full blur-[1px] shadow-[0_0_8px_rgba(168,85,247,0.8)]" />
+                          </div>
+                          <div className="absolute inset-0 w-full h-full animate-spin duration-[5s]">
+                            <div className="absolute bottom-0 right-1/2 w-1 h-1 bg-orange-500 rounded-full blur-[1px] shadow-[0_0_8px_rgba(249,115,22,0.8)]" />
+                          </div>
+                        </div>
+
+                        {/* Text Status */}
+                        <div className="flex flex-col items-center gap-2">
+                          <div className="px-5 py-2.5 bg-zinc-900 border border-white/10 rounded-full shadow-xl flex items-center gap-3">
+                            <Loader2 className="w-3.5 h-3.5 text-orange-500 animate-spin" />
+                            <p className="text-sm font-medium text-white tracking-wide">
+                              Creating{" "}
+                              <span className="text-orange-400">"{title}"</span>
+                            </p>
+                          </div>
+                          <p className="text-[10px] text-zinc-500 font-mono uppercase tracking-widest animate-pulse">
+                            Generating UI...
+                          </p>
                         </div>
                       </div>
                     </div>
                   ) : (
                     // Static skeleton - waiting for content
-                    <div className="w-full space-y-3">
-                      <div className="h-[200px] w-full rounded-lg bg-zinc-800 animate-pulse" />
+                    <div className="w-full space-y-4 p-4">
+                      {/* Header */}
+                      <div className="flex items-center justify-between">
+                        <div className="w-8 h-8 rounded-full bg-zinc-800" />
+                        <div className="w-24 h-4 rounded bg-zinc-800" />
+                        <div className="w-8 h-8 rounded-full bg-zinc-800" />
+                      </div>
+                      <div className="h-[200px] w-full rounded-xl bg-zinc-800 animate-pulse" />
                       <div className="space-y-2">
                         <div className="h-4 w-3/4 bg-zinc-800 rounded animate-pulse" />
                         <div className="h-4 w-1/2 bg-zinc-800 rounded animate-pulse" />
                       </div>
-                      <div className="grid grid-cols-2 gap-2 pt-4">
-                        <div className="h-24 rounded-md bg-zinc-800 animate-pulse" />
-                        <div className="h-24 rounded-md bg-zinc-800 animate-pulse" />
-                        <div className="h-24 rounded-md bg-zinc-800 animate-pulse" />
-                        <div className="h-24 rounded-md bg-zinc-800 animate-pulse" />
+                      <div className="grid grid-cols-2 gap-3 pt-2">
+                        <div className="h-32 rounded-xl bg-zinc-800 animate-pulse" />
+                        <div className="h-32 rounded-xl bg-zinc-800 animate-pulse" />
                       </div>
                     </div>
                   )}

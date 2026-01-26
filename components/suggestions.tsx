@@ -197,7 +197,7 @@ export function Suggestions({ onSelect }: SuggestionsProps) {
         clearInterval(intervalRef.current!);
         intervalRef.current = null;
       }
-    }, 6);
+    }, 1);
   };
 
   return (

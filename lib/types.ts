@@ -131,9 +131,15 @@ export interface ErrorEvent {
   message: string;
 }
 
+export interface ThoughtDeltaEvent {
+  type: "thought-delta";
+  content: string;
+}
+
 export type SSEEvent =
   | TextEvent
   | TextDeltaEvent
+  | ThoughtDeltaEvent
   | ToolCallEvent
   | NewToolCallEvent
   | ArtifactStartEvent

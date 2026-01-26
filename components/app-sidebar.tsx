@@ -38,6 +38,7 @@ interface Message {
     status: "creating" | "completed";
   }[];
   attachments?: Attachment[];
+  thoughts?: string;
 }
 
 interface PromptSidebarProps extends React.ComponentProps<typeof Sidebar> {
@@ -237,6 +238,22 @@ export function PromptSidebar({
                               ))}
                             </div>
                           )}
+                        {/* Render thoughts */}
+                        {message.thoughts && (
+                          <div className="mb-2">
+                            <details className="group/details">
+                              <summary className="cursor-pointer list-none flex items-center gap-2 select-none text-xs text-muted-foreground/70 hover:text-muted-foreground transition-colors w-fit">
+                                <span className="group-open/details:rotate-180 transition-transform duration-200">
+                                  <ArrowDown className="w-3 h-3" />
+                                </span>
+                                <span>Thought for a few seconds</span>
+                              </summary>
+                              <div className="mt-2 text-xs text-muted-foreground/90 bg-muted/30 p-3 rounded-lg border border-white/5 font-mono leading-relaxed whitespace-pre-wrap animate-in fade-in slide-in-from-top-1 duration-200">
+                                {message.thoughts}
+                              </div>
+                            </details>
+                          </div>
+                        )}
                         <div className="text-sm">
                           <Response>{sanitizeText(message.content)}</Response>
                         </div>
@@ -283,7 +300,8 @@ export function PromptSidebar({
                       lastMessage?.role === "assistant" &&
                       (lastMessage?.content?.trim() ||
                         (lastMessage?.streamingDesigns &&
-                          lastMessage.streamingDesigns.length > 0));
+                          lastMessage.streamingDesigns.length > 0) ||
+                        lastMessage?.thoughts);
 
                     // Only show loading dots if there's no assistant response yet
                     if (hasAssistantResponse) return null;

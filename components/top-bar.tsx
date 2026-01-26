@@ -34,7 +34,11 @@ import {
 } from "@/lib/razorpay";
 import { toast } from "sonner";
 
-export default function TopBar() {
+interface TopBarProps {
+  topOffset?: string;
+}
+
+export default function TopBar({ topOffset = "0" }: TopBarProps) {
   const { user } = useAuth();
   const { theme, setTheme } = useTheme();
 
@@ -61,27 +65,41 @@ export default function TopBar() {
   const isFree = !subscription || subscription.plan === "free";
   const totalTokens = subscription?.tokens_total ?? TOKENS_PER_CREDIT;
   const usedTokens = subscription?.tokens_used ?? 0;
-  const remainingTokens = Math.max(0, totalTokens - usedTokens);
-  const creditsRemaining = tokensToCredits(remainingTokens);
-  const creditsTotal = tokensToCredits(totalTokens);
-  const usagePercent = Math.min(100, (usedTokens / totalTokens) * 100);
-  const isLowBalance = creditsRemaining < 1;
-  const formatCredits = (credits: number) => credits.toFixed(2);
+
+  // Check if unlimited (Republic Day Offer)
+  const isUnlimited = totalTokens === -1;
+  const remainingTokens = isUnlimited
+    ? -1
+    : Math.max(0, totalTokens - usedTokens);
+  const creditsRemaining = isUnlimited ? -1 : tokensToCredits(remainingTokens);
+  const creditsTotal = isUnlimited ? -1 : tokensToCredits(totalTokens);
+  const usagePercent = isUnlimited
+    ? 0
+    : Math.min(100, (usedTokens / totalTokens) * 100);
+  const isLowBalance = !isUnlimited && creditsRemaining < 1;
+  const formatCredits = (credits: number) =>
+    credits === -1 ? "∞" : credits.toFixed(2);
 
   const planKey = (subscription?.plan ||
     "free") as keyof typeof SUBSCRIPTION_PLANS;
   const figmaLimit = SUBSCRIPTION_PLANS[planKey]?.figmaLimit ?? 1;
   const figmaUsed = figmaUsage ?? 0;
-  const figmaRemaining = Math.max(0, figmaLimit - figmaUsed);
-  const figmaUsagePercent = Math.min(100, (figmaUsed / figmaLimit) * 100);
-  const isLowFigma = figmaRemaining === 0;
+  // Handle unlimited Figma exports (-1)
+  const figmaRemaining =
+    figmaLimit === -1 ? -1 : Math.max(0, figmaLimit - figmaUsed);
+  const figmaUsagePercent =
+    figmaLimit === -1 ? 0 : Math.min(100, (figmaUsed / figmaLimit) * 100);
+  const isLowFigma = figmaLimit !== -1 && figmaRemaining === 0;
 
   const handleToast = () => {
     toast.info("Gallery is not available yet");
   };
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 px-6 py-4 bg-background/80 backdrop-blur-md border-b border-border/50">
+    <header
+      className="fixed left-0 right-0 z-50 px-6 py-4 bg-background/80 backdrop-blur-md border-b border-border/50"
+      style={{ top: topOffset }}
+    >
       <div className="mx-auto max-w-7xl flex items-center justify-between">
         {/* Logo Section */}
         <div className="flex items-center gap-8">

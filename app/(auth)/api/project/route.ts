@@ -5,6 +5,7 @@ import { convexClient } from "@/lib/convex";
 import openai from "@/lib/openai";
 import { generateUUID } from "@/lib/utils";
 import { withAuth } from "@workos-inc/authkit-nextjs";
+import { type } from "os";
 
 interface Attachment {
   name: string;
@@ -17,13 +18,14 @@ export async function POST(request: Request) {
   const {
     content,
     attachments = [],
-    isPublic = false,
+    isPublic,
   } = (await request.json()) as {
     content: string;
     attachments?: Attachment[];
-    isPublic?: boolean;
+    isPublic: string;
   };
   const { user } = await withAuth();
+  const isPublicBoolean = isPublic === "true";
 
   if (!user)
     return Response.json({ success: false, message: "User Not SignedIn" });
@@ -31,17 +33,19 @@ export async function POST(request: Request) {
   const id = generateUUID();
   try {
     const response = await openai.chat.completions.create({
-      model: "gpt-5.1",
+      model: "gpt-5-mini-2025-08-07",
       messages: [
         {
           role: "user",
           content: `
         You're a UI/UX designer     
-        Create a 5 words title for user request only 
+        Create a 5 words title for user request only
         
-        - plain text repoonse only 
+        - json response only 
         - no html or any markup  
-        - no extra text or any other text 
+        - no extra text or any other text
+        - also as per user prompt you give a type you have 2 type : "desktop" |  "mobile" if user as for mobile app screen then it should be mobile else desktop 
+        - if you didn't understand the user prompt and yo can't conclude that then you should return mobile as default
          
         <example> 
         
@@ -62,7 +66,7 @@ export async function POST(request: Request) {
         
         <AI response> 
         
-        Modern Appetizing Food Delivery App
+        { title : "Modern Appetizing Food Delivery App" , type : "mobile"}
 
         </AI response>
         
@@ -74,7 +78,11 @@ export async function POST(request: Request) {
       ],
     });
 
-    const title = response.choices[0].message.content;
+    if (!response) return Response.json({ message: "Title Not Generated" });
+
+    const res = response.choices[0].message.content;
+    const title = JSON.parse(res as string).title;
+    const type = JSON.parse(res as string).type;
     if (!title) return Response.json({ message: "Title Not Generated" });
 
     await convexClient.mutation(api.mutations.saveProject, {
@@ -83,7 +91,7 @@ export async function POST(request: Request) {
       project_id: id,
       title: title,
       content: content,
-      is_public: isPublic,
+      is_public: isPublicBoolean,
       attachments: attachments.map((a) => ({
         name: a.name,
         url: a.url,

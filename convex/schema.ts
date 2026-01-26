@@ -60,6 +60,7 @@ export default defineSchema({
     design_ids: v.array(v.id("designs")),
     attachments: v.optional(v.array(attachmentSchema)), // File attachments
     model: v.optional(v.string()), // Model used for generation (e.g., "pro")
+    thoughts: v.optional(v.string()), // AI thinking/reasoning process
     created_at: v.string(),
   }).index("by_project", ["project_id"]),
 
@@ -70,6 +71,7 @@ export default defineSchema({
     content: v.string(),
     version: v.number(), // Version number for tracking iterations
     status: v.union(v.literal("streaming"), v.literal("idle")), // Current state
+    type: v.optional(v.string()), // Type of design (e.g., "mobile", "desktop")
     x: v.optional(v.number()),
     y: v.optional(v.number()),
     figma_export_id: v.optional(v.string()), // Unique UUID for Figma caching - per-design, not per-artifact

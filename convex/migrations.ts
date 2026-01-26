@@ -6,6 +6,7 @@ export const migrateDesignsToMobile = mutation({
     const designs = await ctx.db.query("designs").collect();
     let count = 0;
 
+    /*
     for (const design of designs) {
       if (!design.type) {
         await ctx.db.patch(design._id, {
@@ -14,6 +15,7 @@ export const migrateDesignsToMobile = mutation({
         count++;
       }
     }
+    */
 
     return { success: true, migrated_count: count };
   },

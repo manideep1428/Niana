@@ -41,6 +41,7 @@ interface Message {
     status: "creating" | "completed";
   }[];
   attachments?: Attachment[];
+  thoughts?: string;
 }
 
 function DesignPageContent() {
@@ -170,6 +171,7 @@ function DesignPageContent() {
         return {
           role: m.role as "user" | "assistant",
           content: m.content,
+          thoughts: m.thoughts,
           artifacts,
           attachments: m.attachments || [],
         };
@@ -193,7 +195,8 @@ function DesignPageContent() {
       const totalTokens = subscription?.tokens_total ?? 10000;
       const usedTokens = subscription?.tokens_used ?? 0;
 
-      if (usedTokens >= totalTokens) {
+      // Skip check for unlimited tokens (-1 = Republic Day Offer)
+      if (totalTokens !== -1 && usedTokens >= totalTokens) {
         toast.error("Credit limit reached", {
           description:
             "You've used all your credits. Please upgrade your plan to continue.",
@@ -212,6 +215,7 @@ function DesignPageContent() {
       // Create new AbortController for this request
       abortControllerRef.current = new AbortController();
       let assistantContent = "";
+      let assistantThoughts = "";
       const artifacts: { id: string; title: string }[] = [];
       const artifactDbIds: string[] = []; // Store Convex IDs for database reference
       const newMessages = [
@@ -308,6 +312,21 @@ function DesignPageContent() {
                     {
                       role: "assistant",
                       content: assistantContent,
+                      thoughts: assistantThoughts,
+                      artifacts,
+                      streamingDesigns: [...streamingDesigns],
+                    },
+                  ]);
+                }
+                // Handle thought events
+                else if (event.type === "thought-delta") {
+                  assistantThoughts += event.content;
+                  setMessages([
+                    ...newMessages,
+                    {
+                      role: "assistant",
+                      content: assistantContent,
+                      thoughts: assistantThoughts,
                       artifacts,
                       streamingDesigns: [...streamingDesigns],
                     },
@@ -355,6 +374,7 @@ function DesignPageContent() {
                     {
                       role: "assistant",
                       content: assistantContent,
+                      thoughts: assistantThoughts,
                       artifacts,
                       streamingDesigns: [...streamingDesigns],
                     },
@@ -425,6 +445,7 @@ function DesignPageContent() {
                     {
                       role: "assistant",
                       content: assistantContent,
+                      thoughts: assistantThoughts,
                       artifacts,
                       streamingDesigns: [...streamingDesigns],
                     },
@@ -473,6 +494,7 @@ function DesignPageContent() {
                     {
                       role: "assistant",
                       content: assistantContent,
+                      thoughts: assistantThoughts,
                       artifacts,
                       streamingDesigns: [...streamingDesigns],
                     },
@@ -550,7 +572,12 @@ function DesignPageContent() {
         // Final update
         setMessages([
           ...newMessages,
-          { role: "assistant", content: assistantContent, artifacts },
+          {
+            role: "assistant",
+            content: assistantContent,
+            thoughts: assistantThoughts,
+            artifacts,
+          },
         ]);
 
         // Save assistant message to database with artifact references
@@ -559,6 +586,7 @@ function DesignPageContent() {
           content: assistantContent,
           role: "assistant",
           design_ids: artifactDbIds as any, // Convex IDs of created/updated designs
+          thoughts: assistantThoughts,
         });
       } catch (error: any) {
         // Handle abort specifically
@@ -575,6 +603,7 @@ function DesignPageContent() {
               content: assistantContent + "\n\n*[Generation stopped by user]*",
               role: "assistant",
               design_ids: artifactDbIds as any,
+              thoughts: assistantThoughts,
             });
           }
         } else {

@@ -55,6 +55,7 @@ type GeminiPart = GeminiTextPart | GeminiInlineDataPart;
 // Stream event types - matching ai-chatbot style
 type StreamEvent =
   | { type: "text-delta"; content: string }
+  | { type: "thought-delta"; content: string }
   | { type: "artifact-start"; id: string; title: string }
   | { type: "artifact-delta"; id: string; content: string }
   | { type: "artifact-finish"; id: string; title: string; content: string }
@@ -135,7 +136,8 @@ export async function POST(request: NextRequest) {
     const totalTokens = subscription?.tokens_total ?? 20000;
     const usedTokens = subscription?.tokens_used ?? 0;
 
-    if (usedTokens >= totalTokens) {
+    // Skip check for unlimited tokens (-1 = Republic Day Offer)
+    if (totalTokens !== -1 && usedTokens >= totalTokens) {
       return Response.json(
         {
           error:
@@ -154,23 +156,7 @@ export async function POST(request: NextRequest) {
   const readable = new ReadableStream({
     async start(controller) {
       try {
-        const basePrompt = systemPrompt({ selectedChatModel });
-
-        const planningPrompt = `${basePrompt}
-
-PLANNING MODE:
-Analyze the user's request and output a JSON object with the screens to create.
-You MUST respond with valid JSON in this exact format:
-{
-  "screens": [
-    { "id": "screen-id", "title": "Screen Title", "description": "Brief description of the screen" }
-  ]
-}
-
-Follow the INTELLIGENT SCREEN DECISION rules from your system prompt to determine the right number of screens.`;
-
-        // Build Gemini contents for planning
-        const planContents = await Promise.all(
+        const geminiContents = await Promise.all(
           messages.map(
             async (m: {
               role: string;
@@ -183,160 +169,83 @@ Follow the INTELLIGENT SCREEN DECISION rules from your system prompt to determin
           ),
         );
 
-        // Planning step - get screen plan from Gemini
-        const planResponse = await gemini.models.generateContent({
-          model: "gemini-3-pro-preview",
-          contents: planContents,
+        const response = await gemini.models.generateContentStream({
+          model: "gemini-3-flash-preview",
+          contents: geminiContents,
           config: {
-            systemInstruction: planningPrompt,
-            responseMimeType: "application/json",
+            systemInstruction: systemPrompt({ selectedChatModel }),
+            tools: geminiTools,
+            thinkingConfig: {
+              includeThoughts: true,
+            },
           },
         });
 
-        const planContent = planResponse.text || "{}";
-        if (planResponse.usageMetadata) {
-          totalUsageTokens +=
-            planResponse.usageMetadata.candidatesTokenCount || 0;
-        }
-
-        let plan: {
-          screens: Array<{ id: string; title: string; description: string }>;
-        };
-        try {
-          plan = JSON.parse(planContent);
-        } catch {
-          plan = {
-            screens: [
-              {
-                id: "home-screen",
-                title: "Home",
-                description: "Main home screen",
-              },
-            ],
-          };
-        }
-
-        // Send text about what we're creating
-        const screenList = plan.screens
-          .map((s, i) => `${i + 1}. **${s.title}**`)
-          .join("\n");
-        controller.enqueue(
-          encoder.encode(
-            encodeEvent({
-              type: "text-delta",
-              content: `✨ **Creating ${plan.screens.length} screen${plan.screens.length > 1 ? "s" : ""}**\n\n${screenList}\n\n---\n\n`,
-            }),
-          ),
-        );
-
-        // Generate each screen
-        for (let i = 0; i < plan.screens.length; i++) {
-          const screen = plan.screens[i];
-
-          try {
-            // Send artifact start
+        for await (const chunk of response) {
+          // Handle text content
+          if (chunk.text && chunk.text.trim()) {
             controller.enqueue(
               encoder.encode(
-                encodeEvent({
-                  type: "artifact-start",
-                  id: screen.id,
-                  title: screen.title,
-                }),
+                encodeEvent({ type: "text-delta", content: chunk.text }),
               ),
             );
+          }
 
-            // Build screen generation contents
-            const screenContents = [
-              ...(await Promise.all(
-                messages.map(
-                  async (m: {
-                    role: string;
-                    content: string;
-                    attachments?: Attachment[];
-                  }) => ({
-                    role: m.role === "assistant" ? "model" : "user",
-                    parts: await buildGeminiContent(m.content, m.attachments),
-                  }),
-                ),
-              )),
-              {
-                role: "user" as const,
-                parts: [
-                  {
-                    text: `Generate ONLY the "${screen.title}" screen (ID: ${screen.id}). Description: ${screen.description}. This is screen ${i + 1} of ${plan.screens.length}. Use the ${TOOL_NAMES.CREATE_ARTIFACT} tool with id="${screen.id}" and title="${screen.title}".`,
-                  },
-                ],
-              },
-            ];
-
-            // Generate screen using Gemini with function calling
-            const screenResponse = await gemini.models.generateContent({
-              model: "gemini-3-pro-preview",
-              contents: screenContents,
-              config: {
-                systemInstruction: basePrompt,
-                tools: geminiTools,
-              },
-            });
-
-            if (screenResponse.usageMetadata) {
-              totalUsageTokens +=
-                screenResponse.usageMetadata.candidatesTokenCount || 0;
-            }
-
-            // Extract function call result
-            let args: CreateArtifactArgs | null = null;
-
-            if (screenResponse.candidates?.[0]?.content?.parts) {
-              for (const part of screenResponse.candidates[0].content.parts) {
-                if (
-                  part.functionCall &&
-                  part.functionCall.name === TOOL_NAMES.CREATE_ARTIFACT
-                ) {
-                  args = part.functionCall
-                    .args as unknown as CreateArtifactArgs;
-                  break;
-                }
-              }
-            }
-
-            if (args) {
-              controller.enqueue(
-                encoder.encode(
-                  encodeEvent({
-                    type: "artifact-finish",
-                    id: args.id || screen.id,
-                    title: args.title || screen.title,
-                    content: args.content,
-                  }),
-                ),
-              );
-            } else {
-              // Fallback: try to extract HTML from text response
-              const textContent = screenResponse.text || "";
-              if (textContent) {
+          // Handle thought content
+          if (chunk.candidates?.[0]?.content?.parts) {
+            for (const part of chunk.candidates[0].content.parts) {
+              if (part.thought) {
                 controller.enqueue(
                   encoder.encode(
                     encodeEvent({
-                      type: "artifact-finish",
-                      id: screen.id,
-                      title: screen.title,
-                      content: textContent,
+                      type: "thought-delta",
+                      content: part.text || "",
                     }),
                   ),
                 );
               }
             }
-          } catch (e) {
-            console.error(`Failed to generate screen ${screen.id}:`, e);
-            controller.enqueue(
-              encoder.encode(
-                encodeEvent({
-                  type: "text-delta",
-                  content: `⚠ Failed to create ${screen.title}\n`,
-                }),
-              ),
-            );
+          }
+
+          // Handle function calls
+          if (chunk.candidates?.[0]?.content?.parts) {
+            for (const part of chunk.candidates[0].content.parts) {
+              if (part.functionCall) {
+                const funcCall = part.functionCall;
+                // We don't stream the function call itself as an event for now,
+                // we treat it as an artifact creation event when we get the arguments.
+                // However, the `chat-iterative` endpoint is used by the frontend to receive artifact_* events.
+                // The frontend handles `artifact-start`, `artifact-finish` or `tool-call`.
+                // Let's stick closer to the pattern:
+
+                if (funcCall.name === TOOL_NAMES.CREATE_ARTIFACT) {
+                  const args = funcCall.args as unknown as CreateArtifactArgs;
+                  // Send artifact completion event (since we get full args here usually)
+                  // If it was streaming args validation might be harder, but Gemini usually gives full args in functionCall block of final chunk or buffered chunks.
+                  // IMPORTANT: streaming function calls might come in chunks, but the SDK abstracts this?
+                  // Actually generateContentStream yields chunks. For function calls, we usually get it when complete or we accummulate?
+                  // The SDK Documentation says "functionCall" is populated.
+
+                  if (args && args.id && args.content) {
+                    controller.enqueue(
+                      encoder.encode(
+                        encodeEvent({
+                          type: "artifact-finish",
+                          id: args.id,
+                          title: args.title,
+                          content: args.content,
+                        }),
+                      ),
+                    );
+                  }
+                }
+              }
+            }
+          }
+
+          // Capture usage metadata if available
+          if (chunk.usageMetadata) {
+            totalUsageTokens = chunk.usageMetadata.candidatesTokenCount || 0;
           }
         }
 
@@ -351,16 +260,6 @@ Follow the INTELLIGENT SCREEN DECISION rules from your system prompt to determin
             console.error("Failed to update token usage:", error);
           }
         }
-
-        // Send completion message
-        controller.enqueue(
-          encoder.encode(
-            encodeEvent({
-              type: "text-delta",
-              content: `\n---\n\n🎉 **All done!** Successfully created ${plan.screens.length} screen${plan.screens.length > 1 ? "s" : ""}.\n\n**What would you like to do next?**\n\n• Add more screens\n• Modify colors or styling\n• Refine a specific screen\n• Add features\n\n💡 *Click on any screen to preview it!*`,
-            }),
-          ),
-        );
 
         controller.enqueue(
           encoder.encode(encodeEvent({ type: "finish", reason: "stop" })),

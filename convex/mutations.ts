@@ -284,6 +284,7 @@ export const saveMessage = mutation({
       ),
     ),
     initial_status: v.optional(v.boolean()), // Optional, defaults to true (already processed)
+    thoughts: v.optional(v.string()), // Optional AI thoughts
   },
   handler: async (ctx, args) => {
     return await ctx.db.insert("messages", {
@@ -293,6 +294,7 @@ export const saveMessage = mutation({
       design_ids: args.design_ids,
       attachments: args.attachments ?? [],
       initial_status: args.initial_status ?? true, // Default to true (already processed)
+      thoughts: args.thoughts,
       created_at: Date.now().toString(),
     });
   },
@@ -588,12 +590,13 @@ export const createFreeSubscription = mutation({
 
     const now = new Date();
     const expiresAt = new Date(now);
-    expiresAt.setMonth(now.getMonth() + 1);
+    // Republic Day Offer: 7 days unlimited
+    expiresAt.setDate(now.getDate() + 7);
 
     const subscriptionId = await ctx.db.insert("subscriptions", {
       user_id: args.user_id,
       plan: "free",
-      tokens_total: 50000,
+      tokens_total: -1, // Unlimited tokens (Republic Day Offer)
       tokens_used: 0,
       projects_limit: -1,
       status: "active",

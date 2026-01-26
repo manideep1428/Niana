@@ -68,7 +68,7 @@ export function GreetingHeader() {
       setGreeting({ text: "Good evening", icon: Sunset });
     } else if (hour >= 21 || hour < 2) {
       const lateNightGreetings = [
-        "Burning the midnight oil?",
+        "Burning the midnight",
         "Late night inspiration",
         "Quiet time for building",
         "Good evening",
@@ -80,7 +80,7 @@ export function GreetingHeader() {
         icon: Moon,
       });
     } else {
-      setGreeting({ text: "Early riser or late sleeper?", icon: Sparkles });
+      setGreeting({ text: "Early riser or late sleeper", icon: Sparkles });
     }
   }, []);
 

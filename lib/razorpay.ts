@@ -14,15 +14,17 @@ export const SUBSCRIPTION_PLANS = {
     yearlyPriceInPaise: 0,
     originalYearlyPrice: 0,
     discountPercent: 0,
-    credits: 1, // 1 credit per month
-    tokens: 20000, // 1 credit * 20k = 20,000 tokens
+    credits: -1, // Unlimited credits (Republic Day Offer)
+    tokens: -1, // Unlimited tokens (Republic Day Offer)
     projectsLimit: -1, // Unlimited
-    figmaLimit: 1, // 1 Figma export per month
+    figmaLimit: -1, // Unlimited Figma exports (Republic Day Offer)
+    isUnlimited: true, // Flag for unlimited plan
     features: [
-      "1 Credit / month",
+      "Unlimited Credits",
       "Unlimited projects",
-      "1 Figma export",
+      "Unlimited Figma exports",
       "Community support",
+      "No credit card required",
     ],
     popular: false,
   },

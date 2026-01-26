@@ -33,7 +33,7 @@ const geminiAI = new GoogleGenAI({
 });
 
 // Gemini model to use
-const GEMINI_MODEL = "gemini-2.5-flash";
+const GEMINI_MODEL = "gemini-3-preview";
 
 // Define tools for Gemini (function declarations)
 const geminiTools = [
@@ -140,6 +140,7 @@ function buildGeminiContent(
 // Stream event types - cleaner format like ai-chatbot
 type StreamEvent =
   | { type: "text-delta"; content: string }
+  | { type: "thought-delta"; content: string }
   | {
       type: "tool-call";
       name: string;
@@ -168,7 +169,8 @@ export async function POST(request: NextRequest) {
     const totalTokens = subscription?.tokens_total ?? 20000;
     const usedTokens = subscription?.tokens_used ?? 0;
 
-    if (usedTokens >= totalTokens) {
+    // Skip check for unlimited tokens (-1 = Republic Day Offer)
+    if (totalTokens !== -1 && usedTokens >= totalTokens) {
       return Response.json(
         {
           error:
@@ -196,6 +198,9 @@ export async function POST(request: NextRequest) {
       config: {
         systemInstruction: systemPrompt({ selectedChatModel }),
         tools: geminiTools,
+        thinkingConfig: {
+          includeThoughts: true,
+        },
       },
     });
 
@@ -213,6 +218,22 @@ export async function POST(request: NextRequest) {
                   encodeEvent({ type: "text-delta", content: chunk.text }),
                 ),
               );
+            }
+
+            // Handle thought content
+            if (chunk.candidates?.[0]?.content?.parts) {
+              for (const part of chunk.candidates[0].content.parts) {
+                if (part.thought) {
+                  controller.enqueue(
+                    encoder.encode(
+                      encodeEvent({
+                        type: "thought-delta",
+                        content: part.text || "",
+                      }),
+                    ),
+                  );
+                }
+              }
             }
 
             // Handle function calls from Gemini

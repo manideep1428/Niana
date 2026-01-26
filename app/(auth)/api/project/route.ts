@@ -14,9 +14,14 @@ interface Attachment {
 }
 
 export async function POST(request: Request) {
-  const { content, attachments = [] } = (await request.json()) as {
+  const {
+    content,
+    attachments = [],
+    isPublic = false,
+  } = (await request.json()) as {
     content: string;
     attachments?: Attachment[];
+    isPublic?: boolean;
   };
   const { user } = await withAuth();
 
@@ -78,6 +83,7 @@ export async function POST(request: Request) {
       project_id: id,
       title: title,
       content: content,
+      is_public: isPublic,
       attachments: attachments.map((a) => ({
         name: a.name,
         url: a.url,
@@ -91,7 +97,7 @@ export async function POST(request: Request) {
     console.error("Error creating project:", error);
     return Response.json(
       { success: false, message: "Title Not Generated" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

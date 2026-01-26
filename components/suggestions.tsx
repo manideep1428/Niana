@@ -10,73 +10,83 @@ export interface Suggestion {
 const suggestions: Suggestion[] = [
   {
     title: "Pet App",
-    prompt: `Pet management mobile app.
+    prompt: `Pet management mobile app for tracking health and daily activities.
 
-Pet avatars are cute, stylized drawings.
-Task checklist items have wobbly hand-drawn checkmarks.
-Feeding schedule illustrated with a smiling food bowl icon.
-Vet appointment cards look like little paw prints.
+Pet avatars are cute, stylized drawings that react to user interactions.
+Task checklist items have wobbly hand-drawn checkmarks and satisfying completion animations.
+Feeding schedule illustrated with a smiling food bowl icon that fills up.
+Vet appointment cards look like little paw prints and expand for details.
+Community tab for sharing pet photos with sticker overlays.
 
-Bright, cheerful background.
+Bright, cheerful background with subtle patterns.
 Mobile UI, Playful Whimsical aesthetic.
 Bright, saturated color palette (sunshine yellow, sky blue, candy pink).
-Hand-drawn sketch lines, organic blob shapes.
-Cute cartoon character illustrations.`,
+Hand-drawn sketch lines, organic blob shapes, and rounded soft typography.
+Cute cartoon character illustrations and bouncy micro-interactions.`,
   },
   {
     title: "Food Delivery",
-    prompt: `Food delivery mobile app.
+    prompt: `Food delivery mobile app with real-time tracking and discovery.
 
-Home screen with restaurant categories and featured deals.
-Restaurant listing with ratings, delivery time, and cuisine tags.
-Restaurant detail with menu items and add to cart.
-Cart screen with order summary and checkout.
-Order tracking with live status updates.
+Home screen triggers appetizing cravings with large, high-quality food photography.
+Restaurant categories represented by detailed 3D food icons.
+Restaurant listing with smart filters, ratings, delivery time, and cuisine tags.
+Restaurant detail with immersive menu items, customization options, and add to cart.
+Cart screen with smart upsells, order summary, and seamless checkout.
+Order tracking map with animated delivery rider and live status updates.
 
-Modern, clean aesthetic with warm orange accents.
-Mobile UI with bottom navigation.`,
+Modern, clean aesthetic with warm orange and red accents to stimulate appetite.
+Mobile UI with bottom navigation and floating action buttons.
+Card-based layout with soft shadows and rounded corners.`,
   },
   {
     title: "Social Media",
-    prompt: `Social media mobile app.
+    prompt: `Social media mobile app focused on visual storytelling and connection.
 
-Feed screen with posts, likes, and comments.
-Profile page with user stats and photo grid.
-Notifications screen with activity updates.
-Messages/DM screen with conversation list.
-Search and discover screen.
+Feed screen with immersive full-screen posts, double-tap likes, and threaded comments.
+Stories carousel at the top with ring animations for new content.
+Profile page with customizable headers, user stats, and masonry photo grid.
+Notifications screen with grouped activity updates and action buttons.
+Messages/DM screen with active status indicators and rich media sharing.
+Search and discover screen with trending hashtags and algorithmic recommendations.
 
-Modern minimal aesthetic.
-Mobile UI with bottom tab navigation.
-Clean white background with accent colors.`,
+Modern minimal aesthetic with focus on content.
+Mobile UI with diverse bottom tab navigation icons.
+Clean white or dark mode background with brand-specific accent colors (e.g., violet or teal).
+Smooth page transitions and gesture-based navigation.`,
   },
   {
     title: "E-Commerce",
-    prompt: `E-commerce shopping mobile app.
+    prompt: `E-commerce shopping mobile app for a premium fashion brand.
 
-Home screen with categories and featured products.
-Product listing with filters and sorting.
-Product detail with images, description, and reviews.
-Shopping cart with quantity controls.
-Checkout flow with payment options.
+Home screen with lifestyle banner sliders, curated collections, and personalized picks.
+Product listing with advanced filters, sort options, and quick-view capabilities.
+Product detail with zoomable image galleries, size guides, reviews, and sticky add-to-cart.
+Wishlist functionality with price drop alerts.
+Shopping cart with quantity controls, promo code input, and estimated delivery.
+Checkout flow with saved payment methods and address auto-fill.
 
-Modern, premium aesthetic.
-Mobile UI with clean card-based layout.
-Neutral palette with brand accent color.`,
+Modern, premium aesthetic with plenty of whitespace.
+Mobile UI with clean, sharp edges and elegant typography (serif for headings).
+Neutral palette (black, white, greys) with a single sophisticated accent color.
+Focus on high-resolution product imagery and clear call-to-action buttons.`,
   },
   {
     title: "Banking App",
-    prompt: `Mobile banking app.
+    prompt: `Mobile banking and personal finance management app.
 
-Account balance card with gradient background.
-Transaction history list with category icons.
-Quick action buttons for transfer, pay, and deposit.
-Spending analytics with donut chart.
-Card management section showing virtual cards.
+Account balance card with glassmorphism effect and masked sensitive data.
+Transaction history list with merchant logos and category color-coding.
+Quick action buttons for transfer, bill pay, and mobile check deposit.
+Spending analytics with interactive donut charts and monthly budget progress bars.
+Card management section showing virtual cards with freeze/unfreeze toggles.
+Savings goals with visual progress trackers and auto-save rules.
 
 Mobile UI, Fintech aesthetic.
-Professional dark or light theme.
-Secure, trustworthy feel.`,
+Professional dark or light theme with high contrast for readability.
+Secure, trustworthy feel using deep blues or greens.
+Clean, sans-serif typography with tabular figures for numbers.
+Subtle security animations (e.g., lock icons, success checks).`,
   },
 ];
 
@@ -112,7 +122,7 @@ function SuggestionCard({
         y: e.clientY - rect.top,
       });
     },
-    []
+    [],
   );
 
   const handleMouseEnter = useCallback(() => {
@@ -137,7 +147,7 @@ function SuggestionCard({
       onMouseMove={handleMouseMove}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
-      className="relative px-4 py-2 rounded-full text-secondary-foreground transition-all duration-200 text-sm font-medium cursor-pointer overflow-hidden group"
+      className="relative px-6 py-3 rounded-full text-secondary-foreground transition-all duration-200 text-base font-medium cursor-pointer overflow-hidden group"
       style={{
         background: "transparent",
       }}
@@ -191,7 +201,7 @@ export function Suggestions({ onSelect }: SuggestionsProps) {
   };
 
   return (
-    <div className="flex flex-wrap justify-center gap-2 mt-4">
+    <div className="flex flex-wrap justify-center gap-3 mt-4">
       {suggestions.map((suggestion, index) => (
         <SuggestionCard
           key={index}

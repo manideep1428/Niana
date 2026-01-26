@@ -12,6 +12,8 @@ import { Sparkles } from "lucide-react";
 import { useAuth } from "@workos-inc/authkit-nextjs/components";
 import type { Attachment } from "@/components/preview-attachment";
 
+import { GreetingHeader } from "@/components/greeting-header";
+
 export default function Home() {
   const router = useRouter();
   const { user } = useAuth();
@@ -33,6 +35,7 @@ export default function Home() {
   ) => {
     const formData = new FormData(e.currentTarget);
     const content = formData.get("content") as string;
+    const isPublic = formData.get("isPublic") === "true";
 
     if (!content?.trim() && attachments.length === 0) {
       toast.error("Please enter a prompt or attach a file");
@@ -56,6 +59,7 @@ export default function Home() {
         },
         body: JSON.stringify({
           content,
+          isPublic,
           attachments: attachments.map((a) => ({
             name: a.name,
             url: a.url,
@@ -82,59 +86,35 @@ export default function Home() {
   };
 
   return (
-    <div className="relative overflow-x-hidden bg-background">
-      <div className="fixed inset-0 pointer-events-none z-0">
-        <div className="absolute inset-0 bg-linear-to-b from-background via-background to-background/80 dark:from-black dark:via-black dark:to-black/80" />
-        <div className="absolute bottom-0 left-0 right-0 h-[70%]">
-          <div className="absolute inset-0 bg-linear-to-t from-orange-600/40 via-pink-600/20 to-transparent" />
-          <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[80%] h-[500px] bg-linear-to-t from-orange-500/50 via-pink-500/30 to-transparent blur-3xl" />
-          <div className="absolute bottom-0 left-1/4 w-[500px] h-[400px] bg-orange-600/40 rounded-full blur-[120px]" />
-          <div className="absolute bottom-0 right-1/4 w-[500px] h-[400px] bg-pink-600/30 rounded-full blur-[120px]" />
-        </div>
-      </div>
+    <div className="relative min-h-screen bg-background selection:bg-primary/20">
+      {/* Background Pattern - Subtle diagonal lines if possible, or just clean white */}
+      <div
+        className="fixed inset-0 pointer-events-none z-0 opacity-[0.03]"
+        style={{
+          backgroundImage: `url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%239C92AC' fill-opacity='1' fill-rule='evenodd'%3E%3Cpath d='M0 40L40 0H20L0 20M40 40V20L20 40'/%3E%3C/g%3E%3C/svg%3E")`,
+        }}
+      />
 
-      <div className="relative z-10">
+      <div className="relative z-10 font-sans">
         <TopBar />
 
-        <div className="flex flex-col items-center justify-center h-[calc(100vh-120px)] px-4">
-          <div className="text-center mb-6 space-y-4 max-w-3xl">
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 backdrop-blur-sm">
-              <Sparkles className="w-3.5 h-3.5 text-pink-400" />
-              <span className="text-xs text-black/80 dark:text-white/80">
-                AI-Powered Design Studio
-              </span>
-            </div>
-
-            {/* Main Headline */}
-            <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight">
-              <span className="text-black dark:text-white">
-                Design anything with{" "}
-              </span>
-              <span className="bg-linear-to-r from-pink-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
-                Niana
-              </span>
-            </h1>
-
-            {/* Subtitle */}
-            <p className="text-base sm:text-lg text-black/60 dark:text-white/60 max-w-xl mx-auto">
-              Create stunning designs and interfaces by chatting with AI
-            </p>
+        <div className="flex flex-col items-center justify-center min-h-screen pt-20 px-4 pb-10">
+          <div className="w-full">
+            <GreetingHeader />
           </div>
 
-          <div className="w-full max-w-2xl">
+          <div className="w-full max-w-3xl animate-in slide-in-from-bottom-8 duration-700 fade-in delay-150">
             <PromptInput
               input={input}
               setInput={setInput}
               onSubmit={onSubmit}
               isLoading={isLoading}
+              variant="hero"
             />
-
-            <Suggestions onSelect={(prompt) => setInput(prompt)} />
+            <div className="mt-4 text-center">
+              <Suggestions onSelect={(prompt) => setInput(prompt)} />
+            </div>
           </div>
-        </div>
-
-        <div className="w-[95%] mx-auto">
-          <CommunitySection />
         </div>
       </div>
     </div>

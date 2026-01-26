@@ -8,6 +8,9 @@ import {
   Sparkles,
   MessageSquare,
   SquareDashedMousePointer,
+  Globe,
+  Lock,
+  Rocket,
 } from "lucide-react";
 import PromptSubmit from "./prompt-submit";
 import { useMutation } from "convex/react";
@@ -37,12 +40,13 @@ interface PromptInputProps {
   isResponding?: boolean;
   onSubmit: (
     e: React.FormEvent<HTMLFormElement>,
-    attachments: Attachment[]
+    attachments: Attachment[],
   ) => void;
   onStop?: () => void;
   activeTab?: "chat" | "design";
   onTabChange?: (tab: "chat" | "design") => void;
   hasSelectedElement?: boolean;
+  variant?: "hero" | "chat";
 }
 
 export function PromptInput({
@@ -54,7 +58,7 @@ export function PromptInput({
   isResponding = false,
   activeTab = "chat",
   onTabChange,
-  hasSelectedElement,
+  variant = "chat",
 }: PromptInputProps) {
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [uploadQueue, setUploadQueue] = useState<string[]>([]);
@@ -123,7 +127,7 @@ export function PromptInput({
         return undefined;
       }
     },
-    [generateUploadUrl, saveFile, validateFile]
+    [generateUploadUrl, saveFile, validateFile],
   );
 
   const handleFileChange = useCallback(
@@ -135,7 +139,7 @@ export function PromptInput({
       const remainingSlots = MAX_FILES - attachments.length;
       if (files.length > remainingSlots) {
         toast.error(
-          `You can only upload ${MAX_FILES} files. ${remainingSlots} slots remaining.`
+          `You can only upload ${MAX_FILES} files. ${remainingSlots} slots remaining.`,
         );
         files.splice(remainingSlots);
       }
@@ -148,7 +152,7 @@ export function PromptInput({
         const uploadPromises = files.map((file) => uploadFile(file));
         const results = await Promise.all(uploadPromises);
         const successful = results.filter(
-          (r): r is Attachment => r !== undefined
+          (r): r is Attachment => r !== undefined,
         );
 
         setAttachments((prev) => [...prev, ...successful]);
@@ -161,7 +165,7 @@ export function PromptInput({
         }
       }
     },
-    [attachments.length, uploadFile]
+    [attachments.length, uploadFile],
   );
 
   const handleRemoveAttachment = useCallback(
@@ -177,7 +181,7 @@ export function PromptInput({
         }
       }
     },
-    [deleteFile]
+    [deleteFile],
   );
 
   // Handle paste for images
@@ -187,7 +191,7 @@ export function PromptInput({
       if (!items) return;
 
       const imageItems = Array.from(items).filter((item) =>
-        item.type.startsWith("image/")
+        item.type.startsWith("image/"),
       );
 
       if (imageItems.length === 0) return;
@@ -212,7 +216,7 @@ export function PromptInput({
       try {
         const results = await Promise.all(filesToUpload.map(uploadFile));
         const successful = results.filter(
-          (r): r is Attachment => r !== undefined
+          (r): r is Attachment => r !== undefined,
         );
         setAttachments((prev) => [...prev, ...successful]);
       } catch (err) {
@@ -221,10 +225,9 @@ export function PromptInput({
         setUploadQueue([]);
       }
     },
-    [attachments.length, uploadFile]
+    [attachments.length, uploadFile],
   );
 
-  // Handle drag and drop
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(true);
@@ -255,7 +258,7 @@ export function PromptInput({
       try {
         const results = await Promise.all(filesToUpload.map(uploadFile));
         const successful = results.filter(
-          (r): r is Attachment => r !== undefined
+          (r): r is Attachment => r !== undefined,
         );
         setAttachments((prev) => [...prev, ...successful]);
       } catch (err) {
@@ -264,13 +267,13 @@ export function PromptInput({
         setUploadQueue([]);
       }
     },
-    [attachments.length, uploadFile]
+    [attachments.length, uploadFile],
   );
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (input.trim() || attachments.length > 0) {
-      toast.success("Message sent!");
+      // toast.success("Message sent!"); // Optional
       onSubmit(e, attachments);
       setAttachments([]);
     }
@@ -288,9 +291,157 @@ export function PromptInput({
   const canAttach =
     attachments.length < MAX_FILES && !isLoading && !isUploading;
 
+  const [isPublic, setIsPublic] = useState(false); // Default to private
+
+  if (variant === "hero") {
+    return (
+      <div className="relative w-full">
+        <form onSubmit={handleSubmit} className="w-full">
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            accept={ALLOWED_TYPES.join(",")}
+            onChange={handleFileChange}
+            className="hidden"
+          />
+          <input type="hidden" name="isPublic" value={String(isPublic)} />
+
+          <div
+            ref={inputContainerRef}
+            onDrop={handleDrop}
+            className={`
+                relative flex flex-col min-h-[100px] rounded-2xl border-[3px] transition-all duration-300
+                file:bg-card bg-[#fffcfb] dark:bg-card border-primary
+                ${isFocused ? "border-primary border-[3px] shadow-[0_0_20px_rgba(255,159,104,0.15)] ring-1 ring-primary/20" : "border-primary/20 shadow-sm hover:border-primary/50"}
+                ${isDragging ? "border-primary bg-background scale-[1.01]" : ""}
+              `}
+          >
+            {/* Attachments preview */}
+            {(attachments.length > 0 || uploadQueue.length > 0) && (
+              <div className="flex flex-row items-center gap-4 overflow-x-auto p-4 pb-2 scrollbar-none">
+                {attachments.map((attachment) => (
+                  <PreviewAttachment
+                    key={attachment.url}
+                    attachment={attachment}
+                    onRemove={() => handleRemoveAttachment(attachment)}
+                  />
+                ))}
+                {uploadQueue.map((filename) => (
+                  <PreviewAttachment
+                    key={filename}
+                    attachment={{ url: "", name: filename, contentType: "" }}
+                    isUploading
+                  />
+                ))}
+              </div>
+            )}
+
+            <div className="flex-1 p-6">
+              <Textarea
+                ref={textareaRef}
+                name="content"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onFocus={() => setIsFocused(true)}
+                onBlur={() => setIsFocused(false)}
+                onPaste={handlePaste}
+                placeholder={
+                  isDragging ? "Drop files here..." : "Design a screens for..."
+                }
+                className="w-full h-full text-lg sm:text-xl font-medium bg-transparent dark:bg-transparent border-none text-foreground placeholder:text-muted-foreground/60 resize-none outline-none overflow-y-auto scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0 shadow-none min-h-[80px]"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    if (input.trim() || attachments.length > 0) {
+                      const form = e.currentTarget.form;
+                      if (form) form.requestSubmit();
+                    }
+                  }
+                }}
+              />
+            </div>
+
+            <div className="flex items-center justify-between px-6 pb-6 pt-2">
+              <div className="flex items-center gap-4">
+                <button
+                  type="button"
+                  disabled={!canAttach}
+                  onClick={() => fileInputRef.current?.click()}
+                  className="group flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
+                  title="Attach files"
+                >
+                  <div className="p-2 rounded-full hover:bg-muted transition-colors">
+                    <Paperclip className="w-5 h-5" />
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setIsPublic(!isPublic)}
+                  className={cn(
+                    "flex items-center gap-2 text-xs font-medium px-4 py-2 rounded-full transition-all duration-300 border shadow-xs cursor-pointer",
+                    isPublic
+                      ? "bg-zinc-100 text-zinc-900 border-zinc-200 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-700"
+                      : "bg-black/5 text-zinc-600 border-transparent hover:bg-black/10 dark:bg-white/5 dark:text-zinc-400 dark:hover:bg-white/10",
+                  )}
+                  title={isPublic ? "Switch to Private" : "Switch to Public"}
+                >
+                  {isPublic ? (
+                    <span className="flex items-center gap-1.5">
+                      <Globe className="w-3.5 h-3.5" />
+                      Public
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-1.5">
+                      <Lock className="w-3.5 h-3.5" />
+                      Private
+                    </span>
+                  )}
+                </button>
+              </div>
+
+              <button
+                type="submit"
+                disabled={isLoading && !isResponding}
+                onClick={handleButtonClick}
+                className={cn(
+                  "flex items-center gap-2 px-6 py-2.5 rounded-full font-semibold transition-all duration-200 transform active:scale-95 shadow-md hover:shadow-lg cursor-pointer",
+                  isLoading
+                    ? "bg-slate-200 text-slate-500 cursor-not-allowed"
+                    : "bg-[#FF9F68] hover:bg-[#ff8f4d] text-white",
+                )}
+              >
+                {isLoading ? (
+                  isResponding ? (
+                    <>
+                      <div className="w-2 h-2 rounded-full bg-current animate-bounce" />
+                      <span>Stop</span>
+                    </>
+                  ) : (
+                    <>
+                      <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                      <span>Designing...</span>
+                    </>
+                  )
+                ) : (
+                  <>
+                    <Rocket className="w-4 h-4 fill-white/20" />
+                    <span>Design</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+    );
+  }
+
+  // CHAT VARIANT (Default)
   return (
-    <div className="p-4 pt-0">
-      <form onSubmit={handleSubmit}>
+    <div className="p-4 pt-0 w-full">
+      <form onSubmit={handleSubmit} className="w-full">
         <input
           ref={fileInputRef}
           type="file"
@@ -306,15 +457,15 @@ export function PromptInput({
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
           className={`
-            relative rounded-3xl border-2 transition-all duration-200
-            bg-[#faf4eb] dark:bg-card
-            ${isFocused ? "border-primary/60 shadow-lg shadow-primary/20 ring-2 ring-primary/10" : "border-black/10 dark:border-border shadow-sm"}
-            ${isDragging ? "border-primary/60 bg-primary/5 shadow-lg shadow-primary/10" : ""}
+            relative rounded-3xl border transition-all duration-200
+            file:bg-card bg-[#fffcfb] dark:bg-card
+            ${isFocused ? "border-primary shadow-md ring-1 ring-primary/20" : "border-primary/20 shadow-sm hover:border-primary/50"}
+            ${isDragging ? "border-primary bg-background shadow-md" : ""}
           `}
         >
           {/* Attachments preview */}
           {(attachments.length > 0 || uploadQueue.length > 0) && (
-            <div className="flex flex-row items-center gap-2 overflow-x-auto p-3 pb-0">
+            <div className="flex flex-row items-center gap-3 overflow-x-auto p-3 pb-2 scrollbar-none">
               {attachments.map((attachment) => (
                 <PreviewAttachment
                   key={attachment.url}
@@ -342,7 +493,7 @@ export function PromptInput({
               onBlur={() => setIsFocused(false)}
               onPaste={handlePaste}
               placeholder={isDragging ? "Drop files here..." : "Ask Niana..."}
-              className="w-full bg-transparent border-none text-sm text-foreground placeholder:text-muted-foreground resize-none outline-none min-h-[60px] max-h-[200px] overflow-y-auto scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent focus:outline-none dark:bg-transparent focus:ring-0 focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 shadow-none"
+              className="w-full bg-transparent dark:bg-transparent border-none text-sm text-foreground placeholder:text-muted-foreground resize-none outline-none min-h-[44px] max-h-[200px] overflow-y-auto scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent focus:outline-none focus:border-none focus:ring-0 shadow-none"
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) {
                   e.preventDefault();
@@ -369,12 +520,9 @@ export function PromptInput({
               {onTabChange && activeTab === "chat" && (
                 <button
                   type="button"
-                  onClick={() => onTabChange("design")}
+                  onClick={() => toast.info("Visual Edit Coming Soon")}
                   className={cn(
-                    "h-8 px-3 rounded-lg text-xs flex items-center gap-2 transition-all",
-                    hasSelectedElement
-                      ? "bg-primary/20 text-primary border border-primary/30 hover:bg-primary/30"
-                      : "border border-border text-muted-foreground hover:text-foreground hover:bg-accent"
+                    "h-8 px-3 rounded-lg text-xs flex items-center gap-2 transition-all border border-border text-muted-foreground hover:text-foreground hover:bg-accent",
                   )}
                 >
                   <SquareDashedMousePointer className="w-3.5 h-3.5" />
@@ -399,7 +547,7 @@ export function PromptInput({
               onSubmit={handleButtonClick}
               onStop={onStop}
               isResponding={isResponding}
-              className="bg-linear-to-r from-primary/60 to-primary/40 hover:from-primary/70 hover:to-primary/50 text-primary-foreground h-8 w-8 rounded-lg transition-colors shadow-sm"
+              className="bg-primary hover:bg-primary/90 text-primary-foreground h-8 w-8 rounded-lg transition-colors shadow-sm"
             />
           </div>
         </div>

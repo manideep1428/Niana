@@ -141,10 +141,10 @@ function buildGeminiContent(
 type StreamEvent =
   | { type: "text-delta"; content: string }
   | {
-      type: "tool-call";
-      name: string;
-      args: CreateArtifactArgs | UpdateArtifactArgs;
-    }
+    type: "tool-call";
+    name: string;
+    args: CreateArtifactArgs | UpdateArtifactArgs;
+  }
   | { type: "finish"; reason: string }
   | { type: "error"; message: string };
 

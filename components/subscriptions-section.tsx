@@ -128,13 +128,12 @@ export function SubscriptionsSection() {
             return (
               <div
                 key={plan.name}
-                className={`relative rounded-2xl p-6 transition-all duration-300 flex flex-col ${
-                  isCurrentPlan
-                    ? "bg-linear-to-b from-emerald-500/20 to-emerald-500/5 border-2 border-emerald-500/50 shadow-2xl shadow-emerald-500/20"
-                    : plan.highlighted
-                      ? "bg-linear-to-b from-orange-500/10 to-orange-500/5 border-2 border-orange-500/50 shadow-2xl shadow-orange-500/20 scale-105 z-10"
-                      : "bg-white/5 border border-white/10 hover:bg-white/10"
-                }`}
+                className={`relative rounded-2xl p-6 transition-all duration-300 flex flex-col ${isCurrentPlan
+                  ? "bg-linear-to-b from-emerald-500/20 to-emerald-500/5 border-2 border-emerald-500/50 shadow-2xl shadow-emerald-500/20"
+                  : plan.highlighted
+                    ? "bg-linear-to-b from-orange-500/10 to-orange-500/5 border-2 border-orange-500/50 shadow-2xl shadow-orange-500/20 scale-105 z-10"
+                    : "bg-white/5 border border-white/10 hover:bg-white/10"
+                  }`}
               >
                 {/* Current Plan Badge */}
                 {isCurrentPlan && (
@@ -150,11 +149,10 @@ export function SubscriptionsSection() {
                 {plan.badge && !isCurrentPlan && (
                   <div className="absolute -top-4 left-1/2 -translate-x-1/2">
                     <div
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-white text-xs font-medium shadow-lg ${
-                        plan.badge === "MOST POPULAR"
-                          ? "bg-linear-to-r from-orange-500 to-orange-600"
-                          : "bg-linear-to-r from-orange-500/50 to-orange-600/50 border border-orange-500/30"
-                      }`}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-white text-xs font-medium shadow-lg ${plan.badge === "MOST POPULAR"
+                        ? "bg-linear-to-r from-orange-500 to-orange-600"
+                        : "bg-linear-to-r from-orange-500/50 to-orange-600/50 border border-orange-500/30"
+                        }`}
                     >
                       {plan.badge}
                     </div>
@@ -198,13 +196,12 @@ export function SubscriptionsSection() {
                   <Link href="/pricing" className="w-full block mb-8">
                     <Button
                       disabled={isCurrentPlan}
-                      className={`w-full ${
-                        isCurrentPlan
-                          ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 cursor-default"
-                          : plan.highlighted
-                            ? "bg-linear-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white"
-                            : "bg-white/10 hover:bg-white/20 text-white border border-white/20"
-                      }`}
+                      className={`w-full ${isCurrentPlan
+                        ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 cursor-default"
+                        : plan.highlighted
+                          ? "bg-linear-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white"
+                          : "bg-white/10 hover:bg-white/20 text-white border border-white/20"
+                        }`}
                     >
                       {isCurrentPlan ? (
                         <>
@@ -223,22 +220,20 @@ export function SubscriptionsSection() {
                   {plan.features.map((feature, featureIndex) => (
                     <div key={featureIndex} className="flex items-start gap-3">
                       <div
-                        className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${
-                          isCurrentPlan
-                            ? "bg-emerald-500/20"
-                            : plan.highlighted
-                              ? "bg-orange-500/20"
-                              : "bg-white/10"
-                        }`}
+                        className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${isCurrentPlan
+                          ? "bg-emerald-500/20"
+                          : plan.highlighted
+                            ? "bg-orange-500/20"
+                            : "bg-white/10"
+                          }`}
                       >
                         <Check
-                          className={`w-3 h-3 ${
-                            isCurrentPlan
-                              ? "text-emerald-400"
-                              : plan.highlighted
-                                ? "text-orange-400"
-                                : "text-white/60"
-                          }`}
+                          className={`w-3 h-3 ${isCurrentPlan
+                            ? "text-emerald-400"
+                            : plan.highlighted
+                              ? "text-orange-400"
+                              : "text-white/60"
+                            }`}
                         />
                       </div>
                       <span className="text-sm text-white/80">{feature}</span>

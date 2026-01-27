@@ -682,11 +682,10 @@ export function VisualEditor({
                     <button
                       key={val}
                       onClick={() => onUpdateStyle("textAlign", val)}
-                      className={`flex-1 flex items-center justify-center max-w-[40px] h-8 border first:rounded-l-md last:rounded-r-md -ml-px first:ml-0 hover:bg-muted ${
-                        styles.textAlign === val
-                          ? "bg-primary/10 text-primary z-10 border-primary/20"
-                          : "bg-background border-input"
-                      }`}
+                      className={`flex-1 flex items-center justify-center max-w-[40px] h-8 border first:rounded-l-md last:rounded-r-md -ml-px first:ml-0 hover:bg-muted ${styles.textAlign === val
+                        ? "bg-primary/10 text-primary z-10 border-primary/20"
+                        : "bg-background border-input"
+                        }`}
                     >
                       <Icon className="w-4 h-4" />
                     </button>
@@ -830,97 +829,97 @@ export function VisualEditor({
               </div>
               {(styles.display === "flex" ||
                 styles.display?.includes("flex")) && (
-                <>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                      <Label className="text-xs text-muted-foreground">
-                        Direction
-                      </Label>
-                      <Select
-                        value={styles.flexDirection || "row"}
-                        onValueChange={(val) =>
-                          onUpdateStyle("flexDirection", val)
-                        }
-                      >
-                        <SelectTrigger className="h-8">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="row">Row</SelectItem>
-                          <SelectItem value="column">Column</SelectItem>
-                          <SelectItem value="row-reverse">
-                            Row Reverse
-                          </SelectItem>
-                          <SelectItem value="column-reverse">
-                            Column Reverse
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
+                  <>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
+                        <Label className="text-xs text-muted-foreground">
+                          Direction
+                        </Label>
+                        <Select
+                          value={styles.flexDirection || "row"}
+                          onValueChange={(val) =>
+                            onUpdateStyle("flexDirection", val)
+                          }
+                        >
+                          <SelectTrigger className="h-8">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="row">Row</SelectItem>
+                            <SelectItem value="column">Column</SelectItem>
+                            <SelectItem value="row-reverse">
+                              Row Reverse
+                            </SelectItem>
+                            <SelectItem value="column-reverse">
+                              Column Reverse
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs text-muted-foreground">
+                          Gap
+                        </Label>
+                        <Input
+                          className="h-8"
+                          value={styles.gap || ""}
+                          placeholder="0px"
+                          onChange={(e) => onUpdateStyle("gap", e.target.value)}
+                        />
+                      </div>
                     </div>
-                    <div className="space-y-1.5">
-                      <Label className="text-xs text-muted-foreground">
-                        Gap
-                      </Label>
-                      <Input
-                        className="h-8"
-                        value={styles.gap || ""}
-                        placeholder="0px"
-                        onChange={(e) => onUpdateStyle("gap", e.target.value)}
-                      />
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
+                        <Label className="text-xs text-muted-foreground">
+                          Justify
+                        </Label>
+                        <Select
+                          value={styles.justifyContent || "flex-start"}
+                          onValueChange={(val) =>
+                            onUpdateStyle("justifyContent", val)
+                          }
+                        >
+                          <SelectTrigger className="h-8">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="flex-start">Start</SelectItem>
+                            <SelectItem value="center">Center</SelectItem>
+                            <SelectItem value="flex-end">End</SelectItem>
+                            <SelectItem value="space-between">
+                              Space Between
+                            </SelectItem>
+                            <SelectItem value="space-around">
+                              Space Around
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs text-muted-foreground">
+                          Align
+                        </Label>
+                        <Select
+                          value={styles.alignItems || "stretch"}
+                          onValueChange={(val) =>
+                            onUpdateStyle("alignItems", val)
+                          }
+                        >
+                          <SelectTrigger className="h-8">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="flex-start">Start</SelectItem>
+                            <SelectItem value="center">Center</SelectItem>
+                            <SelectItem value="flex-end">End</SelectItem>
+                            <SelectItem value="stretch">Stretch</SelectItem>
+                            <SelectItem value="baseline">Baseline</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                      <Label className="text-xs text-muted-foreground">
-                        Justify
-                      </Label>
-                      <Select
-                        value={styles.justifyContent || "flex-start"}
-                        onValueChange={(val) =>
-                          onUpdateStyle("justifyContent", val)
-                        }
-                      >
-                        <SelectTrigger className="h-8">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="flex-start">Start</SelectItem>
-                          <SelectItem value="center">Center</SelectItem>
-                          <SelectItem value="flex-end">End</SelectItem>
-                          <SelectItem value="space-between">
-                            Space Between
-                          </SelectItem>
-                          <SelectItem value="space-around">
-                            Space Around
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label className="text-xs text-muted-foreground">
-                        Align
-                      </Label>
-                      <Select
-                        value={styles.alignItems || "stretch"}
-                        onValueChange={(val) =>
-                          onUpdateStyle("alignItems", val)
-                        }
-                      >
-                        <SelectTrigger className="h-8">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="flex-start">Start</SelectItem>
-                          <SelectItem value="center">Center</SelectItem>
-                          <SelectItem value="flex-end">End</SelectItem>
-                          <SelectItem value="stretch">Stretch</SelectItem>
-                          <SelectItem value="baseline">Baseline</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                </>
-              )}
+                  </>
+                )}
               <div className="space-y-1.5">
                 <Label className="text-xs text-muted-foreground">Opacity</Label>
                 <Input

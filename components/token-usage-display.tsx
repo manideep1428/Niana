@@ -48,11 +48,10 @@ export function TokenUsageDisplay() {
         <Button
           variant="ghost"
           size="sm"
-          className={`px-3 gap-2 rounded-full border border-black/5 dark:border-white/5 bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 ${
-            isLowBalance
-              ? "text-red-500 dark:text-red-400 border-red-200 bg-red-50 dark:bg-red-900/10"
-              : "text-amber-600 dark:text-amber-400"
-          }`}
+          className={`px-3 gap-2 rounded-full border border-black/5 dark:border-white/5 bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 ${isLowBalance
+            ? "text-red-500 dark:text-red-400 border-red-200 bg-red-50 dark:bg-red-900/10"
+            : "text-amber-600 dark:text-amber-400"
+            }`}
         >
           <Coins className="w-4 h-4" />
           <span className="font-semibold">
@@ -66,11 +65,10 @@ export function TokenUsageDisplay() {
           <div className="flex items-center justify-between">
             <h4 className="text-sm font-semibold">Credit Balance</h4>
             <span
-              className={`text-xs font-bold px-2 py-0.5 rounded-full ${
-                isFree
-                  ? "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300"
-                  : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
-              }`}
+              className={`text-xs font-bold px-2 py-0.5 rounded-full ${isFree
+                ? "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300"
+                : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
+                }`}
             >
               {subscription?.plan ? subscription.plan.toUpperCase() : "FREE"}
             </span>

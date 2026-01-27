@@ -30,6 +30,7 @@ import { toast } from "sonner";
 import { useAuth } from "@workos-inc/authkit-nextjs/components";
 import { SSEEvent } from "@/lib/types";
 import { ExportDialog } from "@/components/export-dialog";
+import { InviteMemberDialog } from "@/components/invite-member-dialog";
 
 interface Message {
   role: "user" | "assistant";
@@ -233,9 +234,9 @@ function DesignPageContent() {
       setSelectedElement((prev) =>
         prev
           ? {
-              ...prev,
-              styles: { ...prev.styles, [property]: value },
-            }
+            ...prev,
+            styles: { ...prev.styles, [property]: value },
+          }
           : null,
       );
     },
@@ -261,9 +262,9 @@ function DesignPageContent() {
       setSelectedElement((prev) =>
         prev
           ? {
-              ...prev,
-              styles: { ...prev.styles, [property]: value },
-            }
+            ...prev,
+            styles: { ...prev.styles, [property]: value },
+          }
           : null,
       );
     },
@@ -341,9 +342,9 @@ function DesignPageContent() {
       setSelectedElement((prev) =>
         prev
           ? {
-              ...prev,
-              attributes: { ...prev.attributes, [attribute]: value },
-            }
+            ...prev,
+            attributes: { ...prev.attributes, [attribute]: value },
+          }
           : null,
       );
     },
@@ -373,9 +374,9 @@ function DesignPageContent() {
         setSelectedElement((prev) =>
           prev
             ? {
-                ...prev,
-                styles: { ...prev.styles, [action.property!]: action.oldValue },
-              }
+              ...prev,
+              styles: { ...prev.styles, [action.property!]: action.oldValue },
+            }
             : null,
         );
       } else if (action.type === "content") {
@@ -398,12 +399,12 @@ function DesignPageContent() {
         setSelectedElement((prev) =>
           prev
             ? {
-                ...prev,
-                attributes: {
-                  ...prev.attributes,
-                  [action.attribute!]: action.oldValue,
-                },
-              }
+              ...prev,
+              attributes: {
+                ...prev.attributes,
+                [action.attribute!]: action.oldValue,
+              },
+            }
             : null,
         );
       }
@@ -435,9 +436,9 @@ function DesignPageContent() {
         setSelectedElement((prev) =>
           prev
             ? {
-                ...prev,
-                styles: { ...prev.styles, [action.property!]: action.newValue },
-              }
+              ...prev,
+              styles: { ...prev.styles, [action.property!]: action.newValue },
+            }
             : null,
         );
       } else if (action.type === "content") {
@@ -460,12 +461,12 @@ function DesignPageContent() {
         setSelectedElement((prev) =>
           prev
             ? {
-                ...prev,
-                attributes: {
-                  ...prev.attributes,
-                  [action.attribute!]: action.newValue,
-                },
-              }
+              ...prev,
+              attributes: {
+                ...prev.attributes,
+                [action.attribute!]: action.newValue,
+              },
+            }
             : null,
         );
       }
@@ -1077,7 +1078,11 @@ function DesignPageContent() {
   }, [forkProject, projectId, user]);
 
   return (
-    <SidebarProvider>
+    <SidebarProvider
+      style={{
+        "--sidebar-width": "24rem",
+      } as React.CSSProperties}
+    >
       <PromptSidebar
         input={input}
         messages={messages}
@@ -1104,7 +1109,7 @@ function DesignPageContent() {
         projectTitle={project?.title || "Untitled"}
       />
       <SidebarInset className="flex flex-col">
-        <header className="flex h-16 shrink-0 items-center justify-between gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12 border-b">
+        <header className="flex h-14 shrink-0 items-center justify-between gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12 border-b">
           <div className="flex items-center gap-2 px-4">
             <SidebarTrigger className="-ml-1" />
             <Separator
@@ -1197,6 +1202,7 @@ function DesignPageContent() {
             )}
           </div>
           <div className="flex items-center gap-3 px-4">
+            {/* {projectId && <InviteMemberDialog projectId={projectId} />} */}
             <ExportDialog
               projectId={projectId}
               projectTitle={project?.title || "Untitled"}

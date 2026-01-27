@@ -1,4 +1,5 @@
 import { query } from "./_generated/server";
+// Force rebuild for file rename: quires.ts -> queries.ts
 import { v } from "convex/values";
 
 // Get all messages for a specific project
@@ -23,11 +24,64 @@ export const getProjects = query({
 export const getUserProjects = query({
   args: { user_id: v.string() },
   handler: async (ctx, args) => {
-    return ctx.db
-      .query("projects")
+    const memberships = await ctx.db
+      .query("project_members")
       .withIndex("by_user", (q) => q.eq("user_id", args.user_id))
-      .order("desc")
       .collect();
+
+    const projects = await Promise.all(
+      memberships.map(async (m) => {
+        return await ctx.db
+          .query("projects")
+          .filter((q) => q.eq(q.field("project_id"), m.project_id))
+          .first();
+      })
+    );
+
+    return projects
+      .filter((p) => p !== null)
+      .sort((a, b) => {
+        // Sort by Pinned first (true comes first)
+        if (a!.is_pinned && !b!.is_pinned) return -1;
+        if (!a!.is_pinned && b!.is_pinned) return 1;
+
+        // Then sort by Created Date (newest first)
+        return b!.created_at > a!.created_at ? 1 : -1;
+      });
+  },
+});
+
+// Get all members of a specific project
+export const getProjectMembers = query({
+  args: { project_id: v.string() },
+  handler: async (ctx, args) => {
+    const members = await ctx.db
+      .query("project_members")
+      .withIndex("by_project", (q) => q.eq("project_id", args.project_id))
+      .collect();
+
+    const membersWithUserInfo = await Promise.all(
+      members.map(async (member) => {
+        const user = await ctx.db
+          .query("users")
+          .withIndex("by_user_id", (q) => q.eq("user_id", member.user_id))
+          .first();
+
+        return {
+          ...member,
+          userInfo: user
+            ? {
+              first_name: user.first_name,
+              last_name: user.last_name,
+              email: user.email,
+              profile_picture_url: user.profile_picture_url,
+            }
+            : null,
+        };
+      })
+    );
+
+    return membersWithUserInfo;
   },
 });
 
@@ -129,10 +183,10 @@ export const getPublicProjects = query({
           ...project,
           user: user
             ? {
-                first_name: user.first_name,
-                last_name: user.last_name,
-                profile_picture_url: user.profile_picture_url,
-              }
+              first_name: user.first_name,
+              last_name: user.last_name,
+              profile_picture_url: user.profile_picture_url,
+            }
             : null,
         };
       })
@@ -179,10 +233,10 @@ export const getProjectWithUser = query({
       ...project,
       user: user
         ? {
-            first_name: user.first_name,
-            last_name: user.last_name,
-            profile_picture_url: user.profile_picture_url,
-          }
+          first_name: user.first_name,
+          last_name: user.last_name,
+          profile_picture_url: user.profile_picture_url,
+        }
         : null,
     };
   },

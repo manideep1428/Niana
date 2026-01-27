@@ -11,6 +11,7 @@ import {
 import { PromptInput } from "./prompt-input";
 import { DesignToolCall } from "./design-tool-call";
 import { Response } from "./elements/response";
+import Link from "next/link";
 import type { Attachment } from "./preview-attachment";
 import Image from "next/image";
 import {
@@ -203,10 +204,9 @@ export function PromptSidebar({
         {/* Header */}
         <SidebarHeader className="border-b border-white/10 p-4 space-y-3">
           <div className="flex items-center gap-2">
-            <Image src="/logo.png" alt="Niana Logo" width={24} height={24} />
-            <h2 className="font-semibold bg-linear-to-r from-pink-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
-              Niana
-            </h2>
+            <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+              <Image src="/logo-brand.png" alt="Niana" width={120} height={40} className="object-contain" />
+            </Link>
           </div>
 
           {/* Design Mode Header with breadcrumb */}
@@ -279,12 +279,13 @@ export function PromptSidebar({
                       >
                         {/* Large avatar on the left */}
                         {message.role === "assistant" ? (
-                          <div className="shrink-0 w-7 h-7 rounded-full flex items-center justify-center">
+                          <div className="shrink-0 flex items-center justify-center">
                             <Image
-                              src="/logo.png"
-                              alt="Niana Logo"
-                              width={24}
-                              height={24}
+                              src="/logo-brand.png"
+                              alt="Niana"
+                              width={80}
+                              height={26}
+                              className="object-contain"
                             />
                           </div>
                         ) : (
@@ -374,19 +375,16 @@ export function PromptSidebar({
 
                       return (
                         <div className="flex gap-3 w-full pb-4 border-b border-white/10">
-                          <div className="shrink-0 w-7 h-7 rounded-full flex items-center justify-center">
+                          <div className="shrink-0 flex items-center justify-center">
                             <Image
-                              src="/logo.png"
-                              alt="Niana Logo"
-                              width={24}
-                              height={24}
-                              className="animate-pulse"
+                              src="/logo-brand.png"
+                              alt="Niana"
+                              width={80}
+                              height={26}
+                              className="animate-pulse object-contain"
                             />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <span className="text-xs font-medium text-muted-foreground mb-1 block">
-                              Niana
-                            </span>
                             <div className="flex gap-1">
                               <span
                                 className="w-2 h-2 bg-primary/50 rounded-full animate-bounce"
@@ -416,11 +414,10 @@ export function PromptSidebar({
               {/* Scroll to bottom button */}
               <button
                 aria-label="Scroll to bottom"
-                className={`-translate-x-1/2 absolute bottom-4 left-1/2 z-10 rounded-full border bg-background p-2 shadow-lg transition-all hover:bg-muted ${
-                  isAtBottom
-                    ? "pointer-events-none scale-0 opacity-0"
-                    : "pointer-events-auto scale-100 opacity-100"
-                }`}
+                className={`-translate-x-1/2 absolute bottom-4 left-1/2 z-10 rounded-full border bg-background p-2 shadow-lg transition-all hover:bg-muted ${isAtBottom
+                  ? "pointer-events-none scale-0 opacity-0"
+                  : "pointer-events-auto scale-100 opacity-100"
+                  }`}
                 onClick={() => scrollToBottom("smooth")}
                 type="button"
               >

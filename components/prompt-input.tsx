@@ -1,20 +1,23 @@
 "use client";
 
 import React, { useRef, useState, useCallback, ChangeEvent } from "react";
+import { motion, AnimatePresence } from "motion/react";
 import { Textarea } from "./ui/textarea";
 import {
   Paperclip,
   Plus,
-  Sparkles,
-  MessageSquare,
   SquareDashedMousePointer,
+  Rocket,
+  Loader2,
+  MessageSquare,
 } from "lucide-react";
-import PromptSubmit from "./prompt-submit";
+import { Button } from "./ui/button";
 import { useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { PreviewAttachment, type Attachment } from "./preview-attachment";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { Globe, Lock } from "lucide-react";
 
 // Allowed file types
 const ALLOWED_TYPES = [
@@ -43,6 +46,8 @@ interface PromptInputProps {
   activeTab?: "chat" | "design";
   onTabChange?: (tab: "chat" | "design") => void;
   hasSelectedElement?: boolean;
+  isPublic?: boolean;
+  setIsPublic?: (isPublic: boolean) => void;
 }
 
 export function PromptInput({
@@ -55,6 +60,8 @@ export function PromptInput({
   activeTab = "chat",
   onTabChange,
   hasSelectedElement,
+  isPublic = true,
+  setIsPublic,
 }: PromptInputProps) {
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [uploadQueue, setUploadQueue] = useState<string[]>([]);
@@ -306,10 +313,9 @@ export function PromptInput({
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
           className={`
-            relative rounded-3xl border-2 transition-all duration-200
-            bg-[#faf4eb] dark:bg-card
-            ${isFocused ? "border-primary/60 shadow-lg shadow-primary/20 ring-2 ring-primary/10" : "border-black/10 dark:border-border shadow-sm"}
-            ${isDragging ? "border-primary/60 bg-primary/5 shadow-lg shadow-primary/10" : ""}
+            relative rounded-3xl border-2 transition-all duration-300
+            ${isDragging ? "bg-orange-50 border-primary" : "bg-[#fdfbf9] dark:bg-[#1f1f1f] border-[#fed7aa]"}
+            ${isFocused ? "shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)] ring-4 ring-orange-100 border-[#f4a261]" : "shadow-sm hover:border-[#f4a261]/50"}
           `}
         >
           {/* Attachments preview */}
@@ -394,13 +400,64 @@ export function PromptInput({
               )}
             </div>
 
-            <PromptSubmit
-              status={isLoading ? "loading" : "streaming"}
-              onSubmit={handleButtonClick}
-              onStop={onStop}
-              isResponding={isResponding}
-              className="bg-linear-to-r from-primary/60 to-primary/40 hover:from-primary/70 hover:to-primary/50 text-primary-foreground h-8 w-8 rounded-lg transition-colors shadow-sm"
-            />
+            <div className="flex items-center gap-4">
+              {setIsPublic && (
+                <button
+                  type="button"
+                  onClick={() => setIsPublic(!isPublic)}
+                  className={cn(
+                    "group relative flex items-center gap-2 px-3 py-1.5 rounded-full border transition-all duration-300 overflow-hidden",
+                    isPublic
+                      ? "bg-blue-50/50 dark:bg-blue-500/10 border-blue-200 dark:border-blue-500/20 text-blue-600 dark:text-blue-400 hover:bg-blue-100/50 dark:hover:bg-blue-500/20"
+                      : "bg-amber-50/50 dark:bg-amber-500/10 border-amber-200 dark:border-amber-500/20 text-amber-600 dark:text-amber-400 hover:bg-amber-100/50 dark:hover:bg-amber-500/20"
+                  )}
+                >
+                  <AnimatePresence mode="wait" initial={false}>
+                    {isPublic ? (
+                      <motion.div
+                        key="public"
+                        initial={{ y: -20, opacity: 0 }}
+                        animate={{ y: 0, opacity: 1 }}
+                        exit={{ y: 20, opacity: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="flex items-center gap-2"
+                      >
+                        <Globe className="w-3.5 h-3.5" />
+                        <span className="text-xs font-medium">Public</span>
+                      </motion.div>
+                    ) : (
+                      <motion.div
+                        key="private"
+                        initial={{ y: -20, opacity: 0 }}
+                        animate={{ y: 0, opacity: 1 }}
+                        exit={{ y: 20, opacity: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="flex items-center gap-2"
+                      >
+                        <Lock className="w-3.5 h-3.5" />
+                        <span className="text-xs font-medium">Private</span>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </button>
+              )}
+
+              <Button
+                type="submit"
+                disabled={!input.trim() && attachments.length === 0}
+                className="rounded-full bg-linear-to-r from-[#F4A261] to-[#FDBA74] hover:from-[#e79250] hover:to-[#fcae63] text-white font-bold px-6 transition-all hover:scale-105 active:scale-95 shadow-md hover:shadow-orange-200 disabled:opacity-50 disabled:hover:scale-100"
+                onClick={handleButtonClick}
+              >
+                {isLoading ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <>
+                    <Rocket className="w-4 h-4 mr-2 text-white" />
+                    Build
+                  </>
+                )}
+              </Button>
+            </div>
           </div>
         </div>
       </form>

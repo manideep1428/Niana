@@ -117,6 +117,14 @@ export const saveProject = mutation({
       initial_status: false,
       attachments: args.attachments ?? [],
     });
+
+    // Add creator as owner in project_members
+    await ctx.db.insert("project_members", {
+      project_id: args.project_id,
+      user_id: args.user_id,
+      role: "owner",
+      created_at: Date.now().toString(),
+    });
   },
 });
 
@@ -378,6 +386,16 @@ export const deleteProject = mutation({
       await ctx.db.delete(design._id);
     }
 
+    // Delete all project members
+    const members = await ctx.db
+      .query("project_members")
+      .withIndex("by_project", (q) => q.eq("project_id", args.project_id))
+      .collect();
+
+    for (const member of members) {
+      await ctx.db.delete(member._id);
+    }
+
     // Finally delete the project
     await ctx.db.delete(project._id);
 
@@ -431,6 +449,31 @@ export const toggleProjectFavorite = mutation({
     });
 
     return { success: true, is_favorite: newFavoriteStatus };
+  },
+});
+
+// Toggle project pin status
+export const toggleProjectPin = mutation({
+  args: {
+    project_id: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const project = await ctx.db
+      .query("projects")
+      .filter((q) => q.eq(q.field("project_id"), args.project_id))
+      .first();
+
+    if (!project) {
+      throw new Error(`Project with id "${args.project_id}" not found`);
+    }
+
+    const newPinStatus = !project.is_pinned;
+
+    await ctx.db.patch(project._id, {
+      is_pinned: newPinStatus,
+    });
+
+    return { success: true, is_pinned: newPinStatus };
   },
 });
 
@@ -804,6 +847,96 @@ export const updateProjectThumbnail = mutation({
     await ctx.db.patch(project._id, {
       thumbnail: args.thumbnail,
     });
+
+    return { success: true };
+  },
+});
+
+// Invite a user to the project by email
+export const inviteTeamMember = mutation({
+  args: {
+    project_id: v.string(),
+    email: v.string(),
+    role: v.union(v.literal("owner"), v.literal("member")),
+  },
+  handler: async (ctx, args) => {
+    const userToInvite = await ctx.db
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", args.email))
+      .first();
+
+    if (!userToInvite) {
+      return { success: false, message: "User not found" };
+    }
+
+    const existingMember = await ctx.db
+      .query("project_members")
+      .withIndex("by_project_user", (q) =>
+        q.eq("project_id", args.project_id).eq("user_id", userToInvite.user_id)
+      )
+      .first();
+
+    if (existingMember) {
+      return { success: false, message: "User is already a member" };
+    }
+
+    await ctx.db.insert("project_members", {
+      project_id: args.project_id,
+      user_id: userToInvite.user_id,
+      role: args.role,
+      created_at: Date.now().toString(),
+    });
+
+    return { success: true, message: "User invited successfully" };
+  },
+});
+
+// Remove a team member
+export const removeTeamMember = mutation({
+  args: {
+    project_id: v.string(),
+    user_id: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const member = await ctx.db
+      .query("project_members")
+      .withIndex("by_project_user", (q) =>
+        q.eq("project_id", args.project_id).eq("user_id", args.user_id)
+      )
+      .first();
+
+    if (!member) {
+      throw new Error("Member not found");
+    }
+
+    await ctx.db.delete(member._id);
+
+    return { success: true };
+  },
+});
+
+// Leave a project
+export const leaveProject = mutation({
+  args: {
+    project_id: v.string(),
+    user_id: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const member = await ctx.db
+      .query("project_members")
+      .withIndex("by_project_user", (q) =>
+        q.eq("project_id", args.project_id).eq("user_id", args.user_id)
+      )
+      .first();
+
+    if (!member) {
+      throw new Error("You are not a member of this project");
+    }
+
+    // Optional: Prevent owner from leaving if they are the only owner?
+    // For now, allow it. ownership transfer might be a future task.
+
+    await ctx.db.delete(member._id);
 
     return { success: true };
   },

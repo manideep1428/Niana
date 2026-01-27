@@ -29,6 +29,7 @@ export default defineSchema({
     title: v.string(),
     description: v.optional(v.string()), // Short description for community display
     is_favorite: v.optional(v.boolean()), // For starring/favoriting projects
+    is_pinned: v.optional(v.boolean()), // For pinning projects to top of history
     is_public: v.optional(v.boolean()), // For community visibility (default: false = private)
     views: v.optional(v.number()), // View count for public projects
     likes: v.optional(v.number()), // Like count for public projects
@@ -141,4 +142,14 @@ export default defineSchema({
   })
     .index("by_user", ["user_id"])
     .index("by_figma_export_id", ["figma_export_id"]),
+
+  project_members: defineTable({
+    project_id: v.string(),
+    user_id: v.string(),
+    role: v.union(v.literal("owner"), v.literal("member")),
+    created_at: v.string(),
+  })
+    .index("by_project", ["project_id"])
+    .index("by_user", ["user_id"])
+    .index("by_project_user", ["project_id", "user_id"]),
 });

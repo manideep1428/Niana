@@ -126,42 +126,34 @@ function SuggestionCard({
   return (
     <motion.button
       ref={cardRef}
-      animate={{
-        scale: [1, 1.02, 1],
-      }}
-      transition={{
-        duration: 0.3,
-        ease: "easeInOut",
-      }}
-      onClick={onClick}
+      initial={{ scale: 1 }}
+      whileHover={{ scale: 1.05 }}
+      whileTap={{ scale: 0.95 }}
       onMouseMove={handleMouseMove}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
-      className="relative px-4 py-2 rounded-full text-secondary-foreground transition-all duration-200 text-sm font-medium cursor-pointer overflow-hidden group"
-      style={{
-        background: "transparent",
-      }}
+      onClick={onClick}
+      className="relative px-4 py-2 rounded-full border border-[#e7e5e4] bg-[#fdfbf9] text-sm font-medium text-[#57534e] overflow-hidden group hover:text-[#292524] hover:border-[#f4a261] hover:shadow-md dark:bg-[#1f1f1f] dark:border-white/10 dark:text-gray-300 dark:hover:bg-[#2a2a2a] dark:hover:text-white dark:hover:border-white/20 transition-all duration-300"
     >
-      {/* Animated gradient border */}
-      <span
-        className="absolute inset-0 rounded-full transition-opacity duration-300"
-        style={{
-          background: isHovered
-            ? `radial-gradient(120px circle at ${mousePosition.x}px ${mousePosition.y}px, 
-                rgba(59, 130, 246, 0.8), 
-                rgba(139, 92, 246, 0.6), 
-                rgba(236, 72, 153, 0.4), 
-                transparent 70%)`
-            : "linear-gradient(135deg, rgba(59, 130, 246, 0.3), rgba(139, 92, 246, 0.2), rgba(236, 72, 153, 0.2))",
-          opacity: isHovered ? 1 : 0.5,
-        }}
-      />
-
-      {/* Inner background */}
-      <span className="absolute inset-[1.5px] rounded-full bg-secondary transition-colors duration-200 group-hover:bg-secondary/90" />
-
-      {/* Text content */}
       <span className="relative z-10">{suggestion.title}</span>
+      {isHovered && (
+        <motion.div
+          className="absolute inset-0 pointer-events-none"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+        >
+          <div
+            className="absolute bg-orange-500/10 dark:bg-white/10 rounded-full blur-md"
+            style={{
+              left: mousePosition.x - 20,
+              top: mousePosition.y - 20,
+              width: 40,
+              height: 40,
+            }}
+          />
+        </motion.div>
+      )}
     </motion.button>
   );
 }

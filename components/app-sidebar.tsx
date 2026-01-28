@@ -394,6 +394,7 @@ export function PromptSidebar({
             // Normal mode - Show prompt input
             <PromptInput
               input={input}
+              disable={isLoading}
               setInput={setInput}
               isLoading={isLoading}
               isResponding={isResponding}

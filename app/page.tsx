@@ -118,6 +118,7 @@ export default function Home() {
           <div className="w-full max-w-3xl animate-in slide-in-from-bottom-8 duration-700 fade-in delay-150">
             <PromptInput
               input={input}
+              disable={isLoading}
               setInput={setInput}
               onSubmit={onSubmit}
               isLoading={isLoading}

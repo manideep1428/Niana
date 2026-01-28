@@ -46,6 +46,7 @@ interface PromptInputProps {
   activeTab?: "chat" | "design";
   onTabChange?: (tab: "chat" | "design") => void;
   hasSelectedElement?: boolean;
+  disable: boolean;
   variant?: "hero" | "chat";
 }
 
@@ -55,6 +56,7 @@ export function PromptInput({
   onSubmit,
   onStop,
   isLoading,
+  disable,
   isResponding = false,
   activeTab = "chat",
   onTabChange,
@@ -342,6 +344,7 @@ export function PromptInput({
                 ref={textareaRef}
                 name="content"
                 value={input}
+                disabled={disable}
                 onChange={(e) => setInput(e.target.value)}
                 onFocus={() => setIsFocused(true)}
                 onBlur={() => setIsFocused(false)}

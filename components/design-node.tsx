@@ -513,15 +513,8 @@ function DesignNodeComponent({ data, selected }: DesignNodeProps) {
                         <div className="relative mb-6">
                           <div className="w-20 h-20 rounded-full bg-zinc-900 border border-white/10 flex items-center justify-center shadow-2xl relative overflow-hidden ring-1 ring-white/5">
                             <div className="absolute inset-0 bg-linear-to-tr from-orange-500/20 via-transparent to-purple-500/20 animate-spin-slow duration-[3s]" />
-                            <Sparkles className="w-8 h-8 text-orange-400 animate-pulse duration-[2s]" />
                           </div>
                           {/* Orbiting particles */}
-                          <div className="absolute inset-0 w-full h-full animate-spin-reverse duration-[8s]">
-                            <div className="absolute top-0 left-1/2 w-1.5 h-1.5 bg-purple-500 rounded-full blur-[1px] shadow-[0_0_8px_rgba(168,85,247,0.8)]" />
-                          </div>
-                          <div className="absolute inset-0 w-full h-full animate-spin duration-[5s]">
-                            <div className="absolute bottom-0 right-1/2 w-1 h-1 bg-orange-500 rounded-full blur-[1px] shadow-[0_0_8px_rgba(249,115,22,0.8)]" />
-                          </div>
                         </div>
 
                         {/* Text Status */}
@@ -542,9 +535,7 @@ function DesignNodeComponent({ data, selected }: DesignNodeProps) {
                   ) : (
                     // Idle state - No design generated
                     <div className="flex flex-col items-center justify-center text-center p-8 space-y-4 opacity-60">
-                      <div className="w-16 h-16 rounded-2xl bg-zinc-900 flex items-center justify-center border border-white/5">
-                        <Sparkles className="w-6 h-6 text-zinc-600" />
-                      </div>
+                      <div className="w-16 h-16 rounded-2xl bg-zinc-900 flex items-center justify-center border border-white/5"></div>
                       <div className="space-y-1">
                         <p className="text-zinc-400 font-medium text-sm">
                           No Design Generated

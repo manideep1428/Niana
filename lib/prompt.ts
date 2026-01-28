@@ -90,6 +90,7 @@ Recommended screen logic:
 • Chat: inbox, chat, contacts, profile
 • Utility: home, feature, settings
 • Auth: login, signup, forgot password
+• Make the bottom bar is always   relavant to the screens , if no bottom required then skip it
 
 MULTI SCREEN RULES
 • Each screen must be generated separately using the createArtifact tool

@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import nodemailer from "nodemailer";
+import { Resend } from "resend";
+
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 // Email template function
 function getWelcomeEmailTemplate(firstName: string): string {
@@ -294,17 +296,6 @@ function getWelcomeEmailTemplate(firstName: string): string {
 </html>`;
 }
 
-// Configure nodemailer transporter
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST,
-  port: parseInt(process.env.SMTP_PORT || "587"),
-  secure: process.env.SMTP_SECURE === "true",
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASSWORD,
-  },
-});
-
 export async function POST(request: NextRequest) {
   try {
     const { email, firstName } = await request.json();
@@ -316,26 +307,39 @@ export async function POST(request: NextRequest) {
     // Generate the email template
     const htmlContent = getWelcomeEmailTemplate(firstName);
 
-    // Send the welcome email in background (fire and forget - non-blocking)
-    transporter
-      .sendMail({
-        from: `"Niana" <${process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER}>`,
-        to: email,
+    // Send the welcome email
+    try {
+      const { data, error } = await resend.emails.send({
+        from: process.env.RESEND_FROM_EMAIL || "Niana <onboarding@resend.dev>",
+        to: [email],
         subject: "🎉 Welcome to Niana - Your AI Design Journey Begins!",
         html: htmlContent,
-      })
-      .then(() => {
-        console.log(`Welcome email sent to ${email}`);
-      })
-      .catch((error) => {
-        console.error(`Failed to send welcome email to ${email}:`, error);
       });
 
-    // Return immediately without waiting for email to be sent
-    return NextResponse.json(
-      { success: true, message: "Welcome email queued successfully" },
-      { status: 200 }
-    );
+      if (error) {
+        console.error("Failed to send welcome email:", error);
+        return NextResponse.json(
+          { error: "Failed to send email", details: error },
+          { status: 500 },
+        );
+      }
+
+      console.log(`Welcome email sent to ${email}`, data);
+
+      return NextResponse.json(
+        { success: true, message: "Welcome email sent successfully", data },
+        { status: 200 },
+      );
+    } catch (error) {
+      console.error("Error sending welcome email with Resend:", error);
+      return NextResponse.json(
+        {
+          error: "Failed to send welcome email",
+          details: String(error),
+        },
+        { status: 500 },
+      );
+    }
   } catch (error) {
     console.error("Error processing welcome email request:", error);
     return NextResponse.json(
@@ -343,7 +347,7 @@ export async function POST(request: NextRequest) {
         error: "Failed to process welcome email request",
         details: String(error),
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

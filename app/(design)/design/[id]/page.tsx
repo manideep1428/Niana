@@ -825,7 +825,7 @@ function DesignPageContent() {
             )}
           </div>
           <div className="flex items-center gap-3 px-4">
-            <ExportDialog
+            {/* <ExportDialog onCli
               projectId={projectId}
               projectTitle={project?.title || "Untitled"}
               messages={messages}
@@ -836,7 +836,7 @@ function DesignPageContent() {
                     "Use the Figma button on each design card to export individual screens.",
                 });
               }}
-            />
+            /> */}
             <TokenUsageDisplay />
             <Button
               variant="ghost"

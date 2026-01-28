@@ -220,11 +220,9 @@ export function DesignCanvas({
         onSelectionChange={handleSelectionChange}
         onNodeDragStop={isReadOnly ? undefined : onNodeDragStop}
         nodesDraggable={!isReadOnly}
-        fitView
-        fitViewOptions={{ padding: 0.2 }}
         minZoom={MIN_ZOOM}
         maxZoom={MAX_ZOOM}
-        defaultViewport={{ x: 0, y: 0, zoom: 0.5 }}
+        defaultViewport={{ x: 0, y: 0, zoom: 0.44 }}
         proOptions={{ hideAttribution: true }}
         panOnDrag={[0, 1, 2]}
         selectionOnDrag={false}
@@ -245,6 +243,9 @@ export function DesignCanvas({
                 <ZoomOut className="h-4 w-4" />
               </Button>
             )}
+            <span className="min-w-[3rem] text-center text-sm font-medium tabular-nums select-none">
+              {Math.round(zoom * 100)}%
+            </span>
             {canZoomIn && (
               <Button
                 variant="ghost"

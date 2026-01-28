@@ -13,6 +13,7 @@ import type * as http from "../http.js";
 import type * as migrations from "../migrations.js";
 import type * as mutations from "../mutations.js";
 import type * as quires from "../quires.js";
+import type * as surveys from "../surveys.js";
 
 import type {
   ApiFromModules,
@@ -26,6 +27,7 @@ declare const fullApi: ApiFromModules<{
   migrations: typeof migrations;
   mutations: typeof mutations;
   quires: typeof quires;
+  surveys: typeof surveys;
 }>;
 
 /**

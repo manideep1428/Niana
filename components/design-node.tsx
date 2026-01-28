@@ -475,11 +475,11 @@ function DesignNodeComponent({ data, selected }: DesignNodeProps) {
                 title={title}
               />
 
-              {/* Skeleton Loader / Streaming Indicator */}
-              {showSkeleton && (
+              {/* Active Streaming Overlay or Empty State */}
+              {!hasValidContent && (
                 <div className="absolute inset-0 z-10 bg-zinc-950 flex flex-col items-center justify-center p-6 space-y-4 min-h-[812px] w-[375px]">
                   {isStreaming ? (
-                    // Streaming indicator - show that content is being generated
+                    // Streaming indicator - active generation
                     <div className="w-full h-full flex flex-col relative">
                       {/* Animated Wireframe Skeleton */}
                       <div className="w-full h-full p-4 space-y-6 opacity-50">
@@ -540,22 +540,18 @@ function DesignNodeComponent({ data, selected }: DesignNodeProps) {
                       </div>
                     </div>
                   ) : (
-                    // Static skeleton - waiting for content
-                    <div className="w-full space-y-4 p-4">
-                      {/* Header */}
-                      <div className="flex items-center justify-between">
-                        <div className="w-8 h-8 rounded-full bg-zinc-800" />
-                        <div className="w-24 h-4 rounded bg-zinc-800" />
-                        <div className="w-8 h-8 rounded-full bg-zinc-800" />
+                    // Idle state - No design generated
+                    <div className="flex flex-col items-center justify-center text-center p-8 space-y-4 opacity-60">
+                      <div className="w-16 h-16 rounded-2xl bg-zinc-900 flex items-center justify-center border border-white/5">
+                        <Sparkles className="w-6 h-6 text-zinc-600" />
                       </div>
-                      <div className="h-[200px] w-full rounded-xl bg-zinc-800 animate-pulse" />
-                      <div className="space-y-2">
-                        <div className="h-4 w-3/4 bg-zinc-800 rounded animate-pulse" />
-                        <div className="h-4 w-1/2 bg-zinc-800 rounded animate-pulse" />
-                      </div>
-                      <div className="grid grid-cols-2 gap-3 pt-2">
-                        <div className="h-32 rounded-xl bg-zinc-800 animate-pulse" />
-                        <div className="h-32 rounded-xl bg-zinc-800 animate-pulse" />
+                      <div className="space-y-1">
+                        <p className="text-zinc-400 font-medium text-sm">
+                          No Design Generated
+                        </p>
+                        <p className="text-zinc-600 text-xs max-w-[200px]">
+                          This screen hasn't been generated yet.
+                        </p>
                       </div>
                     </div>
                   )}

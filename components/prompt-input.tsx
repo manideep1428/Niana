@@ -313,7 +313,7 @@ export function PromptInput({
             className={`
                 relative flex flex-col min-h-[100px] rounded-2xl border-[3px] transition-all duration-300
                 file:bg-card bg-[#fffcfb] dark:bg-card border-primary
-                ${isFocused ? "border-primary border-[3px] shadow-[0_0_20px_rgba(255,159,104,0.15)] ring-1 ring-primary/20" : "border-primary/20 shadow-sm hover:border-primary/50"}
+                ${isFocused ? "border-primary border-[3px]" : "border-primary/20 shadow-sm hover:border-primary/50"}
                 ${isDragging ? "border-primary bg-background scale-[1.01]" : ""}
               `}
           >
@@ -349,7 +349,7 @@ export function PromptInput({
                 placeholder={
                   isDragging ? "Drop files here..." : "Design a screens for..."
                 }
-                className="w-full h-full text-lg sm:text-xl font-medium bg-transparent dark:bg-transparent border-none text-foreground placeholder:text-muted-foreground/60 resize-none outline-none overflow-y-auto scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0 shadow-none min-h-[80px]"
+                className="w-full h-full text-3xl sm:text-3xl font-medium bg-transparent dark:bg-transparent border-none text-foreground placeholder:text-muted-foreground/60 resize-none outline-none overflow-y-auto scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0 shadow-none min-h-[80px]"
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && !e.shiftKey) {
                     e.preventDefault();

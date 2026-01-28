@@ -143,4 +143,12 @@ export default defineSchema({
   })
     .index("by_user", ["user_id"])
     .index("by_figma_export_id", ["figma_export_id"]),
+
+  surveys: defineTable({
+    user_id: v.string(),
+    email: v.string(),
+    answer: v.string(), // "LinkedIn", "YouTube", "Other", etc.
+    details: v.optional(v.string()), // For "Other" text input
+    created_at: v.string(),
+  }).index("by_user", ["user_id"]),
 });

@@ -135,7 +135,7 @@ export const getPublicProjects = query({
               }
             : null,
         };
-      })
+      }),
     );
 
     return projectsWithUsers;
@@ -152,7 +152,7 @@ export const checkUserLikedProject = query({
     const like = await ctx.db
       .query("project_likes")
       .withIndex("by_user_project", (q) =>
-        q.eq("user_id", args.user_id).eq("project_id", args.project_id)
+        q.eq("user_id", args.user_id).eq("project_id", args.project_id),
       )
       .first();
     return !!like;

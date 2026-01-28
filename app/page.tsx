@@ -15,6 +15,7 @@ import { useAuth } from "@workos-inc/authkit-nextjs/components";
 import type { Attachment } from "@/components/preview-attachment";
 
 import { GreetingHeader } from "@/components/greeting-header";
+import { HowDidYouFindUsModal } from "@/components/how-did-you-find-us";
 
 export default function Home() {
   const router = useRouter();
@@ -92,13 +93,11 @@ export default function Home() {
 
   return (
     <div className="relative min-h-screen bg-background selection:bg-primary/20">
+      <HowDidYouFindUsModal />
       {/* Background Pattern */}
-      <div
-        className="fixed inset-0 pointer-events-none z-0 opacity-[0.03]"
-        style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%239C92AC' fill-opacity='1' fill-rule='evenodd'%3E%3Cpath d='M0 40L40 0H20L0 20M40 40V20L20 40'/%3E%3C/g%3E%3C/svg%3E")`,
-        }}
-      />
+      <div className="fixed inset-0 flex items-center justify-center pointer-events-none z-0">
+        <div className="w-[60vh] h-[60vh] bg-primary/15 rounded-full blur-[120px] opacity-60 dark:opacity-40" />
+      </div>
 
       {/* Republic Day Offer Banner */}
       <RepublicDayBanner />

@@ -15,7 +15,6 @@ import { useAuth } from "@workos-inc/authkit-nextjs/components";
 import type { Attachment } from "@/components/preview-attachment";
 
 import { GreetingHeader } from "@/components/greeting-header";
-import { HowDidYouFindUsModal } from "@/components/how-did-you-find-us";
 
 export default function Home() {
   const router = useRouter();
@@ -93,7 +92,6 @@ export default function Home() {
 
   return (
     <div className="relative min-h-screen bg-background selection:bg-primary/20">
-      <HowDidYouFindUsModal />
       {/* Background Pattern */}
       <div className="fixed inset-0 flex items-center justify-center pointer-events-none z-0">
         <div className="w-[60vh] h-[60vh] bg-primary/15 rounded-full blur-[120px] opacity-60 dark:opacity-40" />

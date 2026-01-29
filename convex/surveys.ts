@@ -2,16 +2,17 @@ import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 
 export const getSurveyStatus = query({
-  args: {},
-  handler: async (ctx) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      return true; // treat as "submitted" so we don't annoy unauthenticated users or handle auth check in UI
+  args: {
+    userId: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    if (!args.userId) {
+      return true; // treat as "submitted" so we don't annoy unauthenticated users
     }
-    const userId = identity.subject;
+
     const survey = await ctx.db
       .query("surveys")
-      .withIndex("by_user", (q) => q.eq("user_id", userId))
+      .withIndex("by_user", (q) => q.eq("user_id", args.userId!))
       .first();
 
     return !!survey;
@@ -20,20 +21,15 @@ export const getSurveyStatus = query({
 
 export const submitSurvey = mutation({
   args: {
+    userId: v.string(),
+    email: v.string(),
     answer: v.string(),
     details: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new Error("Unauthenticated");
-    }
-    const userId = identity.subject;
-    const email = identity.email || "";
-
     const existing = await ctx.db
       .query("surveys")
-      .withIndex("by_user", (q) => q.eq("user_id", userId))
+      .withIndex("by_user", (q) => q.eq("user_id", args.userId))
       .first();
 
     if (existing) {
@@ -41,8 +37,8 @@ export const submitSurvey = mutation({
     }
 
     await ctx.db.insert("surveys", {
-      user_id: userId,
-      email: email,
+      user_id: args.userId,
+      email: args.email,
       answer: args.answer,
       details: args.details,
       created_at: new Date().toISOString(),

@@ -96,7 +96,7 @@ export function TokenUsageDisplay() {
                 🎉 Unlimited Credits Active!
               </p>
               <p className="text-xs text-gray-600 dark:text-gray-300">
-                Enjoy unlimited design generation for 7 days. No restrictions!
+                Enjoy unlimited design generation for 5 days. No restrictions!
               </p>
               <p className="text-xs text-orange-600 dark:text-orange-400 mt-1 font-medium">
                 {creditsUsed.toFixed(2)} credits used so far

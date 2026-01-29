@@ -17,7 +17,7 @@ export const SUBSCRIPTION_PLANS = {
     credits: -1, // Unlimited credits (Republic Day Offer)
     tokens: -1, // Unlimited tokens (Republic Day Offer)
     projectsLimit: -1, // Unlimited
-    figmaLimit: -1, // Unlimited Figma exports (Republic Day Offer)
+    figmaLimit: 1, // 1 Figma export (Republic Day Offer)
     isUnlimited: true, // Flag for unlimited plan
     features: [
       "Unlimited Credits",

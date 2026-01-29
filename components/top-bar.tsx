@@ -82,7 +82,7 @@ export default function TopBar({ topOffset = "0" }: TopBarProps) {
 
   const planKey = (subscription?.plan ||
     "free") as keyof typeof SUBSCRIPTION_PLANS;
-  const figmaLimit = SUBSCRIPTION_PLANS[planKey]?.figmaLimit ?? 1;
+  const figmaLimit: number = SUBSCRIPTION_PLANS[planKey]?.figmaLimit ?? 1;
   const figmaUsed = figmaUsage ?? 0;
   // Handle unlimited Figma exports (-1)
   const figmaRemaining =

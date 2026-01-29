@@ -130,6 +130,44 @@ export function DesignCanvas({
     if (idsChanged || nodes.length === 0) {
       console.log("Syncing nodes with initialNodes (designs changed)");
       setNodes(initialNodes);
+
+      // Center view logic
+      const streamingNode = initialNodes.find(
+        (n) => (n.data as DesignNodeData).isStreaming,
+      );
+
+      // Condition 1: A new design is being generated (has skeleton/streaming)
+      // Condition 2: This is the first design ever (canvas was empty)
+      // Condition 3: We have exactly one design (ensure it's centered on load/refresh)
+      if (streamingNode) {
+        // Always focus on the node being generated
+        setTimeout(() => {
+          setCenter(
+            streamingNode.position.x + 187.5,
+            streamingNode.position.y + 406,
+            {
+              zoom: 0.85,
+              duration: 1000,
+            },
+          );
+        }, 100);
+      } else if (
+        (nodes.length === 0 && initialNodes.length > 0) ||
+        (initialNodes.length === 1 && !isInternalSelection.current)
+      ) {
+        // Center on the last added node if we just got data, or if there's only one node
+        const targetNode = initialNodes[initialNodes.length - 1];
+        setTimeout(() => {
+          setCenter(
+            targetNode.position.x + 187.5,
+            targetNode.position.y + 406,
+            {
+              zoom: 0.85,
+              duration: 800,
+            },
+          );
+        }, 100);
+      }
     } else {
       // Update existing nodes with new content/streaming status
       setNodes((nds) =>

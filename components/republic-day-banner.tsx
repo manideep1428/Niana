@@ -45,7 +45,7 @@ export function RepublicDayBanner({
               🎉 Republic Day Offer!
             </span>
             <span className="bg-gray-900 text-white px-3 py-1 rounded-full text-xs font-bold animate-pulse">
-              7 DAYS UNLIMITED FREE
+              5 FREE UNLIMITED
             </span>
             <Link
               href="/pricing"

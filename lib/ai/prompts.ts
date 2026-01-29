@@ -80,7 +80,7 @@ Remember: Create beautiful, functional designs that users will love!`;
 
 export const updateDesignPrompt = (
   currentContent: string,
-  description: string
+  description: string,
 ) => {
   return `You are updating an existing HTML design. Here is the current content:
 

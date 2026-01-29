@@ -590,8 +590,8 @@ export const createFreeSubscription = mutation({
 
     const now = new Date();
     const expiresAt = new Date(now);
-    // Republic Day Offer: 7 days unlimited
-    expiresAt.setDate(now.getDate() + 7);
+    // Republic Day Offer: 5 days unlimited
+    expiresAt.setDate(now.getDate() + 5);
 
     const subscriptionId = await ctx.db.insert("subscriptions", {
       user_id: args.user_id,

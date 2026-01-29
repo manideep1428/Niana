@@ -213,7 +213,7 @@ export default function PricingPage() {
                 🎉 Republic Day Special Offer!
               </span>
               <span className="bg-gray-900 text-white px-3 py-1 rounded-full text-xs sm:text-sm font-bold animate-pulse">
-                7 DAYS UNLIMITED FREE
+                5 FREE UNLIMITED
               </span>
               <span className="text-gray-800 text-sm hidden sm:inline">
                 No credit card required • Limited time only
@@ -281,7 +281,7 @@ export default function PricingPage() {
                   {/* Republic Day Ribbon */}
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10">
                     <span className="px-4 py-1.5 rounded-full bg-gradient-to-r from-orange-500 via-white to-green-500 text-gray-900 text-xs font-bold shadow-lg whitespace-nowrap animate-pulse">
-                      🇮🇳 7 DAYS UNLIMITED
+                      🇮🇳 5 FREE UNLIMITED
                     </span>
                   </div>
 
@@ -359,7 +359,7 @@ export default function PricingPage() {
                           </span>
                         </div>
                         <p className="text-xs text-gray-400 dark:text-white/40">
-                          No limits for 7 days! 🎉
+                          No limits for 5 days! 🎉
                         </p>
                       </div>
 

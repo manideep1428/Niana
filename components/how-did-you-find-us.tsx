@@ -99,7 +99,7 @@ export function HowDidYouFindUsModal() {
   };
 
   const handleDiscordJoin = () => {
-    window.open("https://discord.gg/placeholder", "_blank");
+    window.open("https://discord.gg/YPDw68jf", "_blank");
   };
 
   const handleFinish = () => {

@@ -118,12 +118,12 @@ export function HowDidYouFindUsModal() {
   return (
     <Dialog open={isOpen} onOpenChange={() => {}}>
       <DialogContent
-        className="max-w-[78rem] [&>button]:hidden p-0 border-none shadow-2xl bg-card/95 backdrop-blur-xl overflow-hidden rounded-[2rem]"
+        className="w-[90vw] max-w-[78rem] [&>button]:hidden p-0 border-none shadow-2xl bg-card/95 backdrop-blur-xl overflow-hidden rounded-[1.25rem] sm:rounded-[2rem]"
         onPointerDownOutside={(e) => e.preventDefault()}
         onEscapeKeyDown={(e) => e.preventDefault()}
       >
-        <div className="relative p-0 overflow-hidden">
-          <div className="relative z-10 p-8 sm:p-12">
+        <div className="relative p-0 overflow-y-auto max-h-[85vh] scrollbar-hide">
+          <div className="relative z-10 p-5 sm:p-12">
             <AnimatePresence mode="wait">
               {step === "survey" ? (
                 <motion.div
@@ -132,18 +132,18 @@ export function HowDidYouFindUsModal() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, x: -20 }}
                   transition={{ duration: 0.4 }}
-                  className="space-y-8"
+                  className="space-y-5 sm:space-y-8"
                 >
-                  <div className="space-y-3 text-center sm:text-left">
-                    <DialogTitle className="text-4xl sm:text-5xl font-lobster-two text-foreground tracking-tight">
+                  <div className="space-y-1.5 sm:space-y-3 text-center sm:text-left">
+                    <DialogTitle className="text-2xl sm:text-5xl font-lobster-two text-foreground tracking-tight">
                       How did you find us?
                     </DialogTitle>
-                    <DialogDescription className="text-lg text-muted-foreground font-light">
+                    <DialogDescription className="text-sm sm:text-lg text-muted-foreground font-light">
                       Help us understand where you discovered Niana.
                     </DialogDescription>
                   </div>
 
-                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
                     {OPTIONS.map((option) => {
                       const Icon = option.icon;
                       const isSelected = selected === option.label;
@@ -154,7 +154,7 @@ export function HowDidYouFindUsModal() {
                           whileTap={{ scale: 0.98 }}
                           onClick={() => setSelected(option.label)}
                           className={cn(
-                            "group cursor-pointer rounded-2xl border-2 transition-all duration-300 p-4 flex flex-col items-center justify-center gap-3 text-center h-32 relative overflow-hidden",
+                            "group cursor-pointer rounded-xl sm:rounded-2xl border-2 transition-all duration-300 p-2.5 sm:p-4 flex flex-col items-center justify-center gap-2 sm:gap-3 text-center h-20 sm:h-32 relative overflow-hidden",
                             isSelected
                               ? "border-[#FF9F68] bg-[#FF9F68]/5"
                               : "border-border/40 hover:border-[#FF9F68]/30 hover:bg-muted/50 bg-background/50",
@@ -174,17 +174,20 @@ export function HowDidYouFindUsModal() {
                           )}
                           <div
                             className={cn(
-                              "relative z-10 w-10 h-10 rounded-full flex items-center justify-center transition-colors duration-300",
+                              "relative z-10 w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-colors duration-300",
                               isSelected
                                 ? "bg-linear-to-br from-[#FF9F68] to-[#FF7B54] text-white shadow-lg shadow-orange-500/20"
                                 : "bg-muted text-muted-foreground group-hover:bg-[#FF9F68]/10 group-hover:text-[#FF9F68]",
                             )}
                           >
-                            <Icon className="w-5 h-5" strokeWidth={2} />
+                            <Icon
+                              className="w-4 h-4 sm:w-5 sm:h-5"
+                              strokeWidth={2}
+                            />
                           </div>
                           <span
                             className={cn(
-                              "relative z-10 text-sm font-medium leading-tight transition-colors",
+                              "relative z-10 text-xs sm:text-sm font-medium leading-tight transition-colors line-clamp-2",
                               isSelected
                                 ? "text-foreground font-semibold"
                                 : "text-muted-foreground group-hover:text-foreground",
@@ -193,8 +196,8 @@ export function HowDidYouFindUsModal() {
                             {option.label}
                           </span>
                           {isSelected && (
-                            <div className="absolute top-2 right-2 text-[#FF9F68]">
-                              <Check className="w-4 h-4" />
+                            <div className="absolute top-1.5 right-1.5 sm:top-2 sm:right-2 text-[#FF9F68]">
+                              <Check className="w-3 h-3 sm:w-4 sm:h-4" />
                             </div>
                           )}
                         </motion.div>
@@ -210,7 +213,7 @@ export function HowDidYouFindUsModal() {
                     >
                       <Label
                         htmlFor="other-details"
-                        className="mb-2 block text-base font-medium pl-1"
+                        className="mb-2 block text-sm sm:text-base font-medium pl-1"
                       >
                         Please specify
                       </Label>
@@ -218,9 +221,9 @@ export function HowDidYouFindUsModal() {
                         id="other-details"
                         value={otherDetails}
                         onChange={(e) => setOtherDetails(e.target.value)}
-                        placeholder="Tell us more about how you found us..."
+                        placeholder="Tell us more..."
                         autoFocus
-                        className="h-12 rounded-xl border-border/60 focus-visible:ring-[#FF9F68]/50 text-base"
+                        className="h-10 sm:h-12 rounded-xl border-border/60 focus-visible:ring-[#FF9F68]/50 text-sm sm:text-base"
                       />
                     </motion.div>
                   )}
@@ -234,7 +237,7 @@ export function HowDidYouFindUsModal() {
                         (selected === "Other" && !otherDetails.trim()) ||
                         isSubmitting
                       }
-                      className="rounded-xl px-8 h-12 text-base font-medium bg-linear-to-r from-[#FF9F68] to-[#FF7B54] hover:opacity-90 transition-all shadow-lg shadow-orange-500/20 text-white"
+                      className="rounded-xl px-6 sm:px-8 h-10 sm:h-12 text-sm sm:text-base font-medium bg-linear-to-r from-[#FF9F68] to-[#FF7B54] hover:opacity-90 transition-all shadow-lg shadow-orange-500/20 text-white w-full sm:w-auto"
                     >
                       {isSubmitting ? (
                         <Loader2 className="h-5 w-5 animate-spin" />

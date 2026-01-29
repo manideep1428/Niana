@@ -91,10 +91,10 @@ export default function Home() {
   };
 
   return (
-    <div className="relative min-h-screen bg-background selection:bg-primary/20">
+    <div className="relative min-h-screen bg-background selection:bg-primary/20 overflow-hidden">
       {/* Background Pattern */}
       <div className="fixed inset-0 flex items-center justify-center pointer-events-none z-0">
-        <div className="w-[60vh] h-[60vh] bg-primary/15 rounded-full blur-[120px] opacity-60 dark:opacity-40" />
+        <div className="w-[60vh] h-[60vh] bg-primary/10 rounded-full blur-[100px] opacity-50 dark:opacity-30 mix-blend-multiply dark:mix-blend-screen animate-in fade-in duration-1000" />
       </div>
 
       {/* Republic Day Offer Banner */}

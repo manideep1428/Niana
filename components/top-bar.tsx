@@ -129,20 +129,18 @@ export default function TopBar({ topOffset = "0" }: TopBarProps) {
               Gallery
             </Link>
             <Link
-              href="https://discord.gg/hgN6WdfA"
+              href="https://discord.gg/YPDw68jf"
               className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors cursor-pointer bg-transparent"
               target="_blank"
             >
               Discord
             </Link>
             <Link
-              href="#"
-              onClick={() => {
-                toast.info("Docs is not available yet");
-              }}
+              href="https://form.typeform.com/to/iHQORpVR"
+              target="_blank"
               className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors cursor-pointer hover:bg-muted"
             >
-              Docs
+              Join Niana
             </Link>
           </nav>
         </div>

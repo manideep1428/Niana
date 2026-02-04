@@ -269,19 +269,19 @@ export function DesignCanvas({
 
         {/* Custom Controls */}
         <Panel position="bottom-center" className="mb-8">
-          <div className="flex items-center gap-2 rounded-full border bg-background/95 p-2 shadow-lg backdrop-blur-sm">
+          <div className="flex items-center gap-2 rounded-full border border-white/10 bg-black/40 p-2 shadow-2xl backdrop-blur-xl ring-1 ring-white/5">
             {/* Zoom Controls */}
             {canZoomOut && (
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => zoomOut()}
-                className="h-9 w-9 bg-background/95 rounded-full hover:bg-muted"
+                className="h-10 w-10 text-zinc-400 hover:text-white hover:bg-white/10 rounded-full transition-all"
               >
-                <ZoomOut className="h-4 w-4" />
+                <ZoomOut className="h-5 w-5" />
               </Button>
             )}
-            <span className="min-w-[3rem] text-center text-sm font-medium tabular-nums select-none">
+            <span className="min-w-[3.5rem] text-center text-sm font-medium text-zinc-300 tabular-nums select-none">
               {Math.round(zoom * 100)}%
             </span>
             {canZoomIn && (
@@ -289,18 +289,19 @@ export function DesignCanvas({
                 variant="ghost"
                 size="icon"
                 onClick={() => zoomIn()}
-                className="h-9 w-9 bg-background/95 rounded-full hover:bg-muted"
+                className="h-10 w-10 text-zinc-400 hover:text-white hover:bg-white/10 rounded-full transition-all"
               >
-                <ZoomIn className="h-4 w-4" />
+                <ZoomIn className="h-5 w-5" />
               </Button>
             )}
+            <div className="w-px h-6 bg-white/10 mx-1" />
             <Button
               variant="ghost"
               size="icon"
               onClick={() => fitView({ duration: 500 })}
-              className="h-9 w-9 bg-background/95 rounded-full hover:bg-muted"
+              className="h-10 w-10 text-zinc-400 hover:text-white hover:bg-white/10 rounded-full transition-all"
             >
-              <Maximize className="h-4 w-4" />
+              <Maximize className="h-5 w-5" />
             </Button>
           </div>
         </Panel>

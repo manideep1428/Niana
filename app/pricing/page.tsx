@@ -58,6 +58,7 @@ export default function PricingPage() {
   const [loadingPlan, setLoadingPlan] = useState<PlanType | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
   const [purchasedPlan, setPurchasedPlan] = useState<string | null>(null);
+  const [isInternational, setIsInternational] = useState(false);
 
   // Get user's current subscription
   const subscription = useQuery(
@@ -99,6 +100,35 @@ export default function PricingPage() {
 
       const plan = SUBSCRIPTION_PLANS[planId];
       const billingCycle = isYearly ? "yearly" : "monthly";
+
+      if (isInternational) {
+        try {
+          const response = await fetch("/api/polar/create-checkout", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ planId, billingCycle }),
+          });
+
+          const data = await response.json();
+
+          if (data.error) {
+            toast.error(data.error);
+            setLoadingPlan(null);
+            return;
+          }
+
+          if (data.url) {
+            window.location.href = data.url;
+            return;
+          }
+        } catch (error) {
+          console.error("Polar payment error:", error);
+          toast.error("Failed to start checkout");
+          setLoadingPlan(null);
+          return;
+        }
+        return;
+      }
 
       const response = await fetch("/api/razorpay/create-order", {
         method: "POST",
@@ -240,6 +270,32 @@ export default function PricingPage() {
                 <p className="text-lg text-gray-600 dark:text-white/60 max-w-xl mx-auto mb-8">
                   Start free and upgrade as you grow. Cancel anytime.
                 </p>
+
+                {/* Location Toggle */}
+                <div className="flex justify-center mb-6">
+                  <div className="bg-black/5 dark:bg-white/5 p-1 rounded-lg inline-flex items-center gap-2 border border-black/10 dark:border-white/10">
+                    <button
+                      onClick={() => setIsInternational(false)}
+                      className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all flex items-center gap-2 ${
+                        !isInternational
+                          ? "bg-white dark:bg-white/10 text-gray-900 dark:text-white shadow-sm"
+                          : "text-gray-500 hover:text-gray-900 dark:text-white/50 dark:hover:text-white"
+                      }`}
+                    >
+                      🇮🇳 India
+                    </button>
+                    <button
+                      onClick={() => setIsInternational(true)}
+                      className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all flex items-center gap-2 ${
+                        isInternational
+                          ? "bg-white dark:bg-white/10 text-gray-900 dark:text-white shadow-sm"
+                          : "text-gray-500 hover:text-gray-900 dark:text-white/50 dark:hover:text-white"
+                      }`}
+                    >
+                      🌍 International
+                    </button>
+                  </div>
+                </div>
 
                 {/* Monthly/Yearly Toggle */}
                 <div className="inline-flex items-center gap-2 p-1 rounded-full bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10">
@@ -457,10 +513,19 @@ export default function PricingPage() {
                               ) : (
                                 <>
                                   <span className="text-lg text-gray-400 dark:text-white/40 line-through">
-                                    {formatPrice(originalPrice)}
+                                    {isInternational ? "$" : "₹"}
+                                    {isInternational
+                                      ? (originalPrice / 85).toFixed(0)
+                                      : formatPrice(originalPrice).replace(
+                                          "₹",
+                                          "",
+                                        )}
                                   </span>
                                   <span className="text-3xl font-bold text-gray-900 dark:text-white">
-                                    {formatPrice(price)}
+                                    {isInternational ? "$" : "₹"}
+                                    {isInternational
+                                      ? (price / 85).toFixed(0)
+                                      : formatPrice(price).replace("₹", "")}
                                   </span>
                                   <span className="text-gray-500 dark:text-white/50">
                                     /{isYearly ? "year" : "month"}

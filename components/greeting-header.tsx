@@ -41,9 +41,9 @@ function Typewriter({ words }: { words: string[] }) {
   }, [text, isDeleting, wordIndex, words, speed]);
 
   return (
-    <span className="font-serif italic bg-clip-text text-transparent bg-linear-to-r from-[#FF9F68] to-[#FF7B54]">
+    <span className="font-lobster-two italic bg-clip-text text-transparent bg-gradient-to-r from-primary via-[#FF7B54] to-purple-500 animate-gradient-x bg-[length:200%_auto]">
       {text}
-      <span className="text-foreground animate-pulse font-light ml-1 non-italic">
+      <span className="text-primary/70 animate-pulse font-light ml-0.5 non-italic">
         |
       </span>
     </span>
@@ -68,10 +68,8 @@ export function GreetingHeader() {
       setGreeting({ text: "Good evening", icon: Sunset });
     } else if (hour >= 21 || hour < 2) {
       const lateNightGreetings = [
-        "Burning the midnight",
+        "Good evening", // Simplified for elegance
         "Late night inspiration",
-        "Quiet time for building",
-        "Good evening",
       ];
       setGreeting({
         text: lateNightGreetings[
@@ -80,39 +78,44 @@ export function GreetingHeader() {
         icon: Moon,
       });
     } else {
-      setGreeting({ text: "Early riser or late sleeper", icon: Sparkles });
+      setGreeting({ text: "Hello", icon: Sparkles });
     }
   }, []);
 
   if (!mounted) return null;
 
-  const Icon = greeting.icon;
-
   return (
-    <div className="text-center space-y-2 mb-12">
-      {/* Dynamic Greeting - Now the Main Hero Title */}
-      <motion.h1
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="text-6xl sm:text-7xl md:text-8xl font-lobster-two tracking-tight text-foreground flex items-center justify-center gap-3"
+    <div className="text-center space-y-4 mb-4 relative z-10">
+      {/* Dynamic Greeting - Main Title */}
+      <motion.div
+        initial={{ opacity: 0, y: 30, filter: "blur(10px)" }}
+        animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+        transition={{ duration: 0.8, ease: "easeOut" }}
+        className="relative"
       >
-        <span>
-          {greeting.text}
-          {user?.firstName ? `, ${user.firstName}` : ""}
-        </span>
-      </motion.h1>
+        <h1 className="text-6xl sm:text-7xl md:text-8xl lg:text-9xl font-lobster-two tracking-tight text-foreground flex flex-wrap items-center justify-center gap-x-4 gap-y-1">
+          <span className="bg-clip-text text-transparent bg-gradient-to-br from-foreground to-foreground/70 drop-shadow-sm">
+            {greeting.text}
+          </span>
+          {user?.firstName && (
+            <span className="bg-clip-text text-transparent bg-gradient-to-br from-primary to-[#FF7B54]">
+              , {user.firstName}
+            </span>
+          )}
+        </h1>
+      </motion.div>
 
-      {/* Subtitle - Was the main headline */}
+      {/* Subtitle with Typewriter */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.1 }}
-        className="text-2xl sm:text-3xl text-muted-foreground font-medium flex flex-col sm:flex-row items-center justify-center gap-2"
+        transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
+        className="text-xl sm:text-2xl md:text-3xl text-muted-foreground/80 font-sans font-medium flex flex-col sm:flex-row items-center justify-center gap-2 max-w-2xl mx-auto"
       >
-        <span>Your personal</span>
-        <Typewriter words={["mobile designer", "websites designer"]} />
-        <span> is here</span>
+        <span>Your AI partner for</span>
+        <Typewriter
+          words={["mobile apps", "websites", "design systems", "interfaces"]}
+        />
       </motion.div>
     </div>
   );

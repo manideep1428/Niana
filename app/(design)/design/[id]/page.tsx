@@ -731,7 +731,19 @@ function DesignPageContent() {
         onFork={handleForkProject}
         projectTitle={project?.title || "Untitled"}
       />
-      <SidebarInset className="flex flex-col">
+      <SidebarInset className="flex flex-col relative overflow-hidden">
+        {/* Background Gradients */}
+        <div className="absolute inset-0 pointer-events-none z-0">
+          {/* Main Gradient Blob */}
+          <div className="absolute top-[-20%] left-[-10%] w-[50vw] h-[50vw] bg-purple-500/10 rounded-full blur-[120px] mix-blend-multiply dark:mix-blend-screen animate-[float_10s_ease-in-out_infinite]" />
+          {/* Secondary Blob */}
+          <div className="absolute bottom-[-20%] right-[-10%] w-[50vw] h-[50vw] bg-indigo-500/10 dark:bg-indigo-900/20 rounded-full blur-[120px] mix-blend-multiply dark:mix-blend-screen animate-[float_15s_ease-in-out_infinite_reverse]" />
+          {/* Accent Blob */}
+          <div className="absolute top-[40%] left-[20%] w-[30vh] h-[30vh] bg-pink-400/5 dark:bg-pink-800/10 rounded-full blur-[80px] mix-blend-multiply dark:mix-blend-screen animate-[pulse-glow_8s_ease-in-out_infinite]" />
+          {/* Grid Pattern Overlay */}
+          <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808008_1px,transparent_1px),linear-gradient(to_bottom,#80808008_1px,transparent_1px)] bg-[size:24px_24px]" />
+        </div>
+
         <header className="flex h-16 shrink-0 items-center justify-between gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12 border-b">
           <div className="flex items-center gap-2 px-4">
             <SidebarTrigger className="-ml-1" />

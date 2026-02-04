@@ -1,8 +1,6 @@
-"use server";
-
 import { NextRequest, NextResponse } from "next/server";
 import { getRazorpay } from "@/lib/razorpay-server";
-import { SUBSCRIPTION_PLANS, PlanType, BillingCycle } from "@/lib/razorpay";
+import { SUBSCRIPTION_PLANS, PlanType } from "@/lib/razorpay";
 import { withAuth } from "@workos-inc/authkit-nextjs";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "@/convex/_generated/api";
@@ -22,7 +20,7 @@ export async function POST(request: NextRequest) {
     if (!plan || !SUBSCRIPTION_PLANS[plan as PlanType]) {
       return NextResponse.json(
         { error: "Invalid plan selected" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -81,7 +79,7 @@ export async function POST(request: NextRequest) {
     console.error("Error creating Razorpay order:", error);
     return NextResponse.json(
       { error: "Failed to create order" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

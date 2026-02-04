@@ -136,42 +136,24 @@ function SuggestionCard({
   return (
     <motion.button
       ref={cardRef}
-      animate={{
-        scale: [1, 1.02, 1],
-      }}
-      transition={{
-        duration: 0.3,
-        ease: "easeInOut",
-      }}
+      whileHover={{ scale: 1.05, y: -2 }}
+      whileTap={{ scale: 0.95 }}
       onClick={onClick}
       onMouseMove={handleMouseMove}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
-      className="relative px-6 py-3 rounded-full text-secondary-foreground transition-all duration-200 text-base font-medium cursor-pointer overflow-hidden group"
-      style={{
-        background: "transparent",
-      }}
+      className={`
+        relative px-5 py-2.5 rounded-full transition-all duration-300
+        bg-white/40 dark:bg-zinc-800/40 backdrop-blur-md 
+        border border-white/20 dark:border-white/10
+        hover:bg-white/60 dark:hover:bg-zinc-700/60
+        hover:border-primary/30 dark:hover:border-primary/30
+        text-sm font-medium text-muted-foreground hover:text-foreground hover:shadow-lg
+      `}
     >
-      {/* Animated gradient border */}
-      <span
-        className="absolute inset-0 rounded-full transition-opacity duration-300"
-        style={{
-          background: isHovered
-            ? `radial-gradient(120px circle at ${mousePosition.x}px ${mousePosition.y}px, 
-                rgba(59, 130, 246, 0.8), 
-                rgba(139, 92, 246, 0.6), 
-                rgba(236, 72, 153, 0.4), 
-                transparent 70%)`
-            : "linear-gradient(135deg, rgba(59, 130, 246, 0.3), rgba(139, 92, 246, 0.2), rgba(236, 72, 153, 0.2))",
-          opacity: isHovered ? 1 : 0.5,
-        }}
-      />
-
-      {/* Inner background */}
-      <span className="absolute inset-[1.5px] rounded-full bg-secondary transition-colors duration-200 group-hover:bg-secondary/90" />
-
-      {/* Text content */}
-      <span className="relative z-10">{suggestion.title}</span>
+      <span className="relative z-10 flex items-center gap-2">
+        <span>{suggestion.title}</span>
+      </span>
     </motion.button>
   );
 }

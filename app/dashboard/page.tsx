@@ -3,8 +3,8 @@
 import { useAuth } from "@workos-inc/authkit-nextjs/components";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import TopBar from "@/components/top-bar";
 import {
   Smartphone,
@@ -63,6 +63,16 @@ export default function DashboardPage() {
   const [newTitle, setNewTitle] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
   const [isRenaming, setIsRenaming] = useState(false);
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    if (searchParams.get("success") === "true") {
+      toast.success(
+        "Payment successful! Your subscriptions have been updated.",
+      );
+      router.replace("/dashboard");
+    }
+  }, [searchParams, router]);
 
   const projects = useQuery(
     api.quires.getUserProjects,

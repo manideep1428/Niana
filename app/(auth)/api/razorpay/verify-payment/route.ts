@@ -1,11 +1,9 @@
-"use server";
-
 import { NextRequest, NextResponse } from "next/server";
 import { createHmac } from "crypto";
 import { withAuth } from "@workos-inc/authkit-nextjs";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "@/convex/_generated/api";
-import { SUBSCRIPTION_PLANS, PlanType, BillingCycle } from "@/lib/razorpay";
+import { SUBSCRIPTION_PLANS, PlanType } from "@/lib/razorpay";
 
 const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
@@ -29,7 +27,7 @@ export async function POST(request: NextRequest) {
     const body = razorpay_order_id + "|" + razorpay_payment_id;
     const expectedSignature = createHmac(
       "sha256",
-      process.env.RAZORPAY_KEY_SECRET!
+      process.env.RAZORPAY_KEY_SECRET!,
     )
       .update(body)
       .digest("hex");
@@ -45,7 +43,7 @@ export async function POST(request: NextRequest) {
 
       return NextResponse.json(
         { error: "Payment verification failed" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -113,7 +111,7 @@ export async function POST(request: NextRequest) {
     console.error("Error verifying payment:", error);
     return NextResponse.json(
       { error: "Failed to verify payment" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

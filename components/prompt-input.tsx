@@ -297,8 +297,9 @@ export function PromptInput({
 
   if (variant === "hero") {
     return (
-      <div className="relative w-full">
-        <form onSubmit={handleSubmit} className="w-full">
+      <div className="relative w-full group">
+        <div className="absolute -inset-1 bg-gradient-to-r from-primary/30 to-purple-500/30 rounded-[2rem] blur-xl opacity-20 group-hover:opacity-40 transition duration-500" />
+        <form onSubmit={handleSubmit} className="relative w-full">
           <input
             ref={fileInputRef}
             type="file"
@@ -313,15 +314,15 @@ export function PromptInput({
             ref={inputContainerRef}
             onDrop={handleDrop}
             className={`
-                relative flex flex-col min-h-[100px] rounded-2xl border-[3px] transition-all duration-300
-                file:bg-card bg-[#fffcfb] dark:bg-card border-primary
-                ${isFocused ? "border-primary border-[3px]" : "border-primary/20 shadow-sm hover:border-primary/50"}
-                ${isDragging ? "border-primary bg-background scale-[1.01]" : ""}
+                relative flex flex-col min-h-[140px] rounded-[1.5rem] border transition-all duration-300
+                bg-white/80 dark:bg-black/60 backdrop-blur-xl shadow-xl
+                ${isFocused ? "border-primary/50 ring-4 ring-primary/10" : "border-white/20 dark:border-white/10 hover:border-primary/30"}
+                ${isDragging ? "border-primary ring-4 ring-primary/10 scale-[1.01]" : ""}
               `}
           >
             {/* Attachments preview */}
             {(attachments.length > 0 || uploadQueue.length > 0) && (
-              <div className="flex flex-row items-center gap-4 overflow-x-auto p-4 pb-2 scrollbar-none">
+              <div className="flex flex-row items-center gap-4 overflow-x-auto p-4 pb-0 scrollbar-none">
                 {attachments.map((attachment) => (
                   <PreviewAttachment
                     key={attachment.url}
@@ -350,9 +351,11 @@ export function PromptInput({
                 onBlur={() => setIsFocused(false)}
                 onPaste={handlePaste}
                 placeholder={
-                  isDragging ? "Drop files here..." : "Design a screens for..."
+                  isDragging
+                    ? "Drop files here..."
+                    : "Describe your dream app..."
                 }
-                className="w-full h-full text-3xl sm:text-3xl font-medium bg-transparent dark:bg-transparent border-none text-foreground placeholder:text-muted-foreground/60 resize-none outline-none overflow-y-auto scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0 shadow-none min-h-[80px]"
+                className="w-full h-full text-2xl sm:text-3xl font-medium bg-transparent dark:bg-transparent border-none text-foreground placeholder:text-muted-foreground/40 resize-none outline-none overflow-y-auto scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0 shadow-none min-h-[80px]"
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && !e.shiftKey) {
                     e.preventDefault();
@@ -366,15 +369,15 @@ export function PromptInput({
             </div>
 
             <div className="flex items-center justify-between px-6 pb-6 pt-2">
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
                 <button
                   type="button"
                   disabled={!canAttach}
                   onClick={() => fileInputRef.current?.click()}
-                  className="group flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
+                  className="group flex items-center gap-2 text-muted-foreground hover:text-foreground transition-all duration-200"
                   title="Attach files"
                 >
-                  <div className="p-2 rounded-full hover:bg-muted transition-colors">
+                  <div className="p-2.5 rounded-full bg-secondary/50 hover:bg-secondary transition-colors border border-transparent hover:border-border">
                     <Paperclip className="w-5 h-5" />
                   </div>
                 </button>
@@ -383,21 +386,21 @@ export function PromptInput({
                   type="button"
                   onClick={() => setIsPublic(!isPublic)}
                   className={cn(
-                    "flex items-center gap-2 text-xs font-medium px-4 py-2 rounded-full transition-all duration-300 border shadow-xs cursor-pointer",
+                    "flex items-center gap-2 text-sm font-medium px-4 py-2.5 rounded-full transition-all duration-300 border shadow-sm cursor-pointer",
                     isPublic
-                      ? "bg-zinc-100 text-zinc-900 border-zinc-200 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-700"
-                      : "bg-black/5 text-zinc-600 border-transparent hover:bg-black/10 dark:bg-white/5 dark:text-zinc-400 dark:hover:bg-white/10",
+                      ? "bg-primary/10 text-primary border-primary/20 hover:bg-primary/20"
+                      : "bg-secondary/50 text-muted-foreground border-transparent hover:bg-secondary hover:text-foreground",
                   )}
                   title={isPublic ? "Switch to Private" : "Switch to Public"}
                 >
                   {isPublic ? (
-                    <span className="flex items-center gap-1.5">
-                      <Globe className="w-3.5 h-3.5" />
+                    <span className="flex items-center gap-2">
+                      <Globe className="w-4 h-4" />
                       Public
                     </span>
                   ) : (
-                    <span className="flex items-center gap-1.5">
-                      <Lock className="w-3.5 h-3.5" />
+                    <span className="flex items-center gap-2">
+                      <Lock className="w-4 h-4" />
                       Private
                     </span>
                   )}
@@ -409,10 +412,10 @@ export function PromptInput({
                 disabled={isLoading && !isResponding}
                 onClick={handleButtonClick}
                 className={cn(
-                  "flex items-center gap-2 px-6 py-2.5 rounded-full font-semibold transition-all duration-200 transform active:scale-95 shadow-md hover:shadow-lg cursor-pointer",
+                  "flex items-center gap-2 px-8 py-3 rounded-xl font-semibold transition-all duration-300 transform active:scale-95 shadow-lg hover:shadow-primary/25 cursor-pointer",
                   isLoading
-                    ? "bg-slate-200 text-slate-500 cursor-not-allowed"
-                    : "bg-[#FF9F68] hover:bg-[#ff8f4d] text-white",
+                    ? "bg-muted text-muted-foreground cursor-not-allowed"
+                    : "bg-gradient-to-r from-primary to-[#FF7B54] hover:brightness-110 text-white border-b-4 border-b-[#E56A40]/30 active:border-b-0 active:translate-y-[2px]",
                 )}
               >
                 {isLoading ? (
@@ -423,14 +426,14 @@ export function PromptInput({
                     </>
                   ) : (
                     <>
-                      <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                      <span>Designing...</span>
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      <span>Dreaming...</span>
                     </>
                   )
                 ) : (
                   <>
-                    <Rocket className="w-4 h-4 fill-white/20" />
-                    <span>Design</span>
+                    <Sparkles className="w-5 h-5 fill-white/20" />
+                    <span>Generate</span>
                   </>
                 )}
               </button>

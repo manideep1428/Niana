@@ -25,15 +25,15 @@ export function TokenUsageDisplay() {
   if (!user) return null;
 
   // Default to Free Plan logic if no subscription found
-  // Free plan: 2 credits = 40,000 tokens
+  // Free plan: 2 credits
   const isFree = !subscription || subscription.plan === "free";
 
-  // Legacy fix: If plan is free but tokens_total is -1 (unlimited), force it to 40,000
-  // This handles users who were on the "Republic Day Offer" which has now expired/changed
-  let totalTokens = subscription?.tokens_total ?? 40000;
-  if (isFree && totalTokens === -1) {
-    totalTokens = 40000;
-  }
+  // Use subscription tokens or default to 2 for free tier
+  // Force 2 credits if plan is free, even if legacy data shows -1 (unlimited)
+  const totalTokens =
+    isFree && subscription?.tokens_total === -1
+      ? 2
+      : (subscription?.tokens_total ?? 2);
 
   const usedTokens = subscription?.tokens_used ?? 0;
 

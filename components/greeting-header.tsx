@@ -93,7 +93,7 @@ export function GreetingHeader() {
         transition={{ duration: 0.8, ease: "easeOut" }}
         className="relative"
       >
-        <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-lobster-two tracking-tight text-foreground flex flex-wrap items-center justify-center gap-x-4 gap-y-1">
+        <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-lobster-two tracking-tight text-foreground flex flex-wrap items-center justify-center gap-x-3 gap-y-1">
           <span className="bg-clip-text text-transparent bg-gradient-to-br from-foreground to-foreground/70 drop-shadow-sm">
             {greeting.text}
           </span>
@@ -110,7 +110,7 @@ export function GreetingHeader() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
-        className="text-xl sm:text-2xl md:text-3xl text-muted-foreground/80 font-sans font-medium flex flex-col sm:flex-row items-center justify-center gap-2 max-w-2xl mx-auto"
+        className="text-base sm:text-lg md:text-xl text-muted-foreground/80 font-sans font-medium flex flex-col sm:flex-row items-center justify-center gap-2 max-w-2xl mx-auto"
       >
         <span>Your AI partner for</span>
         <Typewriter

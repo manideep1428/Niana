@@ -193,11 +193,15 @@ function DesignPageContent() {
       skipSaveUserMessage = false,
     ) => {
       // Check credit limit before proceeding
-      const totalTokens = subscription?.tokens_total ?? 10000;
+      const isFree = !subscription || subscription.plan === "free";
+      const totalTokens =
+        isFree && subscription?.tokens_total === -1
+          ? 2
+          : (subscription?.tokens_total ?? 2);
       const usedTokens = subscription?.tokens_used ?? 0;
 
-      // Skip check for unlimited tokens (-1 = Republic Day Offer)
-      if (totalTokens !== -1 && usedTokens >= totalTokens) {
+      // Check if user has credits remaining
+      if (usedTokens >= totalTokens) {
         toast.error("Credit limit reached", {
           description:
             "You've used all your credits. Please upgrade your plan to continue.",

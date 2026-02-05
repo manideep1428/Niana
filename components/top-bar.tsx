@@ -64,11 +64,12 @@ export default function TopBar({ topOffset = "0" }: TopBarProps) {
 
   const isFree = !subscription || subscription.plan === "free";
 
-  // Legacy fix: If plan is free but tokens_total is -1 (unlimited), force it to 40,000
-  let totalTokens = subscription?.tokens_total ?? 40000;
-  if (isFree && totalTokens === -1) {
-    totalTokens = 40000;
-  }
+  // Use subscription tokens or default to 2 for free tier
+  // Force 2 credits if plan is free, even if legacy data shows -1 (unlimited)
+  const totalTokens =
+    isFree && subscription?.tokens_total === -1
+      ? 2
+      : (subscription?.tokens_total ?? 2);
   const usedTokens = subscription?.tokens_used ?? 0;
 
   // Check if unlimited (for paid plans with unlimited credits)
@@ -197,21 +198,28 @@ export default function TopBar({ topOffset = "0" }: TopBarProps) {
                   </DropdownMenuLabel>
 
                   {/* Usage Stats simplified */}
-                  <div className="mx-1 my-2 p-3 rounded-lg bg-muted/50 border border-border/50 space-y-3">
+                  <div className="mx-2 my-2 p-3 rounded-xl bg-secondary/30 dark:bg-secondary/10 border border-border/40 space-y-3">
                     <div className="flex items-center justify-between text-xs">
-                      <span className="text-muted-foreground">Plan</span>
-                      <span className="font-bold text-foreground">
+                      <span className="text-muted-foreground font-medium">
+                        Current Plan
+                      </span>
+                      <span className="px-1.5 py-0.5 rounded-md bg-primary/10 text-primary font-semibold text-[10px] tracking-wide">
                         {subscription?.plan?.toUpperCase() || "FREE"}
                       </span>
                     </div>
-                    <div className="space-y-1">
-                      <div className="flex justify-between text-xs">
-                        <span className="text-muted-foreground">Credits</span>
-                        <span>{formatCredits(creditsRemaining)}</span>
+                    <div className="space-y-1.5">
+                      <div className="flex justify-between text-xs items-center">
+                        <span className="text-muted-foreground flex items-center gap-1.5">
+                          <Coins className="w-3 h-3 text-amber-500" />
+                          Credits
+                        </span>
+                        <span className="font-medium font-mono text-foreground/90">
+                          {formatCredits(creditsRemaining)}
+                        </span>
                       </div>
                       <Progress
                         value={usagePercent}
-                        className="h-1 bg-border"
+                        className="h-1.5 bg-primary/5 [&>div]:bg-gradient-to-r [&>div]:from-primary/60 [&>div]:to-primary"
                       />
                     </div>
                   </div>

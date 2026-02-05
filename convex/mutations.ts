@@ -608,13 +608,13 @@ export const createFreeSubscription = mutation({
 
     const now = new Date();
     const expiresAt = new Date(now);
-    // Republic Day Offer: 5 days unlimited
-    expiresAt.setDate(now.getDate() + 5);
+    // Free tier: 1 month validity
+    expiresAt.setMonth(now.getMonth() + 1);
 
     const subscriptionId = await ctx.db.insert("subscriptions", {
       user_id: args.user_id,
       plan: "free",
-      tokens_total: -1, // Unlimited tokens (Republic Day Offer)
+      tokens_total: 2, // Free tier: 2 credits
       tokens_used: 0,
       projects_limit: -1,
       status: "active",

@@ -3,7 +3,7 @@
 import { useAuth } from "@workos-inc/authkit-nextjs/components";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import TopBar from "@/components/top-bar";
 import {
@@ -50,7 +50,24 @@ function formatTimeAgo(dateString: string) {
   return `Created ${Math.floor(diffDays / 365)} year${Math.floor(diffDays / 365) > 1 ? "s" : ""} ago`;
 }
 
-export default function DashboardPage() {
+// Separate component that uses useSearchParams
+function PaymentSuccessHandler() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (searchParams.get("success") === "true") {
+      toast.success(
+        "Payment successful! Your subscriptions have been updated.",
+      );
+      router.replace("/dashboard");
+    }
+  }, [searchParams, router]);
+
+  return null;
+}
+
+function DashboardContent() {
   const { user } = useAuth();
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<"all" | "favourites">("all");
@@ -63,16 +80,6 @@ export default function DashboardPage() {
   const [newTitle, setNewTitle] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
   const [isRenaming, setIsRenaming] = useState(false);
-  const searchParams = useSearchParams();
-
-  useEffect(() => {
-    if (searchParams.get("success") === "true") {
-      toast.success(
-        "Payment successful! Your subscriptions have been updated.",
-      );
-      router.replace("/dashboard");
-    }
-  }, [searchParams, router]);
 
   const projects = useQuery(
     api.quires.getUserProjects,
@@ -415,6 +422,15 @@ export default function DashboardPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Payment Success Handler - wrapped in Suspense */}
+      <Suspense fallback={null}>
+        <PaymentSuccessHandler />
+      </Suspense>
     </div>
   );
+}
+
+export default function DashboardPage() {
+  return <DashboardContent />;
 }

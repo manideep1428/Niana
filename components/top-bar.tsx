@@ -63,10 +63,15 @@ export default function TopBar({ topOffset = "0" }: TopBarProps) {
   );
 
   const isFree = !subscription || subscription.plan === "free";
-  const totalTokens = subscription?.tokens_total ?? TOKENS_PER_CREDIT;
+
+  // Legacy fix: If plan is free but tokens_total is -1 (unlimited), force it to 40,000
+  let totalTokens = subscription?.tokens_total ?? 40000;
+  if (isFree && totalTokens === -1) {
+    totalTokens = 40000;
+  }
   const usedTokens = subscription?.tokens_used ?? 0;
 
-  // Check if unlimited (Republic Day Offer)
+  // Check if unlimited (for paid plans with unlimited credits)
   const isUnlimited = totalTokens === -1;
   const remainingTokens = isUnlimited
     ? -1
@@ -129,7 +134,7 @@ export default function TopBar({ topOffset = "0" }: TopBarProps) {
               Gallery
             </Link>
             <Link
-              href="https://discord.gg/YPDw68jf"
+              href="https://discord.gg/qVvadyJY"
               className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors cursor-pointer bg-transparent"
               target="_blank"
             >

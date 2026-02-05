@@ -1,11 +1,10 @@
-"use server";
+// API Route Handler for project creation
 
 import { api } from "@/convex/_generated/api";
 import { convexClient } from "@/lib/convex";
 import openai from "@/lib/openai";
 import { generateUUID } from "@/lib/utils";
 import { withAuth } from "@workos-inc/authkit-nextjs";
-import { type } from "os";
 
 interface Attachment {
   name: string;

@@ -1,8 +1,8 @@
 "use client";
 
 import { motion, AnimatePresence } from "motion/react";
-import { Check, X } from "lucide-react";
-import { useState } from "react";
+import { Check, X, Loader2 } from "lucide-react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@workos-inc/authkit-nextjs/components";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -58,7 +58,28 @@ export default function PricingPage() {
   const [loadingPlan, setLoadingPlan] = useState<PlanType | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
   const [purchasedPlan, setPurchasedPlan] = useState<string | null>(null);
-  const [isInternational, setIsInternational] = useState(false);
+  const [isInternational, setIsInternational] = useState<boolean | null>(null);
+  const [isDetectingLocation, setIsDetectingLocation] = useState(true);
+
+  // Auto-detect user's country on mount
+  useEffect(() => {
+    const detectCountry = async () => {
+      try {
+        // Use a free IP geolocation service
+        const response = await fetch("https://ipapi.co/json/");
+        const data = await response.json();
+        // If country is India, use Razorpay, otherwise use Polar
+        setIsInternational(data.country_code !== "IN");
+      } catch (error) {
+        console.error("Failed to detect country:", error);
+        // Default to India (Razorpay) if detection fails
+        setIsInternational(false);
+      } finally {
+        setIsDetectingLocation(false);
+      }
+    };
+    detectCountry();
+  }, []);
 
   // Get user's current subscription
   const subscription = useQuery(
@@ -230,28 +251,6 @@ export default function PricingPage() {
         </div>
 
         <div className="relative z-10">
-          {/* Republic Day Offer Banner */}
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="bg-gradient-to-r from-orange-500 via-white to-green-500 text-center py-3 px-4"
-          >
-            <div className="max-w-6xl mx-auto flex items-center justify-center gap-3 flex-wrap">
-              <span className="text-2xl">🇮🇳</span>
-              <span className="font-bold text-gray-900 text-sm sm:text-base">
-                🎉 Republic Day Special Offer!
-              </span>
-              <span className="bg-gray-900 text-white px-3 py-1 rounded-full text-xs sm:text-sm font-bold animate-pulse">
-                5 FREE UNLIMITED
-              </span>
-              <span className="text-gray-800 text-sm hidden sm:inline">
-                No credit card required • Limited time only
-              </span>
-              <span className="text-2xl">🎊</span>
-            </div>
-          </motion.div>
-
           <TopBar />
 
           {/* Main Content */}
@@ -267,35 +266,57 @@ export default function PricingPage() {
                 <h1 className="text-4xl sm:text-5xl font-bold tracking-tight mb-4 text-gray-900 dark:text-white">
                   Choose your plan
                 </h1>
+
+                {/* Welcome Offer Banner */}
+                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-orange-500/10 to-amber-500/10 border border-orange-500/30 mb-4">
+                  <span className="text-lg">🎉</span>
+                  <span className="text-sm font-bold text-orange-600 dark:text-orange-400">
+                    Welcome Offer: 75% OFF
+                  </span>
+                  <span className="text-xs text-gray-500 dark:text-gray-400">
+                    Limited time only
+                  </span>
+                </div>
+
                 <p className="text-lg text-gray-600 dark:text-white/60 max-w-xl mx-auto mb-8">
                   Start free and upgrade as you grow. Cancel anytime.
                 </p>
 
-                {/* Location Toggle */}
-                <div className="flex justify-center mb-6">
-                  <div className="bg-black/5 dark:bg-white/5 p-1 rounded-lg inline-flex items-center gap-2 border border-black/10 dark:border-white/10">
-                    <button
-                      onClick={() => setIsInternational(false)}
-                      className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all flex items-center gap-2 ${
-                        !isInternational
-                          ? "bg-white dark:bg-white/10 text-gray-900 dark:text-white shadow-sm"
-                          : "text-gray-500 hover:text-gray-900 dark:text-white/50 dark:hover:text-white"
-                      }`}
-                    >
-                      🇮🇳 India
-                    </button>
-                    <button
-                      onClick={() => setIsInternational(true)}
-                      className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all flex items-center gap-2 ${
-                        isInternational
-                          ? "bg-white dark:bg-white/10 text-gray-900 dark:text-white shadow-sm"
-                          : "text-gray-500 hover:text-gray-900 dark:text-white/50 dark:hover:text-white"
-                      }`}
-                    >
-                      🌍 International
-                    </button>
+                {/* Location indicator */}
+                {isDetectingLocation ? (
+                  <div className="flex justify-center mb-8">
+                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-muted/50 backdrop-blur-sm border border-border/50 text-muted-foreground">
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <span className="text-xs font-medium">
+                        Auto-detecting region...
+                      </span>
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  <div className="flex justify-center mb-8">
+                    <div className="group relative inline-flex items-center">
+                      <div className="absolute inset-0 bg-gradient-to-r from-orange-500/20 to-amber-500/20 rounded-full blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                      <div className="relative flex items-center gap-3 px-1 py-1 pr-4 rounded-full bg-background/50 backdrop-blur-md border border-border/50 shadow-sm hover:border-orange-500/30 transition-all duration-300">
+                        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-muted/50 text-foreground text-xs font-medium">
+                          <span>{isInternational ? "🌍" : "🇮🇳"}</span>
+                          <span>{isInternational ? "Global" : "India"}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-muted-foreground font-medium">
+                            Prices in {isInternational ? "USD" : "INR"}
+                          </span>
+                          <div className="w-px h-3 bg-border" />
+                          <button
+                            onClick={() => setIsInternational(!isInternational)}
+                            className="text-xs font-semibold text-primary hover:text-primary/80 transition-colors"
+                          >
+                            Switch to {isInternational ? "INR" : "USD"}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {/* Monthly/Yearly Toggle */}
                 <div className="inline-flex items-center gap-2 p-1 rounded-full bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10">
@@ -327,41 +348,30 @@ export default function PricingPage() {
 
               {/* Pricing Cards */}
               <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-5">
-                {/* FREE Plan Card - Special Republic Day Edition */}
+                {/* FREE Plan Card */}
                 <motion.div
                   initial={{ opacity: 0, y: 30 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.5, delay: 0 }}
                   className="relative"
                 >
-                  {/* Republic Day Ribbon */}
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10">
-                    <span className="px-4 py-1.5 rounded-full bg-gradient-to-r from-orange-500 via-white to-green-500 text-gray-900 text-xs font-bold shadow-lg whitespace-nowrap animate-pulse">
-                      🇮🇳 5 FREE UNLIMITED
-                    </span>
-                  </div>
-
                   {/* Card */}
                   <div
                     className={`relative h-full rounded-2xl overflow-hidden transition-all duration-300 ${
                       currentPlanId === "free"
                         ? "bg-gradient-to-b from-emerald-500/10 to-emerald-600/5 border-2 border-emerald-500/50"
-                        : "bg-gradient-to-b from-orange-500/20 via-white/10 to-green-500/20 border-2 border-orange-400/50 dark:border-orange-500/30"
+                        : "bg-card dark:bg-white/[0.02] border border-border dark:border-white/10 shadow-sm dark:shadow-none"
                     }`}
                   >
                     <div className="p-6 flex flex-col h-full">
                       {/* Plan Header */}
-                      <div className="flex items-center justify-between mb-2 mt-2">
+                      <div className="flex items-center justify-between mb-2">
                         <h3 className="text-xl font-bold text-gray-900 dark:text-white">
                           Free
                         </h3>
-                        {currentPlanId === "free" ? (
+                        {currentPlanId === "free" && (
                           <span className="px-2 py-1 rounded text-[10px] font-bold uppercase bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
                             CURRENT
-                          </span>
-                        ) : (
-                          <span className="px-2 py-1 rounded text-[10px] font-bold uppercase bg-gradient-to-r from-orange-500 to-green-500 text-white">
-                            REPUBLIC OFFER
                           </span>
                         )}
                       </div>
@@ -373,7 +383,7 @@ export default function PricingPage() {
                       {/* Price */}
                       <div className="flex items-baseline gap-2 mb-6">
                         <span className="text-3xl font-bold text-gray-900 dark:text-white">
-                          ₹0
+                          {isInternational ? "$0" : "₹0"}
                         </span>
                         <span className="text-gray-500 dark:text-white/50">
                           /forever
@@ -394,7 +404,7 @@ export default function PricingPage() {
                         className={`w-full py-3 px-6 rounded-xl font-medium transition-all duration-300 mb-6 ${
                           currentPlanId === "free"
                             ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 cursor-default"
-                            : "bg-gradient-to-r from-orange-500 via-orange-400 to-green-500 text-white hover:from-orange-600 hover:via-orange-500 hover:to-green-600 shadow-lg shadow-orange-500/20"
+                            : "bg-black/5 dark:bg-white/5 text-gray-900 dark:text-white hover:bg-black/10 dark:hover:bg-white/10 border border-gray-200 dark:border-white/10"
                         } disabled:opacity-50 disabled:cursor-not-allowed`}
                       >
                         {currentPlanId === "free" ? (
@@ -411,11 +421,11 @@ export default function PricingPage() {
                       <div className="mb-4 pb-4 border-b border-gray-200 dark:border-white/10">
                         <div className="flex items-center gap-2 text-orange-500 dark:text-orange-400 mb-1">
                           <span className="text-lg font-semibold">
-                            ∞ Unlimited Credits
+                            2 Credits
                           </span>
                         </div>
                         <p className="text-xs text-gray-400 dark:text-white/40">
-                          No limits for 5 days! 🎉
+                          Perfect to try out Niana
                         </p>
                       </div>
 
@@ -427,9 +437,8 @@ export default function PricingPage() {
                       {/* Features */}
                       <ul className="space-y-2.5 flex-grow">
                         {[
-                          "Unlimited Credits",
-                          "Unlimited projects",
-                          "Unlimited Figma exports",
+                          "2 design credits",
+                          "1 Figma export",
                           "Community support",
                           "No credit card required",
                         ].map((feature, i) => (
@@ -452,12 +461,23 @@ export default function PricingPage() {
                     const plan = SUBSCRIPTION_PLANS[planId];
                     const isCurrentPlan = currentPlanId === planId;
                     const isLoading = loadingPlan === planId;
-                    const isEnterprise = planId === "premium";
+                    const isTeamPlan = planId === "premium";
 
-                    const price = isYearly ? plan.yearlyPrice : plan.price;
+                    // Get prices based on billing cycle and location
+                    const price = isYearly
+                      ? isInternational
+                        ? (plan as any).yearlyPriceUSD
+                        : plan.yearlyPrice
+                      : isInternational
+                        ? (plan as any).priceUSD
+                        : plan.price;
                     const originalPrice = isYearly
-                      ? plan.originalYearlyPrice
-                      : plan.originalPrice;
+                      ? isInternational
+                        ? (plan as any).originalYearlyPriceUSD
+                        : plan.originalYearlyPrice
+                      : isInternational
+                        ? (plan as any).originalPriceUSD
+                        : plan.originalPrice;
 
                     return (
                       <motion.div
@@ -499,14 +519,14 @@ export default function PricingPage() {
                             </div>
 
                             <p className="text-sm text-gray-500 dark:text-white/50 mb-4">
-                              {isEnterprise
+                              {isTeamPlan
                                 ? "Built for teams"
                                 : `For ${planId === "base" ? "higher limits" : "even higher AI limits"}`}
                             </p>
 
                             {/* Price */}
                             <div className="flex items-baseline gap-2 mb-6">
-                              {isEnterprise ? (
+                              {isTeamPlan ? (
                                 <span className="text-3xl font-bold text-gray-900 dark:text-white">
                                   Custom
                                 </span>
@@ -515,7 +535,7 @@ export default function PricingPage() {
                                   <span className="text-lg text-gray-400 dark:text-white/40 line-through">
                                     {isInternational ? "$" : "₹"}
                                     {isInternational
-                                      ? (originalPrice / 85).toFixed(0)
+                                      ? originalPrice
                                       : formatPrice(originalPrice).replace(
                                           "₹",
                                           "",
@@ -524,7 +544,7 @@ export default function PricingPage() {
                                   <span className="text-3xl font-bold text-gray-900 dark:text-white">
                                     {isInternational ? "$" : "₹"}
                                     {isInternational
-                                      ? (price / 85).toFixed(0)
+                                      ? price
                                       : formatPrice(price).replace("₹", "")}
                                   </span>
                                   <span className="text-gray-500 dark:text-white/50">
@@ -537,7 +557,7 @@ export default function PricingPage() {
                             {/* CTA Button */}
                             <button
                               onClick={() =>
-                                isEnterprise
+                                isTeamPlan
                                   ? handleContactSales()
                                   : handleSubscribe(planId)
                               }
@@ -545,17 +565,17 @@ export default function PricingPage() {
                                 isLoading ||
                                 (loadingPlan !== null &&
                                   loadingPlan !== planId) ||
-                                (isCurrentPlan && !isEnterprise)
+                                (isCurrentPlan && !isTeamPlan)
                               }
                               className={`w-full py-3 px-6 rounded-xl font-medium transition-all duration-300 mb-6 ${
-                                isCurrentPlan && !isEnterprise
+                                isCurrentPlan && !isTeamPlan
                                   ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 cursor-default"
                                   : plan.popular
                                     ? "bg-gradient-to-r from-orange-500 to-orange-600 text-white hover:from-orange-600 hover:to-orange-700 shadow-lg shadow-orange-500/20"
                                     : "bg-black/5 dark:bg-white/5 text-gray-900 dark:text-white hover:bg-black/10 dark:hover:bg-white/10 border border-gray-200 dark:border-white/10"
                               } disabled:opacity-50 disabled:cursor-not-allowed`}
                             >
-                              {isCurrentPlan && !isEnterprise ? (
+                              {isCurrentPlan && !isTeamPlan ? (
                                 <span className="flex items-center justify-center gap-2">
                                   <Check className="w-4 h-4" />
                                   Current Plan
@@ -583,7 +603,7 @@ export default function PricingPage() {
                                   </svg>
                                   Processing...
                                 </span>
-                              ) : isEnterprise ? (
+                              ) : isTeamPlan ? (
                                 "Contact Sales"
                               ) : (
                                 `Upgrade to ${plan.name}`
@@ -594,13 +614,13 @@ export default function PricingPage() {
                             <div className="mb-4 pb-4 border-b border-gray-200 dark:border-white/10">
                               <div className="flex items-center gap-2 text-orange-500 dark:text-orange-400 mb-1">
                                 <span className="text-lg font-semibold">
-                                  {isEnterprise
+                                  {isTeamPlan
                                     ? "Custom Credits"
                                     : `${isYearly ? plan.credits * 12 : plan.credits} Credits / ${isYearly ? "year" : "month"}`}
                                 </span>
                               </div>
                               <p className="text-xs text-gray-400 dark:text-white/40">
-                                {isEnterprise
+                                {isTeamPlan
                                   ? "Unlimited messages"
                                   : `~${Math.floor((isYearly ? plan.tokens * 12 : plan.tokens) / 1000)} messages (${((isYearly ? plan.tokens * 12 : plan.tokens) / 1000).toLocaleString()}K tokens)`}
                               </p>
@@ -613,7 +633,7 @@ export default function PricingPage() {
 
                             {/* Features */}
                             <ul className="space-y-2.5 flex-grow">
-                              {(isEnterprise
+                              {(isTeamPlan
                                 ? [
                                     "Everything in Pro",
                                     "Team collaboration",

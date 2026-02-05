@@ -2,6 +2,7 @@
 
 import React, { useRef, useState, useCallback, ChangeEvent } from "react";
 import { Textarea } from "./ui/textarea";
+import { ScrollArea } from "./ui/scroll-area";
 import {
   Paperclip,
   Plus,
@@ -341,31 +342,33 @@ export function PromptInput({
             )}
 
             <div className="flex-1 p-6">
-              <Textarea
-                ref={textareaRef}
-                name="content"
-                value={input}
-                disabled={disable}
-                onChange={(e) => setInput(e.target.value)}
-                onFocus={() => setIsFocused(true)}
-                onBlur={() => setIsFocused(false)}
-                onPaste={handlePaste}
-                placeholder={
-                  isDragging
-                    ? "Drop files here..."
-                    : "Describe your dream app..."
-                }
-                className="w-full h-full text-2xl sm:text-3xl font-medium bg-transparent dark:bg-transparent border-none text-foreground placeholder:text-muted-foreground/40 resize-none outline-none overflow-y-auto scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0 shadow-none min-h-[80px]"
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) {
-                    e.preventDefault();
-                    if (input.trim() || attachments.length > 0) {
-                      const form = e.currentTarget.form;
-                      if (form) form.requestSubmit();
-                    }
+              <ScrollArea className="max-h-[200px] w-full">
+                <Textarea
+                  ref={textareaRef}
+                  name="content"
+                  value={input}
+                  disabled={disable}
+                  onChange={(e) => setInput(e.target.value)}
+                  onFocus={() => setIsFocused(true)}
+                  onBlur={() => setIsFocused(false)}
+                  onPaste={handlePaste}
+                  placeholder={
+                    isDragging
+                      ? "Drop files here..."
+                      : "Describe your dream app..."
                   }
-                }}
-              />
+                  className="w-full text-2xl sm:text-3xl font-medium bg-transparent dark:bg-transparent border-none text-foreground placeholder:text-muted-foreground/40 resize-none outline-none focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0 shadow-none min-h-[80px] max-h-[200px] scrollbar-none"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      if (input.trim() || attachments.length > 0) {
+                        const form = e.currentTarget.form;
+                        if (form) form.requestSubmit();
+                      }
+                    }
+                  }}
+                />
+              </ScrollArea>
             </div>
 
             <div className="flex items-center justify-between px-6 pb-6 pt-2">
@@ -432,8 +435,8 @@ export function PromptInput({
                   )
                 ) : (
                   <>
-                    <Sparkles className="w-5 h-5 fill-white/20" />
-                    <span>Generate</span>
+                    <Rocket className="w-5 h-5" />
+                    <span>Design</span>
                   </>
                 )}
               </button>
@@ -490,26 +493,28 @@ export function PromptInput({
           )}
 
           <div className="p-3">
-            <Textarea
-              ref={textareaRef}
-              name="content"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onFocus={() => setIsFocused(true)}
-              onBlur={() => setIsFocused(false)}
-              onPaste={handlePaste}
-              placeholder={isDragging ? "Drop files here..." : "Ask Niana..."}
-              className="w-full bg-transparent dark:bg-transparent border-none text-sm text-foreground placeholder:text-muted-foreground resize-none outline-none min-h-[44px] max-h-[200px] overflow-y-auto scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent focus:outline-none focus:border-none focus:ring-0 shadow-none"
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  if (input.trim() || attachments.length > 0) {
-                    const form = e.currentTarget.form;
-                    if (form) form.requestSubmit();
+            <ScrollArea className="max-h-[200px] w-full">
+              <Textarea
+                ref={textareaRef}
+                name="content"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onFocus={() => setIsFocused(true)}
+                onBlur={() => setIsFocused(false)}
+                onPaste={handlePaste}
+                placeholder={isDragging ? "Drop files here..." : "Ask Niana..."}
+                className="w-full bg-transparent dark:bg-transparent border-none text-sm text-foreground placeholder:text-muted-foreground resize-none outline-none min-h-[44px] max-h-[200px] focus:outline-none focus:border-none focus:ring-0 shadow-none scrollbar-none"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    if (input.trim() || attachments.length > 0) {
+                      const form = e.currentTarget.form;
+                      if (form) form.requestSubmit();
+                    }
                   }
-                }
-              }}
-            />
+                }}
+              />
+            </ScrollArea>
           </div>
 
           <div className="flex items-center justify-between px-3 pb-3">

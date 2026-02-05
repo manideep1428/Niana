@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { ChevronRight, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Response } from "@/components/elements/response";
 
 interface ThoughtProcessProps {
   thoughts: string;
@@ -61,8 +62,10 @@ export function ThoughtProcess({
         )}
       >
         <div className="min-h-0 pl-[2px] border-l border-white/10 ml-[5px]">
-          <div className="pl-3 py-1 text-muted-foreground/80 leading-relaxed whitespace-pre-wrap">
-            {thoughts}
+          <div className="pl-3 py-1 text-muted-foreground/80">
+            <Response className="text-xs [&_p]:mb-2 [&_li]:mb-0.5">
+              {thoughts}
+            </Response>
           </div>
         </div>
       </div>

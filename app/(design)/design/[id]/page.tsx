@@ -16,8 +16,9 @@ import { api } from "@/convex/_generated/api";
 import { ArtifactProvider, useArtifact } from "@/hooks/use-artifact";
 import type { Attachment } from "@/components/preview-attachment";
 import { Button } from "@/components/ui/button";
-import { Pencil, Check, X, Moon, Sun, Lock, Unlock } from "lucide-react";
+import { Pencil, Check, X, Moon, Sun, Lock, Unlock, Globe } from "lucide-react";
 import { useTheme } from "next-themes";
+import { cn } from "@/lib/utils";
 import {
   Tooltip,
   TooltipContent,
@@ -731,104 +732,77 @@ function DesignPageContent() {
         onFork={handleForkProject}
         projectTitle={project?.title || "Untitled"}
       />
-      <SidebarInset className="flex flex-col relative overflow-hidden">
-        {/* Background Gradients */}
-        <div className="absolute inset-0 pointer-events-none z-0">
-          {/* Main Gradient Blob */}
-          <div className="absolute top-[-20%] left-[-10%] w-[50vw] h-[50vw] bg-purple-500/10 rounded-full blur-[120px] mix-blend-multiply dark:mix-blend-screen animate-[float_10s_ease-in-out_infinite]" />
-          {/* Secondary Blob */}
-          <div className="absolute bottom-[-20%] right-[-10%] w-[50vw] h-[50vw] bg-indigo-500/10 dark:bg-indigo-900/20 rounded-full blur-[120px] mix-blend-multiply dark:mix-blend-screen animate-[float_15s_ease-in-out_infinite_reverse]" />
-          {/* Accent Blob */}
-          <div className="absolute top-[40%] left-[20%] w-[30vh] h-[30vh] bg-pink-400/5 dark:bg-pink-800/10 rounded-full blur-[80px] mix-blend-multiply dark:mix-blend-screen animate-[pulse-glow_8s_ease-in-out_infinite]" />
-          {/* Grid Pattern Overlay */}
-          <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808008_1px,transparent_1px),linear-gradient(to_bottom,#80808008_1px,transparent_1px)] bg-[size:24px_24px]" />
-        </div>
-
-        <header className="flex h-16 shrink-0 items-center justify-between gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12 border-b">
-          <div className="flex items-center gap-2 px-4">
+      <SidebarInset className="flex flex-col relative overflow-hidden bg-sidebar">
+        <header className="flex h-14 shrink-0 items-center justify-between gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12 bg-sidebar px-4">
+          <div className="flex items-center gap-2">
             <SidebarTrigger className="-ml-1" />
             <Separator
               orientation="vertical"
               className="mr-2 data-[orientation=vertical]:h-4"
             />
             {isEditingTitle ? (
-              <div className="flex items-center gap-2 group">
-                <div className="relative">
-                  <input
-                    ref={titleInputRef}
-                    value={editedTitle}
-                    onChange={(e) => setEditedTitle(e.target.value)}
-                    onKeyDown={handleTitleKeyDown}
-                    className="bg-transparent border-0 border-b-2 border-violet-500 focus:border-purple-500 outline-none px-1 py-1 text-base font-medium w-64 transition-all duration-300 placeholder:text-muted-foreground/50"
-                    placeholder="Enter project name..."
-                    autoFocus
-                  />
-                  <div className="absolute bottom-0 left-0 w-full h-0.5 bg-linear-to-r from-violet-500 via-purple-500 to-pink-500 animate-pulse" />
-                </div>
-                <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7 rounded-full hover:bg-green-500/10 hover:text-green-500 transition-colors"
-                    onClick={handleSaveTitle}
-                  >
-                    <Check className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7 rounded-full hover:bg-red-500/10 hover:text-red-500 transition-colors"
-                    onClick={handleCancelEditTitle}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-                <span className="text-xs text-muted-foreground/60 ml-1">
-                  Press Enter ↵
-                </span>
-              </div>
+              <input
+                ref={titleInputRef}
+                value={editedTitle}
+                onChange={(e) => setEditedTitle(e.target.value)}
+                onKeyDown={handleTitleKeyDown}
+                onBlur={handleSaveTitle}
+                className="bg-transparent border-none outline-none text-sm font-semibold h-7 p-0 m-0 w-[240px] text-foreground placeholder:text-muted-foreground/50 transition-all"
+                placeholder="Project Name"
+                autoFocus
+              />
             ) : (
-              <div className="flex items-center gap-2 group/title">
+              <div className="flex items-center gap-3 group">
                 <button
                   onClick={handleStartEditTitle}
-                  className="flex items-center gap-2 px-2 py-1 -mx-2 rounded-lg hover:bg-accent/50 transition-all duration-200 group/btn cursor-text"
+                  className="flex items-center gap-2 cursor-pointer hover:bg-sidebar-accent/50 px-2 py-1 -ml-2 rounded-md transition-colors"
+                  title="Rename Project"
                 >
-                  <span className="font-semibold text-base bg-linear-to-r from-foreground to-foreground bg-clip-text group-hover/btn:from-violet-500 group-hover/btn:to-purple-500 group-hover/btn:text-transparent transition-all duration-300">
+                  <span className="font-semibold text-sm text-foreground tracking-tight">
                     {project?.title || "Untitled Project"}
                   </span>
-                  <Pencil className="h-3.5 w-3.5 text-muted-foreground/40 group-hover/btn:text-violet-500 transition-colors duration-200" />
                 </button>
-                {/* Privacy Toggle */}
+
+                {/* Visibility Toggle Badge */}
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 rounded-full"
+                      <button
                         onClick={async () => {
                           const result = await toggleVisibility({
                             project_id: projectId,
                           });
                           toast.success(
                             result.is_public
-                              ? "Project is now public! Others can view it in the community."
-                              : "Project is now private.",
+                              ? "Project is now public"
+                              : "Project is now private",
                           );
                         }}
+                        className={cn(
+                          "flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-medium border transition-all duration-200",
+                          project?.is_public
+                            ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20"
+                            : "bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 border-transparent hover:bg-zinc-200 dark:hover:bg-zinc-700",
+                        )}
                       >
                         {project?.is_public ? (
-                          <Unlock className="h-3.5 w-3.5 text-green-500" />
+                          <>
+                            <Globe className="h-3 w-3" />
+                            Public
+                          </>
                         ) : (
-                          <Lock className="h-3.5 w-3.5 text-muted-foreground" />
+                          <>
+                            <Lock className="h-3 w-3" />
+                            Private
+                          </>
                         )}
-                      </Button>
+                      </button>
                     </TooltipTrigger>
-                    <TooltipContent>
+                    <TooltipContent side="right">
                       <p>
                         {project?.is_public
-                          ? "Public - Click to make private"
-                          : "Private - Click to share with community"}
+                          ? "Anyone with link can view"
+                          : "Only you can view"}
                       </p>
                     </TooltipContent>
                   </Tooltip>
@@ -836,7 +810,7 @@ function DesignPageContent() {
               </div>
             )}
           </div>
-          <div className="flex items-center gap-3 px-4">
+          <div className="flex items-center gap-3">
             {/* <ExportDialog onCli
               projectId={projectId}
               projectTitle={project?.title || "Untitled"}
@@ -854,7 +828,7 @@ function DesignPageContent() {
               variant="ghost"
               size="icon"
               onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-              className="h-9 w-9"
+              className="h-8 w-8 text-muted-foreground hover:text-foreground"
             >
               <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
               <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
@@ -862,18 +836,32 @@ function DesignPageContent() {
             </Button>
           </div>
         </header>
-        <div className="flex-1 w-full">
-          <ReactFlowProvider>
-            <DesignCanvas
-              designs={designs}
-              selectedArtifactId={selectedArtifactId}
-              projectId={projectId}
-              onNodeSelect={setSelectedArtifactId}
-              isReadOnly={isReadOnly}
-            />
-          </ReactFlowProvider>
+
+        <div className="flex-1 flex flex-col min-h-0 p-2 pt-0">
+          <div className="relative flex-1 w-full rounded-2xl border bg-background shadow-sm overflow-hidden">
+            {/* Background Gradients */}
+            <div className="absolute inset-0 pointer-events-none z-0">
+              {/* Main Gradient Blob */}
+              <div className="absolute top-[-20%] left-[-10%] w-[50vw] h-[50vw] bg-purple-500/10 rounded-full blur-[120px] mix-blend-multiply dark:mix-blend-screen animate-[float_10s_ease-in-out_infinite]" />
+              {/* Secondary Blob */}
+              <div className="absolute bottom-[-20%] right-[-10%] w-[50vw] h-[50vw] bg-indigo-500/10 dark:bg-indigo-900/20 rounded-full blur-[120px] mix-blend-multiply dark:mix-blend-screen animate-[float_15s_ease-in-out_infinite_reverse]" />
+              {/* Accent Blob */}
+              <div className="absolute top-[40%] left-[20%] w-[30vh] h-[30vh] bg-pink-400/5 dark:bg-pink-800/10 rounded-full blur-[80px] mix-blend-multiply dark:mix-blend-screen animate-[pulse-glow_8s_ease-in-out_infinite]" />
+              {/* Grid Pattern Overlay */}
+              <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808008_1px,transparent_1px),linear-gradient(to_bottom,#80808008_1px,transparent_1px)] bg-[size:24px_24px]" />
+            </div>
+
+            <ReactFlowProvider>
+              <DesignCanvas
+                designs={designs}
+                selectedArtifactId={selectedArtifactId}
+                projectId={projectId}
+                onNodeSelect={setSelectedArtifactId}
+                isReadOnly={isReadOnly}
+              />
+            </ReactFlowProvider>
+          </div>
         </div>
-        <div className="border-t"></div>
       </SidebarInset>
     </SidebarProvider>
   );

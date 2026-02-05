@@ -265,23 +265,23 @@ export function DesignCanvas({
         panOnDrag={[0, 1, 2]}
         selectionOnDrag={false}
       >
-        <Background variant={BackgroundVariant.Dots} gap={12} size={1} />
+        <Background gap={40} size={1} />
 
         {/* Custom Controls */}
         <Panel position="bottom-center" className="mb-8">
-          <div className="flex items-center gap-2 rounded-full border border-white/10 bg-black/40 p-2 shadow-2xl backdrop-blur-xl ring-1 ring-white/5">
+          <div className="flex items-center gap-1 p-1 rounded-full bg-background/95 border border-border shadow-sm">
             {/* Zoom Controls */}
             {canZoomOut && (
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => zoomOut()}
-                className="h-10 w-10 text-zinc-400 hover:text-white hover:bg-white/10 rounded-full transition-all"
+                className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-muted rounded-full transition-all"
               >
-                <ZoomOut className="h-5 w-5" />
+                <ZoomOut className="h-4 w-4" />
               </Button>
             )}
-            <span className="min-w-[3.5rem] text-center text-sm font-medium text-zinc-300 tabular-nums select-none">
+            <span className="min-w-[3rem] text-center text-xs font-medium text-foreground tabular-nums select-none">
               {Math.round(zoom * 100)}%
             </span>
             {canZoomIn && (
@@ -289,19 +289,19 @@ export function DesignCanvas({
                 variant="ghost"
                 size="icon"
                 onClick={() => zoomIn()}
-                className="h-10 w-10 text-zinc-400 hover:text-white hover:bg-white/10 rounded-full transition-all"
+                className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-muted rounded-full transition-all"
               >
-                <ZoomIn className="h-5 w-5" />
+                <ZoomIn className="h-4 w-4" />
               </Button>
             )}
-            <div className="w-px h-6 bg-white/10 mx-1" />
+            <div className="w-px h-4 bg-border mx-1" />
             <Button
               variant="ghost"
               size="icon"
               onClick={() => fitView({ duration: 500 })}
-              className="h-10 w-10 text-zinc-400 hover:text-white hover:bg-white/10 rounded-full transition-all"
+              className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-muted rounded-full transition-all"
             >
-              <Maximize className="h-5 w-5" />
+              <Maximize className="h-4 w-4" />
             </Button>
           </div>
         </Panel>

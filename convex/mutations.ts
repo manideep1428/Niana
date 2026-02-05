@@ -456,6 +456,11 @@ export const createPayment = mutation({
       v.literal("paid"),
       v.literal("failed"),
     ),
+    razorpay_payment_id: v.optional(v.string()),
+    razorpay_signature: v.optional(v.string()),
+    polar_checkout_id: v.optional(v.string()),
+    polar_order_id: v.optional(v.string()),
+    provider: v.optional(v.union(v.literal("razorpay"), v.literal("polar"))),
   },
   handler: async (ctx, args) => {
     const now = new Date().toISOString();
@@ -478,6 +483,9 @@ export const updatePaymentStatus = mutation({
     ),
     razorpay_payment_id: v.optional(v.string()),
     razorpay_signature: v.optional(v.string()),
+    polar_checkout_id: v.optional(v.string()),
+    polar_order_id: v.optional(v.string()),
+    provider: v.optional(v.union(v.literal("razorpay"), v.literal("polar"))),
   },
   handler: async (ctx, args) => {
     const payment = await ctx.db
@@ -493,6 +501,9 @@ export const updatePaymentStatus = mutation({
       status: args.status,
       razorpay_payment_id: args.razorpay_payment_id,
       razorpay_signature: args.razorpay_signature,
+      polar_checkout_id: args.polar_checkout_id,
+      polar_order_id: args.polar_order_id,
+      provider: args.provider,
       updated_at: new Date().toISOString(),
     });
 
@@ -518,10 +529,15 @@ export const createSubscription = mutation({
       v.literal("expired"),
       v.literal("cancelled"),
     ),
-    razorpay_payment_id: v.string(),
-    razorpay_order_id: v.string(),
-    razorpay_signature: v.string(),
+    razorpay_payment_id: v.optional(v.string()),
+    razorpay_order_id: v.optional(v.string()),
+    razorpay_signature: v.optional(v.string()),
+    polar_subscription_id: v.optional(v.string()),
+    polar_checkout_id: v.optional(v.string()),
+    polar_order_id: v.optional(v.string()),
+    provider: v.optional(v.union(v.literal("razorpay"), v.literal("polar"))),
     amount: v.number(),
+    currency: v.optional(v.string()),
     expires_at: v.string(),
   },
   handler: async (ctx, args) => {

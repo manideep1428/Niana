@@ -320,17 +320,26 @@ function DesignNodeComponent({ data, selected }: DesignNodeProps) {
         offset={24}
         className="transition-opacity duration-300"
       >
-        <div className="flex items-center gap-1.5 p-1.5 bg-zinc-900/80 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/10 text-white animate-in slide-in-from-bottom-2 fade-in duration-300 hover:scale-105 transition-transform">
+        <div className="flex items-center gap-1 p-1 bg-zinc-900/90 backdrop-blur-xl rounded-full shadow-xl border border-white/10 text-white animate-in slide-in-from-bottom-2 fade-in duration-300 scale-90 hover:scale-95 transition-transform origin-bottom">
+          <span
+            className="px-2 text-[11px] font-medium text-zinc-200 max-w-[100px] truncate cursor-default select-none"
+            title={title}
+          >
+            {title}
+          </span>
+          <div className="w-px h-3 bg-white/10 mx-0.5" />
           <Button
             variant="ghost"
-            size="sm"
+            size="icon"
             onClick={handleGenerate}
             disabled={isStreaming}
-            className="text-zinc-300 hover:bg-white/10 hover:text-white h-9 px-3 gap-2 rounded-xl font-medium text-xs disabled:opacity-50 transition-all"
+            className="w-8 h-8 rounded-full hover:bg-white/10 text-zinc-400 hover:text-white transition-colors"
+            title="Generate"
           >
-            <Sparkles className="w-3.5 h-3.5 text-purple-400" />
-            Generate
+            <Sparkles className="w-3.5 h-3.5" />
           </Button>
+
+          <div className="w-px h-3 bg-white/10 mx-0.5" />
 
           <Button
             variant="ghost"
@@ -338,42 +347,43 @@ function DesignNodeComponent({ data, selected }: DesignNodeProps) {
             onClick={handleFigmaAction}
             disabled={isFigmaLoading || isStreaming || showSkeleton}
             className={cn(
-              "h-9 px-3 gap-2 rounded-xl font-medium text-xs transition-all disabled:opacity-50",
+              "h-8 px-2.5 gap-1.5 rounded-full font-medium text-[10px] transition-all disabled:opacity-50",
               preparedFigmaData
                 ? "bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 hover:text-emerald-300 border border-emerald-500/30"
                 : "text-zinc-300 hover:bg-white/10 hover:text-white",
             )}
           >
             {isFigmaLoading ? (
-              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              <Loader2 className="w-3 h-3 animate-spin" />
             ) : figmaCopySuccess ? (
-              <Check className="w-3.5 h-3.5 text-emerald-400" />
+              <Check className="w-3 h-3 text-emerald-400" />
             ) : preparedFigmaData ? (
-              <div className="flex items-center gap-2">
-                <Check className="w-3.5 h-3.5" />
-                <span>Copy Now</span>
+              <div className="flex items-center gap-1.5">
+                <Check className="w-3 h-3" />
+                <span>Copy</span>
               </div>
             ) : (
               <Image
                 src="/figma.svg"
                 alt="Figma"
-                width={16}
-                height={16}
-                className="rounded opacity-80 group-hover:opacity-100 transition-opacity"
+                width={12}
+                height={12}
+                className="opacity-80 group-hover:opacity-100 transition-opacity"
               />
             )}
-            {!preparedFigmaData && (figmaCopySuccess ? "Copied!" : "Figma")}
+            {!preparedFigmaData && (figmaCopySuccess ? "Copied" : "Figma")}
           </Button>
 
-          <div className="w-px h-4 bg-white/10 mx-1" />
+          <div className="w-px h-3 bg-white/10 mx-0.5" />
 
           <Button
             variant="ghost"
-            size="sm"
+            size="icon"
             onClick={() => setShowDeleteDialog(true)}
-            className="text-red-400/80 hover:bg-red-500/20 hover:text-red-300 h-9 w-9 p-0 rounded-xl transition-all hover:scale-110"
+            className="w-8 h-8 rounded-full text-red-400/80 hover:bg-red-500/20 hover:text-red-300 transition-colors"
+            title="Delete"
           >
-            <Trash2 className="w-4 h-4" />
+            <Trash2 className="w-3.5 h-3.5" />
           </Button>
         </div>
       </NodeToolbar>
@@ -438,7 +448,7 @@ function DesignNodeComponent({ data, selected }: DesignNodeProps) {
             "bg-gradient-to-br from-[#4a4a4a] via-[#2a2a2a] to-[#1a1a1a]",
             "shadow-[0_0_2px_1px_rgba(255,255,255,0.1),0_20px_40px_-12px_rgba(0,0,0,0.8)]",
             selected &&
-              "shadow-[0_0_0_2px_#3b82f6,0_30px_60px_-12px_rgba(59,130,246,0.3)]",
+              "shadow-[0_30px_60px_-12px_rgba(0,0,0,0.8)] scale-[1.02]",
           )}
         >
           {/* Hardware Buttons */}

@@ -102,12 +102,18 @@ export default defineSchema({
     razorpay_payment_id: v.optional(v.string()), // Optional for free plans
     razorpay_order_id: v.optional(v.string()), // Optional for free plans
     razorpay_signature: v.optional(v.string()), // Optional for free plans
-    amount: v.number(), // Amount in paise (0 for free)
+    polar_subscription_id: v.optional(v.string()), // Polar Subscription ID
+    polar_checkout_id: v.optional(v.string()), // Polar Checkout ID
+    polar_order_id: v.optional(v.string()), // Polar Order ID
+    provider: v.optional(v.union(v.literal("razorpay"), v.literal("polar"))),
+    amount: v.number(), // Amount in paise or cents
+    currency: v.optional(v.string()), // INR or USD
     created_at: v.string(),
     expires_at: v.string(), // Subscription expiry date
   })
     .index("by_user", ["user_id"])
-    .index("by_payment_id", ["razorpay_payment_id"]),
+    .index("by_payment_id", ["razorpay_payment_id"])
+    .index("by_polar_subscription_id", ["polar_subscription_id"]),
 
   // Payment attempts (for audit trail)
   payments: defineTable({
@@ -128,6 +134,9 @@ export default defineSchema({
     ),
     razorpay_payment_id: v.optional(v.string()),
     razorpay_signature: v.optional(v.string()),
+    polar_checkout_id: v.optional(v.string()),
+    polar_order_id: v.optional(v.string()),
+    provider: v.optional(v.union(v.literal("razorpay"), v.literal("polar"))),
     created_at: v.string(),
     updated_at: v.string(),
   })

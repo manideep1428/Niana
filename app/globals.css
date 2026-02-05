@@ -187,6 +187,16 @@
   background-clip: content-box;
 }
 
+/* Hide scrollbar completely */
+.scrollbar-none {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
 /* Shimmer animation for skeleton loading */
 @keyframes shimmer {
   0% {

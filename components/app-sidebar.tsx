@@ -28,6 +28,7 @@ import { useScrollToBottom } from "@/hooks/use-scroll-to-bottom";
 import { useAuth } from "@workos-inc/authkit-nextjs/components";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { useRouter } from "next/navigation";
 
 interface Message {
   role: "user" | "assistant";
@@ -79,7 +80,7 @@ function MessageAttachment({ attachment }: { attachment: Attachment }) {
 
   if (isImage && attachment.url) {
     return (
-      <div className="group relative size-16 overflow-hidden rounded-lg border bg-muted">
+      <div className="group relative size-16 overflow-hidden rounded-lg bg-muted">
         <Image
           src={attachment.url}
           alt={attachment.name || "Image attachment"}
@@ -101,7 +102,7 @@ function MessageAttachment({ attachment }: { attachment: Attachment }) {
       href={attachment.url}
       target="_blank"
       rel="noopener noreferrer"
-      className="group relative size-16 overflow-hidden rounded-lg border bg-muted flex flex-col items-center justify-center gap-1 hover:bg-accent transition-colors"
+      className="group relative size-16 overflow-hidden rounded-lg bg-muted flex flex-col items-center justify-center gap-1 hover:bg-accent transition-colors"
     >
       {isPdf ? (
         <FileText className="w-6 h-6 text-red-500" />
@@ -152,14 +153,18 @@ export function PromptSidebar({
   // Use the scroll-to-bottom hook for auto-scroll during streaming
   const { containerRef, endRef, isAtBottom, scrollToBottom } =
     useScrollToBottom();
+  const router = useRouter();
 
   return (
-    <Sidebar {...props}>
+    <Sidebar {...props} className="border-none">
       <div className="flex flex-col h-full w-full">
         {/* Header */}
-        <SidebarHeader className="border-b border-white/10 p-4 space-y-3">
-          <div className="flex items-center gap-2">
-            <Image src="/logo.png" alt="Niana Logo" width={24} height={24} />
+        <SidebarHeader className="p-4 space-y-3">
+          <div
+            onClick={() => router.push("/")}
+            className="flex items-center gap-2 cursor-pointer"
+          >
+            <Image src="/logo.png" alt="Niana Logo" width={16} height={16} />
             <h2 className="font-semibold bg-linear-to-r from-pink-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
               Niana
             </h2>
@@ -370,7 +375,7 @@ export function PromptSidebar({
         </SidebarContent>
 
         {/* Footer - Show fork button in read-only mode or prompt input in edit mode */}
-        <SidebarFooter className="border-t border-white/5">
+        <SidebarFooter className="border-white/5">
           {isReadOnly ? (
             // Read-only mode - Show fork button
             <div className="p-4 space-y-3">

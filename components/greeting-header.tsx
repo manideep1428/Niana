@@ -93,7 +93,7 @@ export function GreetingHeader() {
         transition={{ duration: 0.8, ease: "easeOut" }}
         className="relative"
       >
-        <h1 className="text-6xl sm:text-7xl md:text-8xl lg:text-9xl font-lobster-two tracking-tight text-foreground flex flex-wrap items-center justify-center gap-x-4 gap-y-1">
+        <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-lobster-two tracking-tight text-foreground flex flex-wrap items-center justify-center gap-x-4 gap-y-1">
           <span className="bg-clip-text text-transparent bg-gradient-to-br from-foreground to-foreground/70 drop-shadow-sm">
             {greeting.text}
           </span>

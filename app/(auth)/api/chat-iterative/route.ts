@@ -129,6 +129,19 @@ export async function POST(request: NextRequest) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  // Fetch project to get type
+  let projectType: "mobile" | "web" = "mobile";
+  try {
+    const project = await convex.query(api.quires.getProject, {
+      project_id: projectId,
+    });
+    if (project?.type) {
+      projectType = project.type as "mobile" | "web";
+    }
+  } catch (e) {
+    console.error("Failed to fetch project type:", e);
+  }
+
   try {
     const subscription = await convex.query(api.quires.getUserSubscription, {
       user_id: user.id,
@@ -173,7 +186,7 @@ export async function POST(request: NextRequest) {
           model: "gemini-3-flash-preview",
           contents: geminiContents,
           config: {
-            systemInstruction: systemPrompt({ selectedChatModel }),
+            systemInstruction: systemPrompt({ selectedChatModel, projectType }),
             tools: geminiTools,
             thinkingConfig: {
               includeThoughts: true,

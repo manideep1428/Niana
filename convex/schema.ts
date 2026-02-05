@@ -33,6 +33,7 @@ export default defineSchema({
     views: v.optional(v.number()), // View count for public projects
     likes: v.optional(v.number()), // Like count for public projects
     thumbnail: v.optional(v.string()), // Preview image URL
+    type: v.optional(v.union(v.literal("mobile"), v.literal("web"))), // Project type
     created_at: v.string(),
   })
     .index("by_user", ["user_id"])

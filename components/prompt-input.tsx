@@ -12,6 +12,8 @@ import {
   Globe,
   Lock,
   Rocket,
+  Smartphone,
+  Monitor,
 } from "lucide-react";
 import PromptSubmit from "./prompt-submit";
 import { useMutation } from "convex/react";
@@ -295,6 +297,7 @@ export function PromptInput({
     attachments.length < MAX_FILES && !isLoading && !isUploading;
 
   const [isPublic, setIsPublic] = useState(false); // Default to private
+  const [projectType, setProjectType] = useState<"mobile" | "web">("mobile");
 
   if (variant === "hero") {
     return (
@@ -310,6 +313,7 @@ export function PromptInput({
             className="hidden"
           />
           <input type="hidden" name="isPublic" value={String(isPublic)} />
+          <input type="hidden" name="type" value={projectType} />
 
           <div
             ref={inputContainerRef}
@@ -355,7 +359,9 @@ export function PromptInput({
                   placeholder={
                     isDragging
                       ? "Drop files here..."
-                      : "Describe your dream app..."
+                      : projectType === "web"
+                        ? "Describe your website or desktop app..."
+                        : "Describe your mobile app..."
                   }
                   className="w-full text-2xl sm:text-3xl font-medium bg-transparent dark:bg-transparent border-none text-foreground placeholder:text-muted-foreground/40 resize-none outline-none focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0 shadow-none min-h-[80px] max-h-[200px] scrollbar-none"
                   onKeyDown={(e) => {
@@ -383,6 +389,38 @@ export function PromptInput({
                   <div className="p-2.5 rounded-full bg-secondary/50 hover:bg-secondary transition-colors border border-transparent hover:border-border">
                     <Paperclip className="w-5 h-5" />
                   </div>
+                </button>
+
+                <div className="w-px h-8 bg-border/50 mx-2" />
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    setProjectType(projectType === "mobile" ? "web" : "mobile")
+                  }
+                  className={cn(
+                    "flex items-center gap-2 text-sm font-medium px-4 py-2.5 rounded-full transition-all duration-300 border shadow-sm cursor-pointer",
+                    projectType === "web"
+                      ? "bg-primary/10 text-primary border-primary/20 hover:bg-primary/20"
+                      : "bg-secondary/50 text-muted-foreground border-transparent hover:bg-secondary hover:text-foreground",
+                  )}
+                  title={
+                    projectType === "mobile"
+                      ? "Twitch to Web"
+                      : "Switch to Mobile"
+                  }
+                >
+                  {projectType === "web" ? (
+                    <span className="flex items-center gap-2">
+                      <Monitor className="w-4 h-4" />
+                      Web
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-2">
+                      <Smartphone className="w-4 h-4" />
+                      Mobile
+                    </span>
+                  )}
                 </button>
 
                 <button

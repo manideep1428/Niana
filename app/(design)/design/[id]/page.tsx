@@ -856,6 +856,7 @@ function DesignPageContent() {
                 designs={designs}
                 selectedArtifactId={selectedArtifactId}
                 projectId={projectId}
+                projectType={project?.type as "mobile" | "web" | undefined}
                 onNodeSelect={setSelectedArtifactId}
                 isReadOnly={isReadOnly}
               />

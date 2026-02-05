@@ -41,6 +41,7 @@ export default function Home() {
     const formData = new FormData(e.currentTarget);
     const content = formData.get("content") as string;
     const isPublic = formData.get("isPublic") === "true";
+    const type = formData.get("type") as "mobile" | "web";
 
     if (!content?.trim() && attachments.length === 0) {
       toast.error("Please enter a prompt or attach a file");
@@ -65,6 +66,7 @@ export default function Home() {
         body: JSON.stringify({
           content,
           isPublic,
+          type,
           attachments: attachments.map((a) => ({
             name: a.name,
             url: a.url,

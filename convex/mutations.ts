@@ -98,6 +98,7 @@ export const saveProject = mutation({
       ),
     ),
     is_public: v.optional(v.boolean()),
+    type: v.optional(v.union(v.literal("mobile"), v.literal("web"))),
   },
 
   handler: async (ctx, args) => {
@@ -107,6 +108,7 @@ export const saveProject = mutation({
       user_id: args.user_id,
       project_id: args.project_id,
       title: args.title,
+      type: args.type ?? "mobile",
       is_public: args.is_public ?? false, // Default to private
     });
     // Insert initial message with content and attachments

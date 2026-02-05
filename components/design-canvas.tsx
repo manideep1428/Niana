@@ -44,6 +44,7 @@ interface DesignCanvasProps {
   designs: Design[];
   selectedArtifactId: string | null;
   projectId: string; // Added for Figma export caching
+  projectType?: "mobile" | "web"; // Added for node sizing
   onNodeSelect?: (artifactId: string | null) => void;
   isReadOnly?: boolean;
 }
@@ -52,6 +53,7 @@ export function DesignCanvas({
   designs,
   selectedArtifactId,
   projectId,
+  projectType = "mobile",
   onNodeSelect,
   isReadOnly = false,
 }: DesignCanvasProps) {
@@ -66,6 +68,12 @@ export function DesignCanvas({
   // Check if zoom in/out is possible
   const canZoomIn = zoom < MAX_ZOOM;
   const canZoomOut = zoom > MIN_ZOOM;
+
+  // Node dimensions based on project type
+  const nodeWidth = projectType === "web" ? 1024 : 375;
+  const nodeHeight = projectType === "web" ? 700 : 812;
+  const nodeGapX = projectType === "web" ? 1150 : 500; // horizontal gap
+  const nodeGapY = projectType === "web" ? 750 : 850; // vertical gap
 
   // Handle design deletion
   const handleDeleteDesign = useCallback(
@@ -92,9 +100,9 @@ export function DesignCanvas({
       const position = hasValidDbPosition
         ? { x: design.x as number, y: design.y as number }
         : {
-            // Increased gap: 500px horizontal (375px width + 125px gap), 850px vertical
-            x: (index % 3) * 500,
-            y: Math.floor(index / 3) * 850,
+            // Dynamic gap based on project type
+            x: (index % 3) * nodeGapX,
+            y: Math.floor(index / 3) * nodeGapY,
           };
 
       return {
@@ -107,13 +115,22 @@ export function DesignCanvas({
           title: design.title,
           content: design.content,
           isStreaming: design.status === "streaming",
+          type: projectType, // Pass project type to node
           onDelete: handleDeleteDesign,
           isInteractive: false,
         },
         selected: design.artifact_id === selectedArtifactId,
       };
     });
-  }, [designs, selectedArtifactId, projectId, handleDeleteDesign]);
+  }, [
+    designs,
+    selectedArtifactId,
+    projectId,
+    projectType,
+    nodeGapX,
+    nodeGapY,
+    handleDeleteDesign,
+  ]);
 
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
 
@@ -126,6 +143,10 @@ export function DesignCanvas({
     const idsChanged =
       currentIds.size !== newIds.size ||
       ![...currentIds].every((id) => newIds.has(id));
+
+    // Center offset based on node size
+    const centerOffsetX = nodeWidth / 2;
+    const centerOffsetY = nodeHeight / 2;
 
     if (idsChanged || nodes.length === 0) {
       console.log("Syncing nodes with initialNodes (designs changed)");
@@ -143,10 +164,10 @@ export function DesignCanvas({
         // Always focus on the node being generated
         setTimeout(() => {
           setCenter(
-            streamingNode.position.x + 187.5,
-            streamingNode.position.y + 406,
+            streamingNode.position.x + centerOffsetX,
+            streamingNode.position.y + centerOffsetY,
             {
-              zoom: 0.85,
+              zoom: projectType === "web" ? 0.5 : 0.85,
               duration: 1000,
             },
           );
@@ -159,10 +180,10 @@ export function DesignCanvas({
         const targetNode = initialNodes[initialNodes.length - 1];
         setTimeout(() => {
           setCenter(
-            targetNode.position.x + 187.5,
-            targetNode.position.y + 406,
+            targetNode.position.x + centerOffsetX,
+            targetNode.position.y + centerOffsetY,
             {
-              zoom: 0.85,
+              zoom: projectType === "web" ? 0.5 : 0.85,
               duration: 800,
             },
           );
@@ -195,19 +216,23 @@ export function DesignCanvas({
         }),
       );
     }
-  }, [initialNodes, setNodes]);
+  }, [initialNodes, setNodes, nodeWidth, nodeHeight, projectType]);
 
   // Focus on selected node when selection comes from external source (chat click)
   useEffect(() => {
     if (selectedArtifactId && !isInternalSelection.current) {
+      // Center offset based on node size
+      const centerOffsetX = nodeWidth / 2;
+      const centerOffsetY = nodeHeight / 2;
+
       // Use setTimeout to ensure nodes state is up to date
       setTimeout(() => {
         const selectedNode = nodes.find((n) => n.id === selectedArtifactId);
         if (selectedNode) {
           setCenter(
-            selectedNode.position.x + 187.5, // Center of 375px width
-            selectedNode.position.y + 406, // Center of 812px height (6.1 inch phone)
-            { zoom: 0.8, duration: 500 },
+            selectedNode.position.x + centerOffsetX,
+            selectedNode.position.y + centerOffsetY,
+            { zoom: projectType === "web" ? 0.5 : 0.8, duration: 500 },
           );
         }
       }, 0);
@@ -215,7 +240,7 @@ export function DesignCanvas({
     // Reset the flag after processing
     isInternalSelection.current = false;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedArtifactId, setCenter]);
+  }, [selectedArtifactId, setCenter, nodeWidth, nodeHeight, projectType]);
 
   // Handle node selection
   const handleSelectionChange = useCallback(
@@ -315,10 +340,16 @@ export function DesignCanvas({
           maskColor="rgba(0, 0, 0, 0.2)"
           position="bottom-right"
           onNodeClick={(_, node) => {
-            setCenter(node.position.x + 187.5, node.position.y + 406, {
-              zoom: 0.8,
-              duration: 500,
-            });
+            const centerOffsetX = nodeWidth / 2;
+            const centerOffsetY = nodeHeight / 2;
+            setCenter(
+              node.position.x + centerOffsetX,
+              node.position.y + centerOffsetY,
+              {
+                zoom: projectType === "web" ? 0.5 : 0.8,
+                duration: 500,
+              },
+            );
           }}
           style={{
             backgroundColor: "var(--background)",

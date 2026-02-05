@@ -24,6 +24,7 @@ export interface DesignNodeData extends Record<string, unknown> {
   content: string;
   isStreaming?: boolean;
   isInteractive?: boolean;
+  type?: "mobile" | "web";
   onDelete?: (artifactId: string) => void;
 }
 
@@ -426,61 +427,55 @@ function DesignNodeComponent({ data, selected }: DesignNodeProps) {
         </DialogContent>
       </Dialog>
 
-      {/* Premium Mobile Device Frame */}
-      <div
-        className={cn(
-          "relative transition-all duration-500 ease-out",
-          selected ? "transform scale-[1.02]" : "",
-        )}
-      >
-        {/* Glow Effect behind device when selected/streaming */}
+      {/* Device Frame - Mobile vs Web */}
+      {data.type === "web" ? (
+        // WEB / DESKTOP FRAME
         <div
           className={cn(
-            "absolute -inset-4 bg-primary/20 rounded-[3.5rem] blur-2xl transition-opacity duration-500",
-            selected || isStreaming ? "opacity-100" : "opacity-0",
-          )}
-        />
-
-        {/* Device Frame - Titanium Finish */}
-        <div
-          className={cn(
-            "relative rounded-[48px] p-[10px] transition-all duration-300",
-            "bg-gradient-to-br from-[#4a4a4a] via-[#2a2a2a] to-[#1a1a1a]",
-            "shadow-[0_0_2px_1px_rgba(255,255,255,0.1),0_20px_40px_-12px_rgba(0,0,0,0.8)]",
-            selected &&
-              "shadow-[0_30px_60px_-12px_rgba(0,0,0,0.8)] scale-[1.02]",
+            "relative transition-all duration-500 ease-out",
+            selected ? "transform scale-[1.02]" : "",
           )}
         >
-          {/* Hardware Buttons */}
-          {/* Silent Switch */}
-          <div className="absolute left-[-2px] top-[100px] w-[3px] h-[26px] bg-[#3a3a3a] rounded-l-md shadow-inner" />
-          {/* Volume Up */}
-          <div className="absolute left-[-2px] top-[144px] w-[3px] h-[48px] bg-[#3a3a3a] rounded-l-md shadow-inner" />
-          {/* Volume Down */}
-          <div className="absolute left-[-2px] top-[208px] w-[3px] h-[48px] bg-[#3a3a3a] rounded-l-md shadow-inner" />
-          {/* Power Button */}
-          <div className="absolute right-[-2px] top-[160px] w-[3px] h-[80px] bg-[#3a3a3a] rounded-r-md shadow-inner" />
-
-          {/* Inner Bezel */}
+          {/* Glow Effect */}
           <div
             className={cn(
-              "relative rounded-[38px] overflow-hidden bg-black",
-              "border-[4px] border-black", // Physical bezel
-              "shadow-[inset_0_0_0_2px_rgba(255,255,255,0.1)]", // Inner reflective edge
+              "absolute -inset-4 bg-primary/20 rounded-3xl blur-2xl transition-opacity duration-500",
+              selected || isStreaming ? "opacity-100" : "opacity-0",
             )}
-          >
-            {/* Dynamic Island Area Removed */}
+          />
 
-            {/* Screen Content */}
+          {/* Browser Window Frame */}
+          <div
+            className={cn(
+              "relative rounded-xl overflow-hidden bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-2xl transition-all duration-300",
+              selected &&
+                "ring-2 ring-primary ring-offset-4 ring-offset-background",
+            )}
+            style={{ width: "1024px" }}
+          >
+            {/* Browser Toolbar */}
+            <div className="h-9 bg-zinc-100 dark:bg-zinc-800/50 border-b border-zinc-200 dark:border-zinc-800 flex items-center px-3 gap-2">
+              <div className="flex gap-1.5">
+                <div className="w-3 h-3 rounded-full bg-red-400/80" />
+                <div className="w-3 h-3 rounded-full bg-amber-400/80" />
+                <div className="w-3 h-3 rounded-full bg-emerald-400/80" />
+              </div>
+              <div className="flex-1 mx-4">
+                <div className="h-6 bg-white dark:bg-zinc-900 rounded-md border border-zinc-200 dark:border-zinc-700 flex items-center justify-center text-xs text-zinc-400">
+                  {title}
+                </div>
+              </div>
+            </div>
+
+            {/* Content Area */}
             <div
-              className="relative overflow-hidden bg-white w-[375px]"
-              style={{ height: Math.max(812, iframeHeight) }}
+              className="relative bg-white w-full"
+              style={{ height: Math.max(600, iframeHeight) }}
             >
-              {/* Iframe Preview */}
               <iframe
                 ref={iframeRef}
                 name={artifactId}
-                srcDoc={contentWithScript}
+                srcDoc={contentWithScript} // Use contentWithScript here too
                 className={cn(
                   "w-full h-full border-0 transition-opacity duration-500 bg-white",
                   showSkeleton ? "opacity-0" : "opacity-100",
@@ -491,44 +486,63 @@ function DesignNodeComponent({ data, selected }: DesignNodeProps) {
                 title={title}
               />
 
-              {/* Sophisticated Loading / Empty State Overlay */}
+              {/* Desktop Skeleton/Loading Logic */}
               {!hasValidContent && (
                 <div className="absolute inset-0 z-10 bg-zinc-50 dark:bg-zinc-900 flex flex-col">
                   {isStreaming ? (
-                    // High-Fidelity Skeleton Animation
+                    // High-Fidelity Desktop Skeleton Animation
                     <div className="w-full h-full relative overflow-hidden flex flex-col">
                       {/* Animated Shimmer Overlay */}
-                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/50 dark:via-white/5 to-transparent -translate-x-full animate-[shimmer_2s_infinite] z-20 pointer-events-none" />
+                      <div className="absolute inset-0 bg-linear-to-r from-transparent via-white/50 dark:via-white/5 to-transparent -translate-x-full animate-[shimmer_2s_infinite] z-20 pointer-events-none" />
 
-                      {/* Skeleton UI Structure - Top Bar */}
-                      <div className="h-14 px-6 flex items-center justify-between border-b border-zinc-200/50 dark:border-zinc-800/50 mt-8">
-                        <div className="w-8 h-8 rounded-full bg-zinc-200 dark:bg-zinc-800" />
-                        <div className="w-32 h-4 rounded-full bg-zinc-200 dark:bg-zinc-800" />
-                        <div className="w-8 h-8 rounded-full bg-zinc-200 dark:bg-zinc-800" />
+                      {/* Desktop Skeleton UI - Navigation Bar */}
+                      <div className="h-16 px-8 flex items-center justify-between border-b border-zinc-200/50 dark:border-zinc-800/50">
+                        <div className="flex items-center gap-6">
+                          <div className="w-10 h-10 rounded-lg bg-zinc-200 dark:bg-zinc-800" />
+                          <div className="flex gap-4">
+                            <div className="w-16 h-3 rounded-full bg-zinc-200 dark:bg-zinc-800" />
+                            <div className="w-20 h-3 rounded-full bg-zinc-200 dark:bg-zinc-800" />
+                            <div className="w-14 h-3 rounded-full bg-zinc-200 dark:bg-zinc-800" />
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <div className="w-24 h-8 rounded-lg bg-zinc-200 dark:bg-zinc-800" />
+                          <div className="w-8 h-8 rounded-full bg-zinc-200 dark:bg-zinc-800" />
+                        </div>
                       </div>
 
-                      {/* Skeleton UI - Body */}
-                      <div className="p-6 space-y-8">
-                        {/* Hero Card */}
-                        <div className="w-full aspect-video rounded-2xl bg-zinc-200 dark:bg-zinc-800 shadow-sm" />
+                      {/* Desktop Skeleton UI - Hero Section */}
+                      <div className="px-16 py-12">
+                        <div className="flex gap-12">
+                          {/* Left Content */}
+                          <div className="flex-1 space-y-6 py-8">
+                            <div className="w-3/4 h-8 rounded-lg bg-zinc-200 dark:bg-zinc-800" />
+                            <div className="w-full h-4 rounded-full bg-zinc-200 dark:bg-zinc-800" />
+                            <div className="w-5/6 h-4 rounded-full bg-zinc-200/60 dark:bg-zinc-800/60" />
+                            <div className="flex gap-4 pt-4">
+                              <div className="w-32 h-12 rounded-xl bg-zinc-200 dark:bg-zinc-800" />
+                              <div className="w-32 h-12 rounded-xl bg-zinc-200/60 dark:bg-zinc-800/60" />
+                            </div>
+                          </div>
+                          {/* Right Image */}
+                          <div className="w-[400px] h-[280px] rounded-2xl bg-zinc-200 dark:bg-zinc-800 shrink-0" />
+                        </div>
+                      </div>
 
-                        {/* List Items */}
-                        <div className="space-y-4">
+                      {/* Desktop Skeleton UI - Feature Cards */}
+                      <div className="px-16 py-8">
+                        <div className="grid grid-cols-3 gap-6">
                           {[1, 2, 3].map((i) => (
-                            <div key={i} className="flex gap-4">
-                              <div className="w-12 h-12 rounded-xl bg-zinc-200 dark:bg-zinc-800 shrink-0" />
-                              <div className="flex-1 space-y-2 py-1">
-                                <div className="w-3/4 h-4 rounded-full bg-zinc-200 dark:bg-zinc-800" />
-                                <div className="w-1/2 h-4 rounded-full bg-zinc-200/60 dark:bg-zinc-800/60" />
-                              </div>
+                            <div
+                              key={i}
+                              className="p-6 rounded-2xl bg-zinc-100 dark:bg-zinc-800/50 space-y-4"
+                            >
+                              <div className="w-12 h-12 rounded-xl bg-zinc-200 dark:bg-zinc-800" />
+                              <div className="w-3/4 h-5 rounded-full bg-zinc-200 dark:bg-zinc-800" />
+                              <div className="w-full h-3 rounded-full bg-zinc-200/60 dark:bg-zinc-800/60" />
+                              <div className="w-5/6 h-3 rounded-full bg-zinc-200/40 dark:bg-zinc-800/40" />
                             </div>
                           ))}
-                        </div>
-
-                        {/* Bottom Cards */}
-                        <div className="grid grid-cols-2 gap-4 pt-4">
-                          <div className="aspect-[3/4] rounded-2xl bg-zinc-200 dark:bg-zinc-800" />
-                          <div className="aspect-[3/4] rounded-2xl bg-zinc-200 dark:bg-zinc-800" />
                         </div>
                       </div>
 
@@ -559,12 +573,151 @@ function DesignNodeComponent({ data, selected }: DesignNodeProps) {
                 </div>
               )}
             </div>
-
-            {/* Reflection Overlay */}
-            <div className="absolute inset-0 bg-linear-to-tr from-white/10 via-transparent to-transparent pointer-events-none opacity-50 rounded-[38px]" />
           </div>
         </div>
-      </div>
+      ) : (
+        // MOBILE FRAME (Titanium)
+        <div
+          className={cn(
+            "relative transition-all duration-500 ease-out",
+            selected ? "transform scale-[1.02]" : "",
+          )}
+        >
+          {/* Glow Effect behind device when selected/streaming */}
+          <div
+            className={cn(
+              "absolute -inset-4 bg-primary/20 rounded-[3.5rem] blur-2xl transition-opacity duration-500",
+              selected || isStreaming ? "opacity-100" : "opacity-0",
+            )}
+          />
+
+          {/* Device Frame - Titanium Finish */}
+          <div
+            className={cn(
+              "relative rounded-[48px] p-[10px] transition-all duration-300",
+              "bg-gradient-to-br from-[#4a4a4a] via-[#2a2a2a] to-[#1a1a1a]",
+              "shadow-[0_0_2px_1px_rgba(255,255,255,0.1),0_20px_40px_-12px_rgba(0,0,0,0.8)]",
+              selected &&
+                "shadow-[0_30px_60px_-12px_rgba(0,0,0,0.8)] scale-[1.02]",
+            )}
+          >
+            {/* Hardware Buttons */}
+            {/* Silent Switch */}
+            <div className="absolute left-[-2px] top-[100px] w-[3px] h-[26px] bg-[#3a3a3a] rounded-l-md shadow-inner" />
+            {/* Volume Up */}
+            <div className="absolute left-[-2px] top-[144px] w-[3px] h-[48px] bg-[#3a3a3a] rounded-l-md shadow-inner" />
+            {/* Volume Down */}
+            <div className="absolute left-[-2px] top-[208px] w-[3px] h-[48px] bg-[#3a3a3a] rounded-l-md shadow-inner" />
+            {/* Power Button */}
+            <div className="absolute right-[-2px] top-[160px] w-[3px] h-[80px] bg-[#3a3a3a] rounded-r-md shadow-inner" />
+
+            {/* Inner Bezel */}
+            <div
+              className={cn(
+                "relative rounded-[38px] overflow-hidden bg-black",
+                "border-[4px] border-black", // Physical bezel
+                "shadow-[inset_0_0_0_2px_rgba(255,255,255,0.1)]", // Inner reflective edge
+              )}
+            >
+              {/* Dynamic Island Area Removed */}
+
+              {/* Screen Content */}
+              <div
+                className="relative overflow-hidden bg-white w-[375px]"
+                style={{ height: Math.max(812, iframeHeight) }}
+              >
+                {/* Iframe Preview */}
+                <iframe
+                  ref={iframeRef}
+                  name={artifactId}
+                  srcDoc={contentWithScript}
+                  className={cn(
+                    "w-full h-full border-0 transition-opacity duration-500 bg-white",
+                    showSkeleton ? "opacity-0" : "opacity-100",
+                    isInteractive
+                      ? "pointer-events-auto"
+                      : "pointer-events-none",
+                  )}
+                  sandbox="allow-scripts allow-same-origin"
+                  scrolling="no"
+                  title={title}
+                />
+
+                {/* Sophisticated Loading / Empty State Overlay */}
+                {!hasValidContent && (
+                  <div className="absolute inset-0 z-10 bg-zinc-50 dark:bg-zinc-900 flex flex-col">
+                    {isStreaming ? (
+                      // High-Fidelity Skeleton Animation
+                      <div className="w-full h-full relative overflow-hidden flex flex-col">
+                        {/* Animated Shimmer Overlay */}
+                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/50 dark:via-white/5 to-transparent -translate-x-full animate-[shimmer_2s_infinite] z-20 pointer-events-none" />
+
+                        {/* Skeleton UI Structure - Top Bar */}
+                        <div className="h-14 px-6 flex items-center justify-between border-b border-zinc-200/50 dark:border-zinc-800/50 mt-8">
+                          <div className="w-8 h-8 rounded-full bg-zinc-200 dark:bg-zinc-800" />
+                          <div className="w-32 h-4 rounded-full bg-zinc-200 dark:bg-zinc-800" />
+                          <div className="w-8 h-8 rounded-full bg-zinc-200 dark:bg-zinc-800" />
+                        </div>
+
+                        {/* Skeleton UI - Body */}
+                        <div className="p-6 space-y-8">
+                          {/* Hero Card */}
+                          <div className="w-full aspect-video rounded-2xl bg-zinc-200 dark:bg-zinc-800 shadow-sm" />
+
+                          {/* List Items */}
+                          <div className="space-y-4">
+                            {[1, 2, 3].map((i) => (
+                              <div key={i} className="flex gap-4">
+                                <div className="w-12 h-12 rounded-xl bg-zinc-200 dark:bg-zinc-800 shrink-0" />
+                                <div className="flex-1 space-y-2 py-1">
+                                  <div className="w-3/4 h-4 rounded-full bg-zinc-200 dark:bg-zinc-800" />
+                                  <div className="w-1/2 h-4 rounded-full bg-zinc-200/60 dark:bg-zinc-800/60" />
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+
+                          {/* Bottom Cards */}
+                          <div className="grid grid-cols-2 gap-4 pt-4">
+                            <div className="aspect-[3/4] rounded-2xl bg-zinc-200 dark:bg-zinc-800" />
+                            <div className="aspect-[3/4] rounded-2xl bg-zinc-200 dark:bg-zinc-800" />
+                          </div>
+                        </div>
+
+                        {/* Status pill overlay */}
+                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-30 flex flex-col items-center gap-4 cursor-default select-none">
+                          <div className="p-4 rounded-full bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl shadow-2xl ring-1 ring-black/5 flex items-center justify-center">
+                            <Loader2 className="w-8 h-8 text-primary animate-spin" />
+                          </div>
+                          <div className="px-4 py-2 rounded-full bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md shadow-lg ring-1 ring-black/5 text-xs font-medium text-zinc-600 dark:text-zinc-300">
+                            Designing {title}...
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      // Empty State
+                      <div className="flex flex-col items-center justify-center h-full p-8 text-center bg-zinc-50 dark:bg-zinc-950">
+                        <div className="w-20 h-20 rounded-3xl bg-zinc-100 dark:bg-zinc-900 flex items-center justify-center mb-6 shadow-inner">
+                          <Sparkles className="w-8 h-8 text-zinc-300 dark:text-zinc-700" />
+                        </div>
+                        <h3 className="text-zinc-900 dark:text-zinc-100 font-medium mb-1">
+                          Ready to Design
+                        </h3>
+                        <p className="text-sm text-zinc-500 dark:text-zinc-400">
+                          Waiting for content generation...
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Reflection Overlay */}
+              <div className="absolute inset-0 bg-linear-to-tr from-white/10 via-transparent to-transparent pointer-events-none opacity-50 rounded-[38px]" />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

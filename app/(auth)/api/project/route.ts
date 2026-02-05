@@ -18,10 +18,12 @@ export async function POST(request: Request) {
     content,
     attachments = [],
     isPublic,
+    type: userType,
   } = (await request.json()) as {
     content: string;
     attachments?: Attachment[];
     isPublic: string;
+    type?: "mobile" | "web";
   };
   const { user } = await withAuth();
   const isPublicBoolean = isPublic === "true";
@@ -43,7 +45,7 @@ export async function POST(request: Request) {
         - json response only 
         - no html or any markup  
         - no extra text or any other text
-        - also as per user prompt you give a type you have 2 type : "desktop" |  "mobile" if user as for mobile app screen then it should be mobile else desktop 
+        - also as per user prompt you give a type you have 2 type : "web" |  "mobile" if user as for mobile app screen then it should be mobile else web 
         - if you didn't understand the user prompt and yo can't conclude that then you should return mobile as default
          
         <example> 
@@ -81,7 +83,17 @@ export async function POST(request: Request) {
 
     const res = response.choices[0].message.content;
     const title = JSON.parse(res as string).title;
-    const type = JSON.parse(res as string).type;
+    const aiType = JSON.parse(res as string).type; // "mobile" or "web" (was "desktop")
+
+    // Normalize type (AI might return "desktop" based on old prompt)
+    let finalType = userType;
+    if (!finalType) {
+      finalType = aiType === "desktop" ? "web" : aiType;
+    }
+    if (finalType !== "mobile" && finalType !== "web") {
+      finalType = "mobile";
+    }
+
     if (!title) return Response.json({ message: "Title Not Generated" });
 
     await convexClient.mutation(api.mutations.saveProject, {
@@ -89,6 +101,7 @@ export async function POST(request: Request) {
       user_id: user.id,
       project_id: id,
       title: title,
+      type: finalType as "mobile" | "web",
       content: content,
       is_public: isPublicBoolean,
       attachments: attachments.map((a) => ({

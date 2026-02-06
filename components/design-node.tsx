@@ -318,29 +318,29 @@ function DesignNodeComponent({ data, selected }: DesignNodeProps) {
       <NodeToolbar
         isVisible={selected || isStreaming || showMoreMenu}
         position={Position.Top}
-        offset={24}
+        offset={16}
         className="transition-opacity duration-300"
       >
-        <div className="flex items-center gap-1 p-1 bg-zinc-900/90 backdrop-blur-xl rounded-full shadow-xl border border-white/10 text-white animate-in slide-in-from-bottom-2 fade-in duration-300 scale-90 hover:scale-95 transition-transform origin-bottom">
+        <div className="flex items-center gap-0.5 sm:gap-1 p-0.5 sm:p-1 bg-zinc-900/90 backdrop-blur-xl rounded-full shadow-xl border border-white/10 text-white animate-in slide-in-from-bottom-2 fade-in duration-300 scale-90 hover:scale-95 transition-transform origin-bottom">
           <span
-            className="px-2 text-[11px] font-medium text-zinc-200 max-w-[100px] truncate cursor-default select-none"
+            className="px-1.5 sm:px-2 text-[9px] sm:text-[11px] font-medium text-zinc-200 max-w-[80px] sm:max-w-[100px] truncate cursor-default select-none"
             title={title}
           >
             {title}
           </span>
-          <div className="w-px h-3 bg-white/10 mx-0.5" />
+          <div className="w-px h-2 sm:h-3 bg-white/10 mx-0.5" />
           <Button
             variant="ghost"
             size="icon"
             onClick={handleGenerate}
             disabled={isStreaming}
-            className="w-8 h-8 rounded-full hover:bg-white/10 text-zinc-400 hover:text-white transition-colors"
+            className="w-6 h-6 sm:w-8 sm:h-8 rounded-full hover:bg-white/10 text-zinc-400 hover:text-white transition-colors"
             title="Generate"
           >
-            <Sparkles className="w-3.5 h-3.5" />
+            <Sparkles className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
           </Button>
 
-          <div className="w-px h-3 bg-white/10 mx-0.5" />
+          <div className="w-px h-2 sm:h-3 bg-white/10 mx-0.5" />
 
           <Button
             variant="ghost"
@@ -348,20 +348,20 @@ function DesignNodeComponent({ data, selected }: DesignNodeProps) {
             onClick={handleFigmaAction}
             disabled={isFigmaLoading || isStreaming || showSkeleton}
             className={cn(
-              "h-8 px-2.5 gap-1.5 rounded-full font-medium text-[10px] transition-all disabled:opacity-50",
+              "h-6 sm:h-8 px-1.5 sm:px-2.5 gap-1 sm:gap-1.5 rounded-full font-medium text-[9px] sm:text-[10px] transition-all disabled:opacity-50",
               preparedFigmaData
                 ? "bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 hover:text-emerald-300 border border-emerald-500/30"
                 : "text-zinc-300 hover:bg-white/10 hover:text-white",
             )}
           >
             {isFigmaLoading ? (
-              <Loader2 className="w-3 h-3 animate-spin" />
+              <Loader2 className="w-2.5 h-2.5 sm:w-3 sm:h-3 animate-spin" />
             ) : figmaCopySuccess ? (
-              <Check className="w-3 h-3 text-emerald-400" />
+              <Check className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-emerald-400" />
             ) : preparedFigmaData ? (
-              <div className="flex items-center gap-1.5">
-                <Check className="w-3 h-3" />
-                <span>Copy</span>
+              <div className="flex items-center gap-1 sm:gap-1.5">
+                <Check className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+                <span className="hidden sm:inline">Copy</span>
               </div>
             ) : (
               <Image
@@ -372,19 +372,23 @@ function DesignNodeComponent({ data, selected }: DesignNodeProps) {
                 className="opacity-80 group-hover:opacity-100 transition-opacity"
               />
             )}
-            {!preparedFigmaData && (figmaCopySuccess ? "Copied" : "Figma")}
+            {!preparedFigmaData && (
+              <span className="hidden sm:inline">
+                {figmaCopySuccess ? "Copied" : "Figma"}
+              </span>
+            )}
           </Button>
 
-          <div className="w-px h-3 bg-white/10 mx-0.5" />
+          <div className="w-px h-2 sm:h-3 bg-white/10 mx-0.5" />
 
           <Button
             variant="ghost"
             size="icon"
             onClick={() => setShowDeleteDialog(true)}
-            className="w-8 h-8 rounded-full text-red-400/80 hover:bg-red-500/20 hover:text-red-300 transition-colors"
+            className="w-6 h-6 sm:w-8 sm:h-8 rounded-full text-red-400/80 hover:bg-red-500/20 hover:text-red-300 transition-colors"
             title="Delete"
           >
-            <Trash2 className="w-3.5 h-3.5" />
+            <Trash2 className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
           </Button>
         </div>
       </NodeToolbar>

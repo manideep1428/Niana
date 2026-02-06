@@ -85,7 +85,7 @@ export function GreetingHeader() {
   if (!mounted) return null;
 
   return (
-    <div className="text-center space-y-4 mb-4 relative z-10">
+    <div className="text-center space-y-3 sm:space-y-4 mb-3 sm:mb-4 relative z-10 px-2 sm:px-0">
       {/* Dynamic Greeting - Main Title */}
       <motion.div
         initial={{ opacity: 0, y: 30, filter: "blur(10px)" }}
@@ -93,7 +93,7 @@ export function GreetingHeader() {
         transition={{ duration: 0.8, ease: "easeOut" }}
         className="relative"
       >
-        <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-lobster-two tracking-tight text-foreground flex flex-wrap items-center justify-center gap-x-3 gap-y-1">
+        <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-lobster-two tracking-tight text-foreground flex flex-wrap items-center justify-center gap-x-2 sm:gap-x-3 gap-y-1">
           <span className="bg-clip-text text-transparent bg-gradient-to-br from-foreground to-foreground/70 drop-shadow-sm">
             {greeting.text}
           </span>
@@ -110,7 +110,7 @@ export function GreetingHeader() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
-        className="text-base sm:text-lg md:text-xl text-muted-foreground/80 font-sans font-medium flex flex-col sm:flex-row items-center justify-center gap-2 max-w-2xl mx-auto"
+        className="text-sm sm:text-base md:text-lg lg:text-xl text-muted-foreground/80 font-sans font-medium flex flex-col sm:flex-row items-center justify-center gap-1.5 sm:gap-2 max-w-2xl mx-auto"
       >
         <span>Your AI partner for</span>
         <Typewriter

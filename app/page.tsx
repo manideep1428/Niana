@@ -89,12 +89,12 @@ export default function Home() {
     <div className="relative min-h-screen bg-background selection:bg-primary/20 overflow-hidden font-sans">
       {/* Premium Background Pattern */}
       <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
-        {/* Main Gradient Blob */}
-        <div className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] bg-primary/20 rounded-full blur-[120px] mix-blend-multiply dark:mix-blend-screen animate-[float_10s_ease-in-out_infinite]" />
-        {/* Secondary Blob */}
-        <div className="absolute bottom-[-10%] right-[-10%] w-[50vw] h-[50vw] bg-purple-500/10 dark:bg-purple-900/20 rounded-full blur-[120px] mix-blend-multiply dark:mix-blend-screen animate-[float_15s_ease-in-out_infinite_reverse]" />
-        {/* Accent Blob */}
-        <div className="absolute top-[20%] right-[20%] w-[30vh] h-[30vh] bg-pink-400/10 dark:bg-pink-800/20 rounded-full blur-[80px] mix-blend-multiply dark:mix-blend-screen animate-[pulse-glow_8s_ease-in-out_infinite]" />
+        {/* Main Gradient Blob - Smaller on mobile */}
+        <div className="absolute top-[-10%] left-[-10%] w-[70vw] sm:w-[50vw] h-[70vw] sm:h-[50vw] bg-primary/15 sm:bg-primary/20 rounded-full blur-[80px] sm:blur-[120px] mix-blend-multiply dark:mix-blend-screen animate-[float_10s_ease-in-out_infinite]" />
+        {/* Secondary Blob - Smaller on mobile */}
+        <div className="absolute bottom-[-10%] right-[-10%] w-[70vw] sm:w-[50vw] h-[70vw] sm:h-[50vw] bg-purple-500/8 dark:bg-purple-900/15 sm:bg-purple-500/10 sm:dark:bg-purple-900/20 rounded-full blur-[80px] sm:blur-[120px] mix-blend-multiply dark:mix-blend-screen animate-[float_15s_ease-in-out_infinite_reverse]" />
+        {/* Accent Blob - Hidden on mobile, visible on tablet+ */}
+        <div className="hidden sm:block absolute top-[20%] right-[20%] w-[30vh] h-[30vh] bg-pink-400/10 dark:bg-pink-800/20 rounded-full blur-[80px] mix-blend-multiply dark:mix-blend-screen animate-[pulse-glow_8s_ease-in-out_infinite]" />
         {/* Grid Pattern Overlay */}
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]" />
       </div>
@@ -102,9 +102,9 @@ export default function Home() {
       <div className="relative z-10 w-full">
         <TopBar />
 
-        {/* Main content */}
-        <div className="flex flex-col items-center justify-center min-h-[calc(100vh-80px)] px-4 pb-10 pt-24">
-          <div className="w-full flex-col flex items-center gap-8">
+        {/* Main content - Optimized mobile spacing */}
+        <div className="flex flex-col items-center justify-center min-h-[calc(100vh-80px)] px-3 sm:px-4 pb-6 sm:pb-10 pt-20 sm:pt-24">
+          <div className="w-full flex-col flex items-center gap-6 sm:gap-8">
             <GreetingHeader />
 
             <div className="w-full max-w-3xl animate-in slide-in-from-bottom-8 duration-700 fade-in delay-150 backdrop-blur-sm">
@@ -116,7 +116,7 @@ export default function Home() {
                 isLoading={isLoading}
                 variant="hero"
               />
-              <div className="mt-8 text-center">
+              <div className="mt-6 sm:mt-8 text-center">
                 <Suggestions onSelect={(prompt) => setInput(prompt)} />
               </div>
             </div>

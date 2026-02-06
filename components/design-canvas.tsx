@@ -292,21 +292,21 @@ export function DesignCanvas({
       >
         <Background gap={40} size={1} />
 
-        {/* Custom Controls */}
-        <Panel position="bottom-center" className="mb-8">
-          <div className="flex items-center gap-1 p-1 rounded-full bg-background/95 border border-border shadow-sm">
+        {/* Custom Controls - Optimized for mobile */}
+        <Panel position="bottom-center" className="mb-4 sm:mb-8">
+          <div className="flex items-center gap-0.5 sm:gap-1 p-0.5 sm:p-1 rounded-full bg-background/95 border border-border shadow-sm">
             {/* Zoom Controls */}
             {canZoomOut && (
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => zoomOut()}
-                className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-muted rounded-full transition-all"
+                className="h-7 w-7 sm:h-8 sm:w-8 text-muted-foreground hover:text-foreground hover:bg-muted rounded-full transition-all"
               >
-                <ZoomOut className="h-4 w-4" />
+                <ZoomOut className="h-3 w-3 sm:h-4 sm:w-4" />
               </Button>
             )}
-            <span className="min-w-[3rem] text-center text-xs font-medium text-foreground tabular-nums select-none">
+            <span className="min-w-[2.5rem] sm:min-w-[3rem] text-center text-[10px] sm:text-xs font-medium text-foreground tabular-nums select-none">
               {Math.round(zoom * 100)}%
             </span>
             {canZoomIn && (
@@ -314,19 +314,19 @@ export function DesignCanvas({
                 variant="ghost"
                 size="icon"
                 onClick={() => zoomIn()}
-                className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-muted rounded-full transition-all"
+                className="h-7 w-7 sm:h-8 sm:w-8 text-muted-foreground hover:text-foreground hover:bg-muted rounded-full transition-all"
               >
-                <ZoomIn className="h-4 w-4" />
+                <ZoomIn className="h-3 w-3 sm:h-4 sm:w-4" />
               </Button>
             )}
-            <div className="w-px h-4 bg-border mx-1" />
+            <div className="w-px h-3 sm:h-4 bg-border mx-0.5 sm:mx-1" />
             <Button
               variant="ghost"
               size="icon"
               onClick={() => fitView({ duration: 500 })}
-              className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-muted rounded-full transition-all"
+              className="h-7 w-7 sm:h-8 sm:w-8 text-muted-foreground hover:text-foreground hover:bg-muted rounded-full transition-all"
             >
-              <Maximize className="h-4 w-4" />
+              <Maximize className="h-3 w-3 sm:h-4 sm:w-4" />
             </Button>
           </div>
         </Panel>

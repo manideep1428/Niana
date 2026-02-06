@@ -163,19 +163,19 @@ function DashboardContent() {
     <div className="min-h-screen bg-background">
       <TopBar />
 
-      <div className="max-w-6xl mx-auto px-6 py-8 pt-28">
+      <div className="max-w-6xl mx-auto px-3 sm:px-4 md:px-6 py-6 sm:py-8 pt-24 sm:pt-28">
         {/* Header */}
-        <div className="mb-6">
-          <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
+        <div className="mb-4 sm:mb-6">
+          <h1 className="text-xl sm:text-2xl font-semibold text-gray-900 dark:text-white">
             My Projects
           </h1>
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-2 mb-6">
+        <div className="flex gap-2 mb-4 sm:mb-6 overflow-x-auto pb-1">
           <button
             onClick={() => setActiveTab("all")}
-            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+            className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${
               activeTab === "all"
                 ? "bg-black/10 dark:bg-white/10 text-black dark:text-white border border-black/20 dark:border-white/20"
                 : "text-black/60 dark:text-white/60 hover:text-black dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5"
@@ -185,7 +185,7 @@ function DashboardContent() {
           </button>
           <button
             onClick={() => setActiveTab("favourites")}
-            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+            className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${
               activeTab === "favourites"
                 ? "bg-black/10 dark:bg-white/10 text-black dark:text-white border border-black/20 dark:border-white/20"
                 : "text-black/60 dark:text-white/60 hover:text-black dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5"
@@ -239,7 +239,7 @@ function DashboardContent() {
             </Button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
             {filteredProjects?.map((project) => (
               <div
                 key={project.project_id}
@@ -249,36 +249,36 @@ function DashboardContent() {
                 {/* Large Icon Area */}
                 <div className="aspect-square bg-secondary dark:bg-white/5 flex items-center justify-center relative overflow-hidden">
                   {/* Icon */}
-                  <div className="relative w-20 h-20 rounded-2xl bg-card dark:bg-white/10 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-200">
-                    <Smartphone className="w-10 h-10 text-gray-700 dark:text-white/70" />
+                  <div className="relative w-16 sm:w-20 h-16 sm:h-20 rounded-2xl bg-card dark:bg-white/10 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-200">
+                    <Smartphone className="w-8 sm:w-10 h-8 sm:h-10 text-gray-700 dark:text-white/70" />
                   </div>
 
                   {/* Favorite Button - Positioned absolutely */}
                   <button
                     onClick={(e) => handleToggleFavorite(project.project_id, e)}
-                    className={`absolute top-3 right-3 p-2 rounded-lg bg-card/80 dark:bg-black/40 backdrop-blur-sm hover:bg-card dark:hover:bg-black/60 transition-all ${
+                    className={`absolute top-2 sm:top-3 right-2 sm:right-3 p-1.5 sm:p-2 rounded-lg bg-card/80 dark:bg-black/40 backdrop-blur-sm hover:bg-card dark:hover:bg-black/60 transition-all ${
                       project.is_favorite
                         ? "text-yellow-500 hover:text-yellow-600 dark:text-yellow-400 dark:hover:text-yellow-300"
                         : "text-gray-400 dark:text-white/40 hover:text-gray-600 dark:hover:text-white/80"
                     }`}
                   >
                     <Star
-                      className={`w-5 h-5 ${project.is_favorite ? "fill-current" : ""}`}
+                      className={`w-4 sm:w-5 h-4 sm:h-5 ${project.is_favorite ? "fill-current" : ""}`}
                     />
                   </button>
                 </div>
 
                 {/* Content Area */}
-                <div className="p-5">
+                <div className="p-3 sm:p-5">
                   <div className="flex items-start justify-between gap-2 mb-2">
-                    <h3 className="text-base font-semibold text-gray-900 dark:text-white line-clamp-2 flex-1">
+                    <h3 className="text-sm sm:text-base font-semibold text-gray-900 dark:text-white line-clamp-2 flex-1">
                       {project.title}
                     </h3>
                     <div onClick={(e) => e.stopPropagation()}>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <button className="p-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 text-gray-400 dark:text-white/40 hover:text-gray-600 dark:hover:text-white/80 transition-colors">
-                            <MoreHorizontal className="w-5 h-5" />
+                          <button className="p-1 sm:p-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 text-gray-400 dark:text-white/40 hover:text-gray-600 dark:hover:text-white/80 transition-colors">
+                            <MoreHorizontal className="w-4 sm:w-5 h-4 sm:h-5" />
                           </button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent

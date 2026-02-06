@@ -737,12 +737,12 @@ function DesignPageContent() {
         projectTitle={project?.title || "Untitled"}
       />
       <SidebarInset className="flex flex-col relative overflow-hidden bg-sidebar">
-        <header className="flex h-14 shrink-0 items-center justify-between gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12 bg-sidebar px-4">
-          <div className="flex items-center gap-2">
-            <SidebarTrigger className="-ml-1" />
+        <header className="flex h-12 sm:h-14 shrink-0 items-center justify-between gap-1 sm:gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12 bg-sidebar px-2 sm:px-4">
+          <div className="flex items-center gap-1 sm:gap-2 flex-1 min-w-0">
+            <SidebarTrigger className="-ml-1 shrink-0" />
             <Separator
               orientation="vertical"
-              className="mr-2 data-[orientation=vertical]:h-4"
+              className="mr-1 sm:mr-2 data-[orientation=vertical]:h-4"
             />
             {isEditingTitle ? (
               <input
@@ -751,23 +751,23 @@ function DesignPageContent() {
                 onChange={(e) => setEditedTitle(e.target.value)}
                 onKeyDown={handleTitleKeyDown}
                 onBlur={handleSaveTitle}
-                className="bg-transparent border-none outline-none text-sm font-semibold h-7 p-0 m-0 w-[240px] text-foreground placeholder:text-muted-foreground/50 transition-all"
+                className="bg-transparent border-none outline-none text-xs sm:text-sm font-semibold h-7 p-0 m-0 w-full max-w-[150px] sm:max-w-[240px] text-foreground placeholder:text-muted-foreground/50 transition-all"
                 placeholder="Project Name"
                 autoFocus
               />
             ) : (
-              <div className="flex items-center gap-3 group">
+              <div className="flex items-center gap-1.5 sm:gap-3 group min-w-0 flex-1">
                 <button
                   onClick={handleStartEditTitle}
-                  className="flex items-center gap-2 cursor-pointer hover:bg-sidebar-accent/50 px-2 py-1 -ml-2 rounded-md transition-colors"
+                  className="flex items-center gap-2 cursor-pointer hover:bg-sidebar-accent/50 px-1 sm:px-2 py-1 -ml-1 sm:-ml-2 rounded-md transition-colors min-w-0 flex-1 overflow-hidden"
                   title="Rename Project"
                 >
-                  <span className="font-semibold text-sm text-foreground tracking-tight">
+                  <span className="font-semibold text-xs sm:text-sm text-foreground tracking-tight truncate">
                     {project?.title || "Untitled Project"}
                   </span>
                 </button>
 
-                {/* Visibility Toggle Badge */}
+                {/* Visibility Toggle Badge - Hidden on very small screens */}
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -783,7 +783,7 @@ function DesignPageContent() {
                           );
                         }}
                         className={cn(
-                          "flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-medium border transition-all duration-200",
+                          "hidden sm:flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-medium border transition-all duration-200 shrink-0",
                           project?.is_public
                             ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20"
                             : "bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 border-transparent hover:bg-zinc-200 dark:hover:bg-zinc-700",
@@ -791,13 +791,13 @@ function DesignPageContent() {
                       >
                         {project?.is_public ? (
                           <>
-                            <Globe className="h-3 w-3" />
-                            Public
+                            <Globe className="h-2.5 sm:h-3 w-2.5 sm:w-3" />
+                            <span className="hidden sm:inline">Public</span>
                           </>
                         ) : (
                           <>
-                            <Lock className="h-3 w-3" />
-                            Private
+                            <Lock className="h-2.5 sm:h-3 w-2.5 sm:w-3" />
+                            <span className="hidden sm:inline">Private</span>
                           </>
                         )}
                       </button>
@@ -814,28 +814,19 @@ function DesignPageContent() {
               </div>
             )}
           </div>
-          <div className="flex items-center gap-3">
-            {/* <ExportDialog onCli
-              projectId={projectId}
-              projectTitle={project?.title || "Untitled"}
-              messages={messages}
-              designs={designs}
-              onFigmaExport={() => {
-                toast.info("Figma Export", {
-                  description:
-                    "Use the Figma button on each design card to export individual screens.",
-                });
-              }}
-            /> */}
-            <TokenUsageDisplay />
+          <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
+            {/* Token Usage - Hidden on very small mobile */}
+            <div className="hidden xs:block">
+              <TokenUsageDisplay />
+            </div>
             <Button
               variant="ghost"
               size="icon"
               onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-              className="h-8 w-8 text-muted-foreground hover:text-foreground"
+              className="h-7 w-7 sm:h-8 sm:w-8 text-muted-foreground hover:text-foreground"
             >
-              <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-              <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+              <Sun className="h-3.5 w-3.5 sm:h-4 sm:w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+              <Moon className="absolute h-3.5 w-3.5 sm:h-4 sm:w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
               <span className="sr-only">Toggle theme</span>
             </Button>
           </div>

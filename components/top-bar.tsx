@@ -103,24 +103,24 @@ export default function TopBar({ topOffset = "0" }: TopBarProps) {
 
   return (
     <header
-      className="fixed left-0 right-0 z-50 px-6 py-4 bg-background/80 backdrop-blur-md border-b border-border/50"
+      className="fixed left-0 right-0 z-50 px-3 sm:px-6 py-3 sm:py-4 bg-background/80 backdrop-blur-md border-b border-border/50"
       style={{ top: topOffset }}
     >
       <div className="mx-auto max-w-7xl flex items-center justify-between">
         {/* Logo Section */}
-        <div className="flex items-center gap-8">
+        <div className="flex items-center gap-4 sm:gap-8">
           <Link href="/" className="flex items-center gap-2">
             {/* Assuming logo image is still wanted, otherwise just text */}
-            <div className="relative h-8 w-8 overflow-hidden rounded-lg">
+            <div className="relative h-7 w-7 sm:h-8 sm:w-8 overflow-hidden rounded-lg">
               <Image src="/logo.png" alt="Logo" fill className="object-cover" />
             </div>
-            <span className="text-xl font-bold tracking-tight text-foreground">
+            <span className="text-lg sm:text-xl font-bold tracking-tight text-foreground">
               Niana
             </span>
           </Link>
 
-          {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center gap-6">
+          {/* Desktop Navigation - Hidden on mobile */}
+          <nav className="hidden lg:flex items-center gap-6">
             <Link
               href="/pricing"
               className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
@@ -151,22 +151,22 @@ export default function TopBar({ topOffset = "0" }: TopBarProps) {
           </nav>
         </div>
 
-        {/* Right Section */}
-        <div className="flex items-center gap-4">
+        {/* Right Section - Compact on mobile */}
+        <div className="flex items-center gap-2 sm:gap-4">
           <Button
             variant="ghost"
             size="icon"
             onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-            className="h-9 w-9 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted"
+            className="h-8 w-8 sm:h-9 sm:w-9 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted"
           >
-            <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-            <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+            <Sun className="h-3.5 w-3.5 sm:h-4 sm:w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+            <Moon className="absolute h-3.5 w-3.5 sm:h-4 sm:w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
           </Button>
 
           {user ? (
             <>
-              <Link href="/dashboard">
-                <Button className="rounded-full bg-foreground text-background hover:bg-foreground/90 font-medium px-6">
+              <Link href="/dashboard" className="hidden sm:block">
+                <Button className="rounded-full bg-foreground text-background hover:bg-foreground/90 font-medium px-4 sm:px-6 text-sm">
                   Your projects
                 </Button>
               </Link>

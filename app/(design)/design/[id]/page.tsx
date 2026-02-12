@@ -1,6 +1,6 @@
 "use client";
 
-import { PromptSidebar } from "@/components/app-sidebar";
+import { PromptSidebar } from "@/components/chat-sidebar";
 import {
   SidebarInset,
   SidebarProvider,
@@ -110,14 +110,6 @@ function DesignPageContent() {
     ),
   ];
 
-  const handleSave = useCallback(() => {
-    // No-op or removed functionality
-  }, []);
-
-  const handleCancel = useCallback(() => {
-    // No-op or removed functionality
-  }, []);
-
   // Title editing handlers
   const handleStartEditTitle = useCallback(() => {
     setEditedTitle(project?.title || "");
@@ -151,8 +143,6 @@ function DesignPageContent() {
     [handleSaveTitle, handleCancelEditTitle],
   );
 
-  // Load messages from Convex on mount
-  // IMPORTANT: Skip sync while streaming to prevent overwriting streaming messages
   useEffect(() => {
     // Don't overwrite messages while streaming - the streaming handler manages state
     if (isLoading) return;

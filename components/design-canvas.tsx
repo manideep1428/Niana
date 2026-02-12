@@ -290,8 +290,6 @@ export function DesignCanvas({
         panOnDrag={[0, 1, 2]}
         selectionOnDrag={false}
       >
-        <Background gap={40} size={1} />
-
         {/* Custom Controls - Optimized for mobile */}
         <Panel position="bottom-center" className="mb-4 sm:mb-8">
           <div className="flex items-center gap-0.5 sm:gap-1 p-0.5 sm:p-1 rounded-full bg-background/95 border border-border shadow-sm">

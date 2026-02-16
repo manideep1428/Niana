@@ -268,15 +268,44 @@ export default function PricingPage() {
                 </h1>
 
                 {/* Welcome Offer Banner */}
-                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-orange-500/10 to-amber-500/10 border border-orange-500/30 mb-4">
-                  <span className="text-lg">🎉</span>
-                  <span className="text-sm font-bold text-orange-600 dark:text-orange-400">
-                    Welcome Offer: 75% OFF
-                  </span>
-                  <span className="text-xs text-gray-500 dark:text-gray-400">
-                    Limited time only
-                  </span>
-                </div>
+                <motion.div
+                  initial={{ scale: 0.95, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
+                  className="relative group cursor-default inline-block mb-8"
+                >
+                  {/* Outer Glow/Blur */}
+                  <div className="absolute -inset-[2px] bg-linear-to-r from-orange-500 via-amber-500 to-yellow-500 rounded-full blur-md opacity-40 group-hover:opacity-80 transition duration-500 animate-pulse"></div>
+
+                  {/* Moving Gradient Border */}
+                  <div className="absolute -inset-px bg-linear-to-r from-orange-500 via-yellow-500 to-orange-500 rounded-full animate-gradient-x opacity-100"></div>
+
+                  <div className="relative px-6 py-2.5 bg-white/90 dark:bg-black/90 backdrop-blur-xl rounded-full flex items-center gap-4 shadow-xl ring-1 ring-black/5 dark:ring-white/10">
+                    {/* Pulsing Dot */}
+                    <span className="flex h-2.5 w-2.5 relative">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-500 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-orange-500"></span>
+                    </span>
+
+                    {/* Text Section */}
+                    <div className="flex items-center gap-3">
+                      <span className="text-sm font-semibold text-gray-900 dark:text-gray-100 uppercase tracking-wide">
+                        Welcome Offer
+                      </span>
+
+                      <div className="h-4 w-px bg-gray-200 dark:bg-zinc-700" />
+
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-base font-black bg-gradient-to-r from-orange-600 to-amber-600 dark:from-orange-400 dark:to-amber-400 bg-clip-text text-transparent drop-shadow-sm">
+                          75% OFF
+                        </span>
+                        <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-orange-100 dark:bg-orange-500/20 text-orange-700 dark:text-orange-300 border border-orange-200 dark:border-orange-500/30 uppercase tracking-widest">
+                          Limited Time
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
 
                 <p className="text-lg text-gray-600 dark:text-white/60 max-w-xl mx-auto mb-8">
                   Start free and upgrade as you grow. Cancel anytime.
@@ -622,7 +651,7 @@ export default function PricingPage() {
                               <p className="text-xs text-gray-400 dark:text-white/40">
                                 {isTeamPlan
                                   ? "Unlimited messages"
-                                  : `~${Math.floor((isYearly ? plan.tokens * 12 : plan.tokens) / 1000)} messages (${((isYearly ? plan.tokens * 12 : plan.tokens) / 1000).toLocaleString()}K tokens)`}
+                                  : `~${(isYearly ? plan.credits * 12 : plan.credits) * 2} Designs (${isYearly ? plan.credits * 12 : plan.credits}M tokens)`}
                               </p>
                             </div>
 

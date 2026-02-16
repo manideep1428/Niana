@@ -1,7 +1,7 @@
 // Subscription plans configuration (client-safe)
-// Credit System: 1 Credit = 20,000 output tokens
+// Credit System: 1 Credit = 1,000,000 output tokens
 
-export const TOKENS_PER_CREDIT = 20000;
+export const TOKENS_PER_CREDIT = 1000000;
 
 export const SUBSCRIPTION_PLANS = {
   free: {
@@ -15,7 +15,7 @@ export const SUBSCRIPTION_PLANS = {
     originalYearlyPrice: 0,
     discountPercent: 0,
     credits: 2, // 2 credits for free plan
-    tokens: 40000, // 2 credits * 20k = 40,000 tokens
+    tokens: 2000000, // 2 credits * 1M = 2,000,000 tokens
     projectsLimit: -1, // Unlimited
     figmaLimit: 1, // 1 Figma export
     isUnlimited: false,
@@ -34,19 +34,19 @@ export const SUBSCRIPTION_PLANS = {
     price: 499, // INR per month (discounted)
     priceInPaise: 49900,
     originalPrice: 1996, // Original price before 75% discount
-    priceUSD: 5, // USD per month (discounted)
-    originalPriceUSD: 20, // Original USD price
+    priceUSD: 4, // USD per month (discounted)
+    originalPriceUSD: 16, // Original USD price
     // Yearly pricing (75% off + 2 months free)
     yearlyPrice: 4990, // 499 * 10 = 4990
     yearlyPriceInPaise: 499000,
     originalYearlyPrice: 19960, // 1996 * 10
-    yearlyPriceUSD: 50, // 5 * 10
-    originalYearlyPriceUSD: 200, // 20 * 10
+    yearlyPriceUSD: 40, // 4 * 10
+    originalYearlyPriceUSD: 160, // 16 * 10
     // Discount
     discountPercent: 75,
     // Credits and tokens
     credits: 20, // 20 credits per month
-    tokens: 400000, // 20 credits * 20k = 400,000 tokens
+    tokens: 20000000, // 20 credits * 1M = 20,000,000 tokens
     projectsLimit: -1, // Unlimited
     figmaLimit: 20,
     features: [

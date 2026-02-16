@@ -801,13 +801,18 @@ function DesignPageContent() {
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
+
+                {/* Credit Usage - Compact inline beside visibility badge */}
+                <div className="hidden sm:block">
+                  <TokenUsageDisplay compact />
+                </div>
               </div>
             )}
           </div>
           <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
-            {/* Token Usage - Hidden on very small mobile */}
-            <div className="hidden xs:block">
-              <TokenUsageDisplay />
+            {/* Full credit display on mobile */}
+            <div className="block sm:hidden">
+              <TokenUsageDisplay compact />
             </div>
             <Button
               variant="ghost"

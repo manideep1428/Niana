@@ -28,7 +28,7 @@ export async function POST(request: Request) {
 
     const checkout = await polar.checkouts.create({
       products: [productId],
-      successUrl: `${request.headers.get("origin")}/dashboard?success=true&provider=polar`,
+      successUrl: `${request.headers.get("origin")}/api/polar/verify-payment?checkout_id={CHECKOUT_ID}`,
       customerEmail: user.email,
       metadata: {
         userId: user.id,

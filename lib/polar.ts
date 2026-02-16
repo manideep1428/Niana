@@ -1,8 +1,8 @@
 import { Polar } from "@polar-sh/sdk";
 
 export const polar = new Polar({
-  accessToken: process.env.POLAR_ACCESS_TOKEN ?? "",
-  server: process.env.POLAR_SERVER === "production" ? "production" : "sandbox",
+  accessToken: "polar_oat_nPNmGXesHxrQhDg1NWdOaFVNTVHCAM6rqax8B4MyBBw",
+  server: "production",
 });
 
 export const POLAR_PRODUCTS = {

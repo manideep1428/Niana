@@ -11,6 +11,11 @@ import { useAuth } from "@workos-inc/authkit-nextjs/components";
 import type { Attachment } from "@/components/preview-attachment";
 
 import { GreetingHeader } from "@/components/greeting-header";
+import { SeeInAction } from "@/components/landing/see-in-action";
+import { HowItWorks } from "@/components/landing/how-it-works";
+import { PricingSection } from "@/components/landing/pricing-section";
+import { FaqSection } from "@/components/landing/faq-section";
+import { Footer } from "@/components/landing/footer";
 
 export default function Home() {
   const router = useRouter();
@@ -86,7 +91,7 @@ export default function Home() {
   };
 
   return (
-    <div className="relative min-h-screen bg-background selection:bg-primary/20 overflow-hidden font-sans">
+    <div className="relative min-h-screen bg-background selection:bg-primary/20 overflow-x-hidden font-sans">
       {/* Premium Background Pattern */}
       <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
         {/* Main Gradient Blob - Smaller on mobile */}
@@ -102,7 +107,7 @@ export default function Home() {
       <div className="relative z-10 w-full">
         <TopBar />
 
-        {/* Main content - Optimized mobile spacing */}
+        {/* Hero Section */}
         <div className="flex flex-col items-center justify-center min-h-[calc(100vh-80px)] px-3 sm:px-4 pb-6 sm:pb-10 pt-20 sm:pt-24">
           <div className="w-full flex-col flex items-center gap-6 sm:gap-8">
             <GreetingHeader />
@@ -122,6 +127,13 @@ export default function Home() {
             </div>
           </div>
         </div>
+
+        {/* New Landing Page Sections */}
+        <SeeInAction />
+        <HowItWorks />
+        <PricingSection />
+        <FaqSection />
+        <Footer />
       </div>
     </div>
   );

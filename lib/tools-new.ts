@@ -56,27 +56,4 @@ export const geminiTools = [
       },
     ],
   },
-  {
-    name: "css",
-    functionDeclarations: [
-      {
-        name: "css",
-        description: "Generate CSS for the artifact",
-        parameters: {
-          type: Type.OBJECT,
-          properties: {
-            id: {
-              type: Type.STRING,
-              description: "Unique identifier for the artifact",
-            },
-            content: {
-              type: Type.STRING,
-              description: "Complete CSS content for the artifact",
-            },
-          },
-          required: ["id", "content"],
-        },
-      },
-    ],
-  },
 ];

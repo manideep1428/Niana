@@ -52,6 +52,7 @@
   /* Custom Animations */
   --animate-float: float 6s ease-in-out infinite;
   --animate-pulse-glow: pulse-glow 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  --animate-gradient-x: gradient-x 3s ease infinite;
 
   @keyframes float {
     0%,
@@ -76,9 +77,15 @@
   }
 
   @keyframes gradient-x {
-    0% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
-    100% { background-position: 0% 50%; }
+    0% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+    100% {
+      background-position: 0% 50%;
+    }
   }
 }
 

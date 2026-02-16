@@ -136,6 +136,12 @@ export interface ThoughtDeltaEvent {
   content: string;
 }
 
+export interface DesignNodeSkeletonEvent {
+  type: "design-node-skeleton";
+  id: string;
+  title: string;
+}
+
 export type SSEEvent =
   | TextEvent
   | TextDeltaEvent
@@ -146,6 +152,7 @@ export type SSEEvent =
   | ContentDeltaEvent
   | ArtifactFinishEvent
   | SkeletonEvent
+  | DesignNodeSkeletonEvent
   | DoneEvent
   | FinishEvent
   | ErrorEvent;

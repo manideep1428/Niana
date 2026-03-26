@@ -34,7 +34,7 @@ export async function POST(request: Request) {
   const id = generateUUID();
   try {
     const response = await openai.chat.completions.create({
-      model: "gpt-5-mini-2025-08-07",
+      model: "gpt-5.4-nano",
       messages: [
         {
           role: "user",

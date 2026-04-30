@@ -116,7 +116,7 @@ export function HowDidYouFindUsModal() {
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={() => {}}>
+    <Dialog open={isOpen} onOpenChange={() => { }}>
       <DialogContent
         className="w-[90vw] max-w-[78rem] [&>button]:hidden p-0 border-none shadow-2xl bg-card/95 backdrop-blur-xl overflow-hidden rounded-[1.25rem] sm:rounded-[2rem]"
         onPointerDownOutside={(e) => e.preventDefault()}

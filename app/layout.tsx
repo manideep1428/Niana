@@ -10,6 +10,8 @@ import Providers from "./providers";
 import "@xyflow/react/dist/style.css";
 
 import { Toaster } from "sonner";
+import Script from "next/script";
+import Head from "next/head";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -39,6 +41,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <Head>
+        <meta name='impact-site-verification' content='4f365d3e-7adf-49bd-a17c-14bacac71101' />
+      </Head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${lobsterTwo.variable} antialiased`}
       >

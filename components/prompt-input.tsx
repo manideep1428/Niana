@@ -319,9 +319,9 @@ export function PromptInput({
             ref={inputContainerRef}
             onDrop={handleDrop}
             className={`
-                relative flex flex-col min-h-[140px] rounded-[1.5rem] border transition-all duration-300
-                bg-white/80 dark:bg-black/60 backdrop-blur-xl shadow-xl
-                ${isFocused ? "border-primary/50 ring-4 ring-primary/10" : "border-white/20 dark:border-white/10 hover:border-primary/30"}
+                relative flex flex-col min-h-[140px] rounded-2xl border transition-all duration-300
+                bg-white/90 dark:bg-[#0c0c0e]/85 backdrop-blur-xl shadow-2xl dark:shadow-black/60
+                ${isFocused ? "border-primary/50 dark:border-primary/40 ring-4 ring-primary/5" : "border-zinc-200 dark:border-white/10 hover:border-zinc-300 dark:hover:border-white/15"}
                 ${isDragging ? "border-primary ring-4 ring-primary/10 scale-[1.01]" : ""}
               `}
           >
@@ -345,7 +345,7 @@ export function PromptInput({
               </div>
             )}
 
-            <div className="flex-1 p-6">
+            <div className="flex-1 p-5">
               <ScrollArea className="max-h-[200px] w-full">
                 <Textarea
                   ref={textareaRef}
@@ -363,7 +363,7 @@ export function PromptInput({
                         ? "Describe your website or desktop app..."
                         : "Describe your mobile app..."
                   }
-                  className="w-full text-2xl sm:text-3xl font-medium bg-transparent dark:bg-transparent border-none text-foreground placeholder:text-muted-foreground/40 resize-none outline-none focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0 shadow-none min-h-[80px] max-h-[200px] scrollbar-none"
+                  className="w-full text-lg sm:text-xl font-normal bg-transparent dark:bg-transparent border-none text-foreground placeholder:text-muted-foreground/35 resize-none outline-none focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0 shadow-none min-h-[80px] max-h-[200px] scrollbar-none"
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && !e.shiftKey) {
                       e.preventDefault();
@@ -377,7 +377,7 @@ export function PromptInput({
               </ScrollArea>
             </div>
 
-            <div className="flex items-center justify-between px-6 pb-6 pt-2">
+            <div className="flex items-center justify-between px-5 pb-5 pt-2">
               <div className="flex items-center gap-2">
                 <button
                   type="button"
@@ -386,12 +386,12 @@ export function PromptInput({
                   className="group flex items-center gap-2 text-muted-foreground hover:text-foreground transition-all duration-200"
                   title="Attach files"
                 >
-                  <div className="p-2.5 rounded-full bg-secondary/50 hover:bg-secondary transition-colors border border-transparent hover:border-border">
-                    <Paperclip className="w-5 h-5" />
+                  <div className="p-2 rounded-lg bg-zinc-100 dark:bg-white/5 border border-zinc-200 dark:border-white/10 hover:bg-zinc-200 dark:hover:bg-white/10 hover:border-zinc-300 dark:hover:border-white/15 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors duration-200">
+                    <Paperclip className="w-4 h-4" />
                   </div>
                 </button>
 
-                <div className="w-px h-8 bg-border/50 mx-2" />
+                <div className="w-px h-5 bg-zinc-200 dark:bg-white/10 mx-1.5" />
 
                 <button
                   type="button"
@@ -399,25 +399,25 @@ export function PromptInput({
                     setProjectType(projectType === "mobile" ? "web" : "mobile")
                   }
                   className={cn(
-                    "flex items-center gap-2 text-sm font-medium px-4 py-2.5 rounded-full transition-all duration-300 border shadow-sm cursor-pointer",
+                    "flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg border transition-all duration-200 cursor-pointer",
                     projectType === "web"
                       ? "bg-primary/10 text-primary border-primary/20 hover:bg-primary/20"
-                      : "bg-secondary/50 text-muted-foreground border-transparent hover:bg-secondary hover:text-foreground",
+                      : "bg-zinc-100 dark:bg-white/5 text-zinc-600 dark:text-zinc-400 border-zinc-200 dark:border-white/10 hover:bg-zinc-200 dark:hover:bg-white/10 hover:text-zinc-900 dark:hover:text-zinc-200",
                   )}
                   title={
                     projectType === "mobile"
-                      ? "Twitch to Web"
+                      ? "Switch to Web"
                       : "Switch to Mobile"
                   }
                 >
                   {projectType === "web" ? (
-                    <span className="flex items-center gap-2">
-                      <Monitor className="w-4 h-4" />
+                    <span className="flex items-center gap-1.5">
+                      <Monitor className="w-3.5 h-3.5" />
                       Web
                     </span>
                   ) : (
-                    <span className="flex items-center gap-2">
-                      <Smartphone className="w-4 h-4" />
+                    <span className="flex items-center gap-1.5">
+                      <Smartphone className="w-3.5 h-3.5" />
                       Mobile
                     </span>
                   )}
@@ -427,21 +427,21 @@ export function PromptInput({
                   type="button"
                   onClick={() => setIsPublic(!isPublic)}
                   className={cn(
-                    "flex items-center gap-2 text-sm font-medium px-4 py-2.5 rounded-full transition-all duration-300 border shadow-sm cursor-pointer",
+                    "flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg border transition-all duration-200 cursor-pointer",
                     isPublic
                       ? "bg-primary/10 text-primary border-primary/20 hover:bg-primary/20"
-                      : "bg-secondary/50 text-muted-foreground border-transparent hover:bg-secondary hover:text-foreground",
+                      : "bg-zinc-100 dark:bg-white/5 text-zinc-600 dark:text-zinc-400 border-zinc-200 dark:border-white/10 hover:bg-zinc-200 dark:hover:bg-white/10 hover:text-zinc-900 dark:hover:text-zinc-200",
                   )}
                   title={isPublic ? "Switch to Private" : "Switch to Public"}
                 >
                   {isPublic ? (
-                    <span className="flex items-center gap-2">
-                      <Globe className="w-4 h-4" />
+                    <span className="flex items-center gap-1.5">
+                      <Globe className="w-3.5 h-3.5" />
                       Public
                     </span>
                   ) : (
-                    <span className="flex items-center gap-2">
-                      <Lock className="w-4 h-4" />
+                    <span className="flex items-center gap-1.5">
+                      <Lock className="w-3.5 h-3.5" />
                       Private
                     </span>
                   )}
@@ -453,27 +453,27 @@ export function PromptInput({
                 disabled={isLoading && !isResponding}
                 onClick={handleButtonClick}
                 className={cn(
-                  "flex items-center gap-2 px-8 py-3 rounded-xl font-semibold transition-all duration-300 transform active:scale-95 shadow-lg hover:shadow-primary/25 cursor-pointer",
+                  "flex items-center gap-1.5 px-6 py-2 rounded-lg font-semibold text-xs transition-all duration-200 transform active:scale-95 shadow-sm active:translate-y-[1px] cursor-pointer",
                   isLoading
-                    ? "bg-muted text-muted-foreground cursor-not-allowed"
-                    : "bg-gradient-to-r from-primary to-[#FF7B54] hover:brightness-110 text-white border-b-4 border-b-[#E56A40]/30 active:border-b-0 active:translate-y-[2px]",
+                    ? "bg-zinc-100 dark:bg-zinc-800 text-zinc-400 dark:text-zinc-600 cursor-not-allowed border border-transparent"
+                    : "bg-gradient-to-r from-primary to-[#FF7B54] hover:brightness-110 text-white hover:shadow-md hover:shadow-primary/15 border-b border-[#E56A40]/30",
                 )}
               >
                 {isLoading ? (
                   isResponding ? (
                     <>
-                      <div className="w-2 h-2 rounded-full bg-current animate-bounce" />
+                      <div className="w-1.5 h-1.5 rounded-full bg-current animate-bounce" />
                       <span>Stop</span>
                     </>
                   ) : (
                     <>
-                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      <div className="w-3.5 h-3.5 border border-white/30 border-t-white rounded-full animate-spin" />
                       <span>Dreaming...</span>
                     </>
                   )
                 ) : (
                   <>
-                    <Rocket className="w-5 h-5" />
+                    <Rocket className="w-4 h-4" />
                     <span>Design</span>
                   </>
                 )}
@@ -504,9 +504,9 @@ export function PromptInput({
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
           className={`
-            relative rounded-3xl border transition-all duration-200
-            file:bg-card bg-[#fffcfb] dark:bg-card
-            ${isFocused ? "border-primary shadow-md ring-1 ring-primary/20" : "border-primary/20 shadow-sm hover:border-primary/50"}
+            relative rounded-xl border transition-all duration-200
+            bg-[#ffffff] dark:bg-[#0c0c0e]
+            ${isFocused ? "border-primary/60 dark:border-primary/40 shadow-sm ring-1 ring-primary/10" : "border-zinc-200 dark:border-white/10 hover:border-zinc-300 dark:hover:border-white/15"}
             ${isDragging ? "border-primary bg-background shadow-md" : ""}
           `}
         >
@@ -530,8 +530,8 @@ export function PromptInput({
             </div>
           )}
 
-          <div className="p-3">
-            <ScrollArea className="max-h-[200px] w-full">
+          <div className="p-2.5">
+            <ScrollArea className="max-h-[160px] w-full">
               <Textarea
                 ref={textareaRef}
                 name="content"
@@ -541,7 +541,7 @@ export function PromptInput({
                 onBlur={() => setIsFocused(false)}
                 onPaste={handlePaste}
                 placeholder={isDragging ? "Drop files here..." : "Ask Niana..."}
-                className="w-full bg-transparent dark:bg-transparent border-none text-sm text-foreground placeholder:text-muted-foreground resize-none outline-none min-h-[44px] max-h-[200px] focus:outline-none focus:border-none focus:ring-0 shadow-none scrollbar-none"
+                className="w-full bg-transparent dark:bg-transparent border-none text-sm text-foreground placeholder:text-muted-foreground/50 resize-none outline-none min-h-[40px] max-h-[160px] focus:outline-none focus:border-none focus:ring-0 shadow-none scrollbar-none"
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && !e.shiftKey) {
                     e.preventDefault();
@@ -555,15 +555,15 @@ export function PromptInput({
             </ScrollArea>
           </div>
 
-          <div className="flex items-center justify-between px-3 pb-3">
-            <div className="flex items-center gap-2">
+          <div className="flex items-center justify-between px-2.5 pb-2.5">
+            <div className="flex items-center gap-1.5">
               <button
                 type="button"
                 disabled={!canAttach}
                 onClick={() => fileInputRef.current?.click()}
-                className="h-8 w-8 rounded-lg border border-border hover:border-primary flex items-center justify-center transition-colors disabled:opacity-50 text-muted-foreground hover:text-foreground hover:bg-accent"
+                className="h-7 w-7 rounded-md border border-zinc-200 dark:border-white/10 hover:bg-zinc-100 dark:hover:bg-white/5 flex items-center justify-center transition-colors disabled:opacity-50 text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 cursor-pointer"
               >
-                <Plus className="w-4 h-4" />
+                <Plus className="w-3.5 h-3.5" />
               </button>
 
               {onTabChange && activeTab === "chat" && (
@@ -571,10 +571,10 @@ export function PromptInput({
                   type="button"
                   onClick={() => toast.info("Visual Edit Coming Soon")}
                   className={cn(
-                    "h-8 px-3 rounded-lg text-xs flex items-center gap-2 transition-all border border-border text-muted-foreground hover:text-foreground hover:bg-accent",
+                    "h-7 px-2.5 rounded-md text-[11px] flex items-center gap-1.5 transition-all border border-zinc-200 dark:border-white/10 text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-white/5 cursor-pointer",
                   )}
                 >
-                  <SquareDashedMousePointer className="w-3.5 h-3.5" />
+                  <SquareDashedMousePointer className="w-3 h-3" />
                   <span>Visual edits</span>
                 </button>
               )}
@@ -583,9 +583,9 @@ export function PromptInput({
                 <button
                   type="button"
                   onClick={() => onTabChange("chat")}
-                  className="h-8 px-3 rounded-lg text-xs flex items-center gap-2 transition-all border border-border text-muted-foreground hover:text-foreground hover:bg-accent"
+                  className="h-7 px-2.5 rounded-md text-[11px] flex items-center gap-1.5 transition-all border border-zinc-200 dark:border-white/10 text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-white/5 cursor-pointer"
                 >
-                  <MessageSquare className="w-3.5 h-3.5" />
+                  <MessageSquare className="w-3 h-3" />
                   <span>Chat</span>
                 </button>
               )}
@@ -596,7 +596,7 @@ export function PromptInput({
               onSubmit={handleButtonClick}
               onStop={onStop}
               isResponding={isResponding}
-              className="bg-primary hover:bg-primary/90 text-primary-foreground h-8 w-8 rounded-lg transition-colors shadow-sm"
+              className="bg-primary hover:bg-primary/95 text-white h-7 w-7 rounded-md transition-colors shadow-sm cursor-pointer flex items-center justify-center"
             />
           </div>
         </div>

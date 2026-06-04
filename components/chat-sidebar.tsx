@@ -156,18 +156,18 @@ export function PromptSidebar({
   const router = useRouter();
 
   return (
-    <Sidebar {...props} className="border-none">
-      <div className="flex flex-col h-full w-full">
+    <Sidebar {...props} className="border-r border-zinc-200 dark:border-white/10 bg-[#ffffff] dark:bg-[#050505] transition-colors duration-300">
+      <div className="flex flex-col h-full w-full bg-[#ffffff] dark:bg-[#050505]">
         {/* Header */}
-        <SidebarHeader className="p-4 space-y-3">
+        <SidebarHeader className="h-14 flex flex-row items-center justify-between px-4 border-b border-zinc-200 dark:border-white/10 bg-[#ffffff] dark:bg-[#050505] transition-colors duration-300 shrink-0">
           <div
             onClick={() => router.push("/")}
-            className="flex items-center gap-2 cursor-pointer"
+            className="flex items-center gap-2 cursor-pointer select-none"
           >
-            <Image src="/logo.png" alt="Niana Logo" width={16} height={16} />
-            <h2 className="font-semibold bg-linear-to-r from-pink-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
+            <Image src="/logo.png" alt="Niana Logo" width={18} height={18} />
+            <span className="font-bold text-sm tracking-tight text-foreground">
               Niana
-            </h2>
+            </span>
           </div>
         </SidebarHeader>
 
@@ -200,7 +200,7 @@ export function PromptSidebar({
                   messages.map((message, index) => (
                     <div
                       key={`${message.role}-${index}`}
-                      className="flex gap-3 w-full pb-4 border-b border-white/10"
+                      className="flex gap-3 w-full pb-4 border-b border-zinc-200 dark:border-white/5"
                     >
                       {/* Large avatar on the left */}
                       {message.role === "assistant" ? (
@@ -318,7 +318,7 @@ export function PromptSidebar({
                     if (hasAssistantResponse) return null;
 
                     return (
-                      <div className="flex gap-3 w-full pb-4 border-b border-white/10">
+                      <div className="flex gap-3 w-full pb-4 border-b border-zinc-200 dark:border-white/5">
                         <div className="shrink-0 w-7 h-7 rounded-full flex items-center justify-center">
                           <Image
                             src="/logo.png"
@@ -375,7 +375,7 @@ export function PromptSidebar({
         </SidebarContent>
 
         {/* Footer - Show fork button in read-only mode or prompt input in edit mode */}
-        <SidebarFooter className="border-white/5">
+        <SidebarFooter className="border-t border-zinc-200 dark:border-white/5 bg-[#ffffff] dark:bg-[#050505] p-3 transition-colors duration-300">
           {isReadOnly ? (
             // Read-only mode - Show fork button
             <div className="p-4 space-y-3">

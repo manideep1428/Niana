@@ -136,19 +136,19 @@ function SuggestionCard({
   return (
     <motion.button
       ref={cardRef}
-      whileHover={{ scale: 1.05, y: -2 }}
-      whileTap={{ scale: 0.95 }}
+      whileHover={{ scale: 1.02, y: -1 }}
+      whileTap={{ scale: 0.98 }}
       onClick={onClick}
       onMouseMove={handleMouseMove}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       className={`
-        relative px-5 py-2.5 rounded-full transition-all duration-300
-        bg-white/40 dark:bg-zinc-800/40 backdrop-blur-md 
-        border border-white/20 dark:border-white/10
-        hover:bg-white/60 dark:hover:bg-zinc-700/60
+        relative px-5 py-2 rounded-full transition-all duration-300
+        bg-zinc-100/60 dark:bg-white/5 backdrop-blur-md 
+        border border-zinc-200/80 dark:border-white/10
+        hover:bg-zinc-200/80 dark:hover:bg-white/10
         hover:border-primary/30 dark:hover:border-primary/30
-        text-sm font-medium text-muted-foreground hover:text-foreground hover:shadow-lg
+        text-xs sm:text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:shadow-sm
       `}
     >
       <span className="relative z-10 flex items-center gap-2">

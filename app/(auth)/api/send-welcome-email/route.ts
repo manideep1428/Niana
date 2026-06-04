@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+let resend: Resend | null = null;
+function getResendClient() {
+  if (!resend) {
+    resend = new Resend(process.env.RESEND_API_KEY || "dummy_key_for_build");
+  }
+  return resend;
+}
 
 // Email template function
 function getWelcomeEmailTemplate(firstName: string): string {
@@ -158,7 +164,7 @@ export async function POST(request: NextRequest) {
 
     // Send the welcome email
     try {
-      const { data, error } = await resend.emails.send({
+      const { data, error } = await getResendClient().emails.send({
         from: process.env.RESEND_FROM_EMAIL || "Niana <vicky@niana.design>",
         to: [email],
         subject: "🎉 Welcome to Niana - Your AI Design Journey Begins!",

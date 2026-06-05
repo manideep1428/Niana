@@ -2,7 +2,7 @@
 
 import { api } from "@/convex/_generated/api";
 import { convexClient } from "@/lib/convex";
-import openai from "@/lib/openai";
+import { gemini } from "@/lib/gemini";
 import { generateUUID } from "@/lib/utils";
 import { withAuth } from "@workos-inc/authkit-nextjs";
 
@@ -15,11 +15,13 @@ interface Attachment {
 
 export async function POST(request: Request) {
   const {
+    id: userId,
     content,
     attachments = [],
     isPublic,
     type: userType,
   } = (await request.json()) as {
+    id?: string;
     content: string;
     attachments?: Attachment[];
     isPublic: string;
@@ -31,14 +33,11 @@ export async function POST(request: Request) {
   if (!user)
     return Response.json({ success: false, message: "User Not SignedIn" });
   console.log(content);
-  const id = generateUUID();
+  const id = userId || generateUUID();
   try {
-    const response = await openai.chat.completions.create({
-      model: "gpt-5.4-nano",
-      messages: [
-        {
-          role: "user",
-          content: `
+    const response = await gemini.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: `
         You're a UI/UX designer     
         Create a 5 words title for user request only
         
@@ -67,7 +66,7 @@ export async function POST(request: Request) {
         
         <AI response> 
         
-        { title : "Modern Appetizing Food Delivery App" , type : "mobile"}
+        { "title" : "Modern Appetizing Food Delivery App" , "type" : "mobile"}
 
         </AI response>
         
@@ -75,15 +74,17 @@ export async function POST(request: Request) {
 
 
         ${content}`,
-        },
-      ],
+      config: {
+        responseMimeType: "application/json",
+      }
     });
 
-    if (!response) return Response.json({ message: "Title Not Generated" });
+    if (!response || !response.text) return Response.json({ message: "Title Not Generated" });
 
-    const res = response.choices[0].message.content;
-    const title = JSON.parse(res as string).title;
-    const aiType = JSON.parse(res as string).type; // "mobile" or "web" (was "desktop")
+    const res = response.text.trim();
+    const parsed = JSON.parse(res);
+    const title = parsed.title;
+    const aiType = parsed.type; // "mobile" or "web" (was "desktop")
 
     // Normalize type (AI might return "desktop" based on old prompt)
     let finalType = userType;

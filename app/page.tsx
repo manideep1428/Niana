@@ -11,11 +11,7 @@ import { useAuth } from "@workos-inc/authkit-nextjs/components";
 import type { Attachment } from "@/components/preview-attachment";
 
 import { GreetingHeader } from "@/components/greeting-header";
-import { SeeInAction } from "@/components/landing/see-in-action";
-import { HowItWorks } from "@/components/landing/how-it-works";
-import { PricingSection } from "@/components/landing/pricing-section";
-import { FaqSection } from "@/components/landing/faq-section";
-import { Footer } from "@/components/landing/footer";
+import { generateUUID } from "@/lib/utils";
 
 export default function Home() {
   const router = useRouter();
@@ -55,64 +51,67 @@ export default function Home() {
 
     setIsLoading(true);
 
-    try {
-      const response = await fetch("/api/project", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          content,
-          isPublic,
-          type,
-          attachments: attachments.map((a) => ({
-            name: a.name,
-            url: a.url,
-            contentType: a.contentType,
-            storageId: a.storageId,
-          })),
-        }),
+    const generatedProjectId = generateUUID();
+
+    // Redirect immediately in parallel
+    setLocalStore("initialMessage", input);
+    setInput("");
+    router.push(`/design/${generatedProjectId}?new=true`);
+
+    // Call API in the background (parallelized)
+    fetch("/api/project", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        id: generatedProjectId,
+        content,
+        isPublic,
+        type,
+        attachments: attachments.map((a) => ({
+          name: a.name,
+          url: a.url,
+          contentType: a.contentType,
+          storageId: a.storageId,
+        })),
+      }),
+    })
+      .then(async (response) => {
+        const data = await response.json();
+        if (!data.success) {
+          toast.error(data.message || "Failed to initialize project");
+        }
+      })
+      .catch((error) => {
+        console.error("Error creating project in background:", error);
+        toast.error("Failed to initialize project");
       });
-
-      const data = await response.json();
-
-      if (data.success && data.projectId) {
-        setLocalStore("initialMessage", input);
-        setInput("");
-        router.push(`/design/${data.projectId}`);
-      } else {
-        toast.error(data.message);
-        setIsLoading(false);
-      }
-    } catch (error) {
-      console.error("Error submitting project:", error);
-      setIsLoading(false);
-    }
   };
 
   return (
-    <div className="relative min-h-screen bg-background selection:bg-primary/20 overflow-x-hidden font-sans">
-      {/* Premium Background Pattern */}
+    <div className="relative min-h-screen bg-[#fafafa] dark:bg-[#050505] selection:bg-primary/20 overflow-x-hidden font-sans transition-colors duration-300">
+      {/* Premium Minimal Background */}
       <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
-        {/* Main Gradient Blob - Smaller on mobile */}
-        <div className="absolute top-[-10%] left-[-10%] w-[70vw] sm:w-[50vw] h-[70vw] sm:h-[50vw] bg-primary/15 sm:bg-primary/20 rounded-full blur-[80px] sm:blur-[120px] mix-blend-multiply dark:mix-blend-screen animate-[float_10s_ease-in-out_infinite]" />
-        {/* Secondary Blob - Smaller on mobile */}
-        <div className="absolute bottom-[-10%] right-[-10%] w-[70vw] sm:w-[50vw] h-[70vw] sm:h-[50vw] bg-purple-500/8 dark:bg-purple-900/15 sm:bg-purple-500/10 sm:dark:bg-purple-900/20 rounded-full blur-[80px] sm:blur-[120px] mix-blend-multiply dark:mix-blend-screen animate-[float_15s_ease-in-out_infinite_reverse]" />
-        {/* Accent Blob - Hidden on mobile, visible on tablet+ */}
-        <div className="hidden sm:block absolute top-[20%] right-[20%] w-[30vh] h-[30vh] bg-pink-400/10 dark:bg-pink-800/20 rounded-full blur-[80px] mix-blend-multiply dark:mix-blend-screen animate-[pulse-glow_8s_ease-in-out_infinite]" />
+        {/* Subtle Top Center Brand Glow */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-[500px] bg-[radial-gradient(circle_at_top,rgba(255,159,104,0.12),transparent_60%)] dark:bg-[radial-gradient(circle_at_top,rgba(255,159,104,0.06),transparent_50%)]" />
+        
+        {/* Accent purple glow on the right */}
+        <div className="absolute top-[20%] right-[-10%] w-[40vw] h-[40vw] rounded-full bg-purple-500/5 dark:bg-purple-900/5 blur-[100px]" />
+        
         {/* Grid Pattern Overlay */}
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]" />
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808008_1px,transparent_1px),linear-gradient(to_bottom,#80808008_1px,transparent_1px)] bg-[size:32px_32px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_80%,transparent_100%)]" />
       </div>
 
-      <div className="relative z-10 w-full">
+      <div className="relative z-10 w-full flex flex-col min-h-screen">
         <TopBar />
 
         {/* Hero Section */}
-        <div className="flex flex-col items-center justify-center min-h-[calc(100vh-80px)] px-3 sm:px-4 pb-6 sm:pb-10 pt-20 sm:pt-24">
-          <div className="w-full flex-col flex items-center gap-6 sm:gap-8">
+        <div className="flex-1 flex flex-col items-center justify-center px-4 pb-12 pt-28 sm:pt-32">
+          <div className="w-full max-w-3xl flex flex-col items-center gap-8 sm:gap-10">
             <GreetingHeader />
 
-            <div className="w-full max-w-3xl animate-in slide-in-from-bottom-8 duration-700 fade-in delay-150 backdrop-blur-sm">
+            <div className="w-full animate-in slide-in-from-bottom-8 duration-700 fade-in delay-150">
               <PromptInput
                 input={input}
                 disable={isLoading}
@@ -121,19 +120,12 @@ export default function Home() {
                 isLoading={isLoading}
                 variant="hero"
               />
-              <div className="mt-6 sm:mt-8 text-center">
+              <div className="mt-8 text-center">
                 <Suggestions onSelect={(prompt) => setInput(prompt)} />
               </div>
             </div>
           </div>
         </div>
-
-        {/* New Landing Page Sections */}
-        <SeeInAction />
-        <HowItWorks />
-        <PricingSection />
-        <FaqSection />
-        <Footer />
       </div>
     </div>
   );

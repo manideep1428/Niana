@@ -159,36 +159,13 @@ function SuggestionCard({
 }
 
 export function Suggestions({ onSelect }: SuggestionsProps) {
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  const typeText = (prompt: string) => {
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
-    }
-
-    onSelect("");
-
-    let index = 0;
-
-    intervalRef.current = setInterval(() => {
-      if (index < prompt.length) {
-        onSelect(prompt.slice(0, index + 1));
-        index++;
-      } else {
-        clearInterval(intervalRef.current!);
-        intervalRef.current = null;
-      }
-    }, 1);
-  };
-
   return (
     <div className="flex flex-wrap justify-center gap-3 mt-4">
       {suggestions.map((suggestion, index) => (
         <SuggestionCard
           key={index}
           suggestion={suggestion}
-          onClick={() => typeText(suggestion.prompt)}
+          onClick={() => onSelect(suggestion.prompt)}
         />
       ))}
     </div>

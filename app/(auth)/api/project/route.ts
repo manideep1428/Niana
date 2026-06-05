@@ -15,11 +15,13 @@ interface Attachment {
 
 export async function POST(request: Request) {
   const {
+    id: userId,
     content,
     attachments = [],
     isPublic,
     type: userType,
   } = (await request.json()) as {
+    id?: string;
     content: string;
     attachments?: Attachment[];
     isPublic: string;
@@ -31,7 +33,7 @@ export async function POST(request: Request) {
   if (!user)
     return Response.json({ success: false, message: "User Not SignedIn" });
   console.log(content);
-  const id = generateUUID();
+  const id = userId || generateUUID();
   try {
     const response = await gemini.models.generateContent({
       model: "gemini-2.5-flash",

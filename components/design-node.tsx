@@ -2,7 +2,7 @@
 
 import { memo, useState, useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
-import { Trash2, Sparkles, Check, Loader2, AlertTriangle } from "lucide-react";
+import { Trash2, Sparkles, Check, AlertTriangle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { NodeToolbar, Position } from "@xyflow/react";
 import { convertHtmlToFigma } from "@/app/actions/figma";
@@ -56,9 +56,9 @@ function DesignNodeComponent({ data, selected }: DesignNodeProps) {
   const [figmaCopySuccess, setFigmaCopySuccess] = useState(false);
   const clipboardDataRef = useRef<string | null>(null);
 
-  // Show skeleton when no content, or streaming with insufficient content
+  // Show skeleton when streaming; show iframe when content is ready and not streaming
   const hasValidContent = content && content.length > 100;
-  const showSkeleton = !hasValidContent;
+  const showSkeleton = isStreaming ? true : !hasValidContent;
 
   useEffect(() => {
     const handleCopy = (e: ClipboardEvent) => {
@@ -453,7 +453,7 @@ function DesignNodeComponent({ data, selected }: DesignNodeProps) {
             className={cn(
               "relative rounded-xl overflow-hidden bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-2xl transition-all duration-300",
               selected &&
-                "ring-2 ring-primary ring-offset-4 ring-offset-background",
+              "ring-2 ring-primary ring-offset-4 ring-offset-background",
             )}
             style={{ width: "1024px" }}
           >
@@ -491,87 +491,88 @@ function DesignNodeComponent({ data, selected }: DesignNodeProps) {
               />
 
               {/* Desktop Skeleton/Loading Logic */}
-              {!hasValidContent && (
-                <div className="absolute inset-0 z-10 bg-zinc-50 dark:bg-zinc-900 flex flex-col">
+              {showSkeleton && (
+                <div className="absolute inset-0 z-10 bg-zinc-950 flex flex-col">
                   {isStreaming ? (
-                    // High-Fidelity Desktop Skeleton Animation
-                    <div className="w-full h-full relative overflow-hidden flex flex-col">
-                      {/* Animated Shimmer Overlay */}
-                      <div className="absolute inset-0 bg-linear-to-r from-transparent via-white/50 dark:via-white/5 to-transparent -translate-x-full animate-[shimmer_2s_infinite] z-20 pointer-events-none" />
+                    // Supergent-style generating skeleton
+                    <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden p-8">
+                      {/* Radial background glow */}
+                      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.04),transparent_40%)]" />
 
-                      {/* Desktop Skeleton UI - Navigation Bar */}
-                      <div className="h-16 px-8 flex items-center justify-between border-b border-zinc-200/50 dark:border-zinc-800/50">
-                        <div className="flex items-center gap-6">
-                          <div className="w-10 h-10 rounded-lg bg-zinc-200 dark:bg-zinc-800" />
-                          <div className="flex gap-4">
-                            <div className="w-16 h-3 rounded-full bg-zinc-200 dark:bg-zinc-800" />
-                            <div className="w-20 h-3 rounded-full bg-zinc-200 dark:bg-zinc-800" />
-                            <div className="w-14 h-3 rounded-full bg-zinc-200 dark:bg-zinc-800" />
+                      {/* Shimmer sweep */}
+                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.04] to-transparent -translate-x-full animate-[shimmer_2.4s_ease-in-out_infinite] pointer-events-none" />
+
+                      <div className="relative flex w-full max-w-xl flex-col items-center gap-8 text-center">
+                        {/* Code skeleton card — supergent style */}
+                        <div className="w-full max-w-sm rounded-xl border border-white/10 bg-zinc-950/70 p-5 text-left shadow-2xl shadow-black">
+                          <div className="mb-5 flex items-center gap-1.5">
+                            <span className="size-3 rounded-full bg-zinc-700" />
+                            <span className="size-3 rounded-full bg-zinc-700" />
+                            <span className="size-3 rounded-full bg-zinc-700" />
+                            <span className="ml-auto max-w-40 truncate font-mono text-xs text-zinc-400">
+                              /{title.toLowerCase().replace(/\s+/g, "-") || "design"}.html
+                            </span>
                           </div>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <div className="w-24 h-8 rounded-lg bg-zinc-200 dark:bg-zinc-800" />
-                          <div className="w-8 h-8 rounded-full bg-zinc-200 dark:bg-zinc-800" />
-                        </div>
-                      </div>
-
-                      {/* Desktop Skeleton UI - Hero Section */}
-                      <div className="px-16 py-12">
-                        <div className="flex gap-12">
-                          {/* Left Content */}
-                          <div className="flex-1 space-y-6 py-8">
-                            <div className="w-3/4 h-8 rounded-lg bg-zinc-200 dark:bg-zinc-800" />
-                            <div className="w-full h-4 rounded-full bg-zinc-200 dark:bg-zinc-800" />
-                            <div className="w-5/6 h-4 rounded-full bg-zinc-200/60 dark:bg-zinc-800/60" />
-                            <div className="flex gap-4 pt-4">
-                              <div className="w-32 h-12 rounded-xl bg-zinc-200 dark:bg-zinc-800" />
-                              <div className="w-32 h-12 rounded-xl bg-zinc-200/60 dark:bg-zinc-800/60" />
+                          <div className="space-y-3">
+                            <div className="ml-10 h-4 w-40 rounded-full bg-zinc-700 animate-pulse" />
+                            <div className="h-3 w-3 rounded-full bg-zinc-700 animate-pulse" />
+                            <div className="ml-8 h-4 w-28 rounded-full bg-slate-500 animate-pulse" />
+                            <div className="ml-12 h-4 w-20 rounded-full bg-zinc-500 animate-pulse" />
+                            <div className="ml-12 h-4 w-24 rounded-full bg-zinc-500 animate-pulse" />
+                            <div className="h-4 w-4 rounded-full bg-zinc-700 animate-pulse" />
+                            <div className="flex items-center gap-2 pt-7">
+                              <div className="h-4 w-12 rounded-full bg-teal-700 animate-pulse" />
+                              <div className="h-4 w-24 rounded-full bg-slate-600 animate-pulse" />
+                              <div className="h-4 w-4 rounded-full bg-zinc-700 animate-pulse" />
                             </div>
                           </div>
-                          {/* Right Image */}
-                          <div className="w-[400px] h-[280px] rounded-2xl bg-zinc-200 dark:bg-zinc-800 shrink-0" />
                         </div>
-                      </div>
 
-                      {/* Desktop Skeleton UI - Feature Cards */}
-                      <div className="px-16 py-8">
-                        <div className="grid grid-cols-3 gap-6">
-                          {[1, 2, 3].map((i) => (
-                            <div
-                              key={i}
-                              className="p-6 rounded-2xl bg-zinc-100 dark:bg-zinc-800/50 space-y-4"
-                            >
-                              <div className="w-12 h-12 rounded-xl bg-zinc-200 dark:bg-zinc-800" />
-                              <div className="w-3/4 h-5 rounded-full bg-zinc-200 dark:bg-zinc-800" />
-                              <div className="w-full h-3 rounded-full bg-zinc-200/60 dark:bg-zinc-800/60" />
-                              <div className="w-5/6 h-3 rounded-full bg-zinc-200/40 dark:bg-zinc-800/40" />
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Status pill overlay */}
-                      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-30 flex flex-col items-center gap-4 cursor-default select-none">
-                        <div className="p-4 rounded-full bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl shadow-2xl ring-1 ring-black/5 flex items-center justify-center">
-                          <Loader2 className="w-8 h-8 text-primary animate-spin" />
-                        </div>
-                        <div className="px-4 py-2 rounded-full bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md shadow-lg ring-1 ring-black/5 text-xs font-medium text-zinc-600 dark:text-zinc-300">
-                          Designing {title}...
+                        {/* Status text */}
+                        <div className="space-y-2">
+                          <h2 className="text-lg font-semibold tracking-tight text-zinc-100 flex items-center gap-2 justify-center">
+                            <Sparkles className="w-4 h-4 text-primary animate-pulse" />
+                            Generating {title}
+                          </h2>
+                          <p className="text-sm text-zinc-500">
+                            Building your design...
+                          </p>
                         </div>
                       </div>
                     </div>
                   ) : (
-                    // Empty State
-                    <div className="flex flex-col items-center justify-center h-full p-8 text-center bg-zinc-50 dark:bg-zinc-950">
-                      <div className="w-20 h-20 rounded-3xl bg-zinc-100 dark:bg-zinc-900 flex items-center justify-center mb-6 shadow-inner">
-                        <Sparkles className="w-8 h-8 text-zinc-300 dark:text-zinc-700" />
+                    // Empty state — same supergent code skeleton but static
+                    <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden p-8">
+                      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.03),transparent_38%)]" />
+                      <div className="relative flex w-full max-w-xl flex-col items-center gap-8 text-center">
+                        <div className="w-full max-w-sm rounded-xl border border-white/10 bg-zinc-950/70 p-5 text-left shadow-2xl shadow-black">
+                          <div className="mb-5 flex items-center gap-1.5">
+                            <span className="size-3 rounded-full bg-zinc-700" />
+                            <span className="size-3 rounded-full bg-zinc-700" />
+                            <span className="size-3 rounded-full bg-zinc-700" />
+                            <span className="ml-auto max-w-40 truncate font-mono text-xs text-zinc-400">
+                              /{title.toLowerCase().replace(/\s+/g, "-") || "design"}.html
+                            </span>
+                          </div>
+                          <div className="space-y-3">
+                            <div className="ml-10 h-4 w-40 rounded-full bg-zinc-700" />
+                            <div className="h-3 w-3 rounded-full bg-zinc-700" />
+                            <div className="ml-8 h-4 w-28 rounded-full bg-slate-500" />
+                            <div className="ml-12 h-4 w-20 rounded-full bg-zinc-500" />
+                            <div className="ml-12 h-4 w-24 rounded-full bg-zinc-500" />
+                            <div className="h-4 w-4 rounded-full bg-zinc-700" />
+                            <div className="flex items-center gap-2 pt-7">
+                              <div className="h-4 w-12 rounded-full bg-teal-700" />
+                              <div className="h-4 w-24 rounded-full bg-slate-600" />
+                              <div className="h-4 w-4 rounded-full bg-zinc-700" />
+                            </div>
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <h2 className="text-lg font-semibold tracking-tight text-zinc-100">Ready to Design</h2>
+                          <p className="text-sm text-zinc-500">Waiting for content generation...</p>
+                        </div>
                       </div>
-                      <h3 className="text-zinc-900 dark:text-zinc-100 font-medium mb-1">
-                        Ready to Design
-                      </h3>
-                      <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                        Waiting for content generation...
-                      </p>
                     </div>
                   )}
                 </div>
@@ -602,7 +603,7 @@ function DesignNodeComponent({ data, selected }: DesignNodeProps) {
               "bg-gradient-to-br from-[#4a4a4a] via-[#2a2a2a] to-[#1a1a1a]",
               "shadow-[0_0_2px_1px_rgba(255,255,255,0.1),0_20px_40px_-12px_rgba(0,0,0,0.8)]",
               selected &&
-                "shadow-[0_30px_60px_-12px_rgba(0,0,0,0.8)] scale-[1.02]",
+              "shadow-[0_30px_60px_-12px_rgba(0,0,0,0.8)] scale-[1.02]",
             )}
           >
             {/* Hardware Buttons */}
@@ -648,68 +649,85 @@ function DesignNodeComponent({ data, selected }: DesignNodeProps) {
                 />
 
                 {/* Sophisticated Loading / Empty State Overlay */}
-                {!hasValidContent && (
-                  <div className="absolute inset-0 z-10 bg-zinc-50 dark:bg-zinc-900 flex flex-col">
+                {showSkeleton && (
+                  <div className="absolute inset-0 z-10 bg-zinc-950 flex flex-col">
                     {isStreaming ? (
-                      // High-Fidelity Skeleton Animation
-                      <div className="w-full h-full relative overflow-hidden flex flex-col">
-                        {/* Animated Shimmer Overlay */}
-                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/50 dark:via-white/5 to-transparent -translate-x-full animate-[shimmer_2s_infinite] z-20 pointer-events-none" />
+                      // Supergent-style generating skeleton for mobile
+                      <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden p-4">
+                        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.05),transparent_38%)]" />
 
-                        {/* Skeleton UI Structure - Top Bar */}
-                        <div className="h-14 px-6 flex items-center justify-between border-b border-zinc-200/50 dark:border-zinc-800/50 mt-8">
-                          <div className="w-8 h-8 rounded-full bg-zinc-200 dark:bg-zinc-800" />
-                          <div className="w-32 h-4 rounded-full bg-zinc-200 dark:bg-zinc-800" />
-                          <div className="w-8 h-8 rounded-full bg-zinc-200 dark:bg-zinc-800" />
-                        </div>
+                        {/* Shimmer sweep */}
+                        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-white/[0.05] to-transparent translate-y-[-100%] animate-[shimmerY_2.4s_ease-in-out_infinite] pointer-events-none" />
 
-                        {/* Skeleton UI - Body */}
-                        <div className="p-6 space-y-8">
-                          {/* Hero Card */}
-                          <div className="w-full aspect-video rounded-2xl bg-zinc-200 dark:bg-zinc-800 shadow-sm" />
-
-                          {/* List Items */}
-                          <div className="space-y-4">
-                            {[1, 2, 3].map((i) => (
-                              <div key={i} className="flex gap-4">
-                                <div className="w-12 h-12 rounded-xl bg-zinc-200 dark:bg-zinc-800 shrink-0" />
-                                <div className="flex-1 space-y-2 py-1">
-                                  <div className="w-3/4 h-4 rounded-full bg-zinc-200 dark:bg-zinc-800" />
-                                  <div className="w-1/2 h-4 rounded-full bg-zinc-200/60 dark:bg-zinc-800/60" />
-                                </div>
+                        <div className="relative flex w-full flex-col items-center gap-6 text-center">
+                          {/* Code skeleton card */}
+                          <div className="w-full rounded-xl border border-white/10 bg-zinc-950/70 p-4 text-left shadow-2xl shadow-black">
+                            <div className="mb-4 flex items-center gap-1.5">
+                              <span className="size-2.5 rounded-full bg-zinc-700" />
+                              <span className="size-2.5 rounded-full bg-zinc-700" />
+                              <span className="size-2.5 rounded-full bg-zinc-700" />
+                              <span className="ml-auto max-w-[130px] truncate font-mono text-[10px] text-zinc-400">
+                                /{title.toLowerCase().replace(/\s+/g, "-") || "design"}.html
+                              </span>
+                            </div>
+                            <div className="space-y-2.5">
+                              <div className="ml-8 h-3.5 w-32 rounded-full bg-zinc-700 animate-pulse" />
+                              <div className="h-3 w-3 rounded-full bg-zinc-700 animate-pulse" />
+                              <div className="ml-6 h-3.5 w-24 rounded-full bg-slate-500 animate-pulse" />
+                              <div className="ml-10 h-3.5 w-16 rounded-full bg-zinc-500 animate-pulse" />
+                              <div className="ml-10 h-3.5 w-20 rounded-full bg-zinc-500 animate-pulse" />
+                              <div className="h-3.5 w-3.5 rounded-full bg-zinc-700 animate-pulse" />
+                              <div className="flex items-center gap-1.5 pt-4">
+                                <div className="h-3.5 w-10 rounded-full bg-teal-700 animate-pulse" />
+                                <div className="h-3.5 w-20 rounded-full bg-slate-600 animate-pulse" />
+                                <div className="h-3.5 w-3 rounded-full bg-zinc-700 animate-pulse" />
                               </div>
-                            ))}
+                            </div>
                           </div>
 
-                          {/* Bottom Cards */}
-                          <div className="grid grid-cols-2 gap-4 pt-4">
-                            <div className="aspect-[3/4] rounded-2xl bg-zinc-200 dark:bg-zinc-800" />
-                            <div className="aspect-[3/4] rounded-2xl bg-zinc-200 dark:bg-zinc-800" />
-                          </div>
-                        </div>
-
-                        {/* Status pill overlay */}
-                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-30 flex flex-col items-center gap-4 cursor-default select-none">
-                          <div className="p-4 rounded-full bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl shadow-2xl ring-1 ring-black/5 flex items-center justify-center">
-                            <Loader2 className="w-8 h-8 text-primary animate-spin" />
-                          </div>
-                          <div className="px-4 py-2 rounded-full bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md shadow-lg ring-1 ring-black/5 text-xs font-medium text-zinc-600 dark:text-zinc-300">
-                            Designing {title}...
+                          {/* Status */}
+                          <div className="space-y-1.5">
+                            <h3 className="text-sm font-semibold tracking-tight text-zinc-100 flex items-center gap-1.5 justify-center">
+                              <Sparkles className="w-3.5 h-3.5 text-primary animate-pulse" />
+                              Generating {title}
+                            </h3>
+                            <p className="text-[11px] text-zinc-500">Building your design...</p>
                           </div>
                         </div>
                       </div>
                     ) : (
-                      // Empty State
-                      <div className="flex flex-col items-center justify-center h-full p-8 text-center bg-zinc-50 dark:bg-zinc-950">
-                        <div className="w-20 h-20 rounded-3xl bg-zinc-100 dark:bg-zinc-900 flex items-center justify-center mb-6 shadow-inner">
-                          <Sparkles className="w-8 h-8 text-zinc-300 dark:text-zinc-700" />
+                      // Empty state
+                      <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden p-4">
+                        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.03),transparent_38%)]" />
+                        <div className="relative flex w-full flex-col items-center gap-6 text-center">
+                          <div className="w-full rounded-xl border border-white/10 bg-zinc-950/70 p-4 text-left shadow-2xl shadow-black">
+                            <div className="mb-4 flex items-center gap-1.5">
+                              <span className="size-2.5 rounded-full bg-zinc-700" />
+                              <span className="size-2.5 rounded-full bg-zinc-700" />
+                              <span className="size-2.5 rounded-full bg-zinc-700" />
+                              <span className="ml-auto max-w-[130px] truncate font-mono text-[10px] text-zinc-400">
+                                /{title.toLowerCase().replace(/\s+/g, "-") || "design"}.html
+                              </span>
+                            </div>
+                            <div className="space-y-2.5">
+                              <div className="ml-8 h-3.5 w-32 rounded-full bg-zinc-700" />
+                              <div className="h-3 w-3 rounded-full bg-zinc-700" />
+                              <div className="ml-6 h-3.5 w-24 rounded-full bg-slate-500" />
+                              <div className="ml-10 h-3.5 w-16 rounded-full bg-zinc-500" />
+                              <div className="ml-10 h-3.5 w-20 rounded-full bg-zinc-500" />
+                              <div className="h-3.5 w-3.5 rounded-full bg-zinc-700" />
+                              <div className="flex items-center gap-1.5 pt-4">
+                                <div className="h-3.5 w-10 rounded-full bg-teal-700" />
+                                <div className="h-3.5 w-20 rounded-full bg-slate-600" />
+                                <div className="h-3.5 w-3 rounded-full bg-zinc-700" />
+                              </div>
+                            </div>
+                          </div>
+                          <div className="space-y-1.5">
+                            <h3 className="text-sm font-semibold tracking-tight text-zinc-100">Ready to Design</h3>
+                            <p className="text-[11px] text-zinc-500">Waiting for content generation...</p>
+                          </div>
                         </div>
-                        <h3 className="text-zinc-900 dark:text-zinc-100 font-medium mb-1">
-                          Ready to Design
-                        </h3>
-                        <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                          Waiting for content generation...
-                        </p>
                       </div>
                     )}
                   </div>

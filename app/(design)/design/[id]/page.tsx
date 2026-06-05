@@ -10,7 +10,7 @@ import { useCallback, useEffect, useState, useRef } from "react";
 import { Separator } from "@radix-ui/react-separator";
 import { DesignCanvas, Design } from "@/components/design-canvas";
 import { ReactFlowProvider } from "@xyflow/react";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { ArtifactProvider, useArtifact } from "@/hooks/use-artifact";
@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Pencil, Check, X, Moon, Sun, Lock, Unlock, Globe } from "lucide-react";
 import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
+import { getLocalStore } from "@/lib/local-store";
 import {
   Tooltip,
   TooltipContent,
@@ -45,6 +46,62 @@ interface Message {
   thoughts?: string;
 }
 
+function AnimatedTitle({ title }: { title: string }) {
+  const [displayed, setDisplayed] = useState("");
+  const [isTyping, setIsTyping] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+
+    if (!title) {
+      setDisplayed("");
+      setIsTyping(false);
+      return;
+    }
+
+    if (title === "Untitled Project" || title === "Untitled") {
+      setDisplayed(title);
+      setIsTyping(false);
+      return;
+    }
+
+    let index = 0;
+    setDisplayed("");
+    setIsTyping(true);
+    timerRef.current = setInterval(() => {
+      if (index < title.length) {
+        setDisplayed(title.slice(0, index + 1));
+        index++;
+      } else {
+        setIsTyping(false);
+        if (timerRef.current) {
+          clearInterval(timerRef.current);
+          timerRef.current = null;
+        }
+      }
+    }, 45);
+
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+    };
+  }, [title]);
+
+  return (
+    <span className="inline-flex items-center">
+      {displayed}
+      {isTyping && (
+        <span className="w-[2px] h-[1.1em] bg-primary ml-0.5 animate-pulse shrink-0" />
+      )}
+    </span>
+  );
+}
+
 function DesignPageContent() {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -60,9 +117,12 @@ function DesignPageContent() {
   // AbortController for stopping generation
   const abortControllerRef = useRef<AbortController | null>(null);
   const isStoppedRef = useRef(false);
+  const hasTriggeredInitialRef = useRef(false);
 
   const titleInputRef = useRef<HTMLInputElement>(null);
   const { id: projectId } = useParams<{ id: string }>();
+  const searchParams = useSearchParams();
+  const isNew = searchParams.get("new") === "true";
   const { selectedArtifactId, setSelectedArtifactId } = useArtifact();
   const { theme, setTheme } = useTheme();
 
@@ -88,6 +148,33 @@ function DesignPageContent() {
   // Check if current user is the owner of this project
   const isOwner = project && user ? project.user_id === user.id : true;
   const isReadOnly = !isOwner;
+
+  // Optimistic initial message loading for instant feedback
+  useEffect(() => {
+    if (isNew && typeof window !== "undefined") {
+      const saved = getLocalStore("initialMessage");
+      if (saved && (!messagesData || messagesData.length === 0)) {
+        setMessages([
+          {
+            role: "user",
+            content: saved,
+          },
+        ]);
+        setIsLoading(true);
+      }
+    }
+  }, [isNew, messagesData]);
+
+  useEffect(() => {
+    if (messagesData && messagesData.length > 0 && isNew) {
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("initialMessage");
+        // Remove ?new=true query param without reloading
+        const newUrl = window.location.pathname;
+        window.history.replaceState({}, "", newUrl);
+      }
+    }
+  }, [messagesData, isNew]);
 
   // Convert Convex designs to canvas format
   const dbDesigns: Design[] = (designsData ?? []).map((d: any) => ({
@@ -148,6 +235,8 @@ function DesignPageContent() {
     if (isLoading) return;
 
     if (messagesData && designsData) {
+      // If this is a new project, don't clear the optimistic message until Convex has messages
+      if (isNew && messagesData.length === 0) return;
       const formattedMessages: Message[] = messagesData.map((m: any) => {
         // Map design_ids to artifact objects
         const artifacts = m.design_ids
@@ -220,20 +309,6 @@ function DesignPageContent() {
         { role: "user" as const, content, attachments },
       ];
 
-      // Create a temporary skeleton design ID
-      const pendingSkeletonId = `pending-${Date.now()}`;
-
-      // Add a pending skeleton design immediately
-      const skeletonDesign: Design = {
-        _id: pendingSkeletonId,
-        artifact_id: pendingSkeletonId,
-        title: "Generating...",
-        content: "", // Empty content triggers skeleton in design-node
-        status: "streaming",
-        x: undefined,
-        y: undefined,
-      };
-      setPendingDesigns((prev) => [...prev, skeletonDesign]);
 
       try {
         // Save user message to database with attachments (skip if already saved, e.g., initial message)
@@ -275,15 +350,16 @@ function DesignPageContent() {
         const decoder = new TextDecoder();
         let buffer = "";
 
-        // Remove initial skeleton once we start receiving actual events
-        let initialSkeletonRemoved = false;
-
         // Track designs being created for chat display
         const streamingDesigns: {
           id: string;
           title: string;
           status: "creating" | "completed";
         }[] = [];
+
+        // Guard Set: prevents the same artifact_id being saved twice
+        // (e.g. if artifact-finish fires and a legacy tool-call fires for the same id)
+        const savedArtifactIds = new Set<string>();
 
         while (true) {
           const { done, value } = await reader.read();
@@ -334,14 +410,6 @@ function DesignPageContent() {
                   event.type === "artifact_start" ||
                   event.type === "artifact-start"
                 ) {
-                  // Remove initial placeholder skeleton
-                  if (!initialSkeletonRemoved) {
-                    setPendingDesigns((prev) =>
-                      prev.filter((p) => p.artifact_id !== pendingSkeletonId),
-                    );
-                    initialSkeletonRemoved = true;
-                  }
-
                   // Handle both event data formats
                   const artifactId = event.id || event.data?.id || "";
                   const artifactTitle = event.title || event.data?.title || "";
@@ -353,7 +421,7 @@ function DesignPageContent() {
                     status: "creating",
                   });
 
-                  // Add a skeleton design node with streaming state
+                  // Add a skeleton design node to the canvas ONLY now (artifact confirmed)
                   const newStreamingDesign: Design = {
                     _id: `streaming-${artifactId}`,
                     artifact_id: artifactId,
@@ -377,18 +445,39 @@ function DesignPageContent() {
                     },
                   ]);
                 }
-                // Handle artifact finish (both old and new format)
+                // Handle artifact content delta - progressively update canvas
+                else if (
+                  event.type === "artifact-delta" ||
+                  event.type === "content_delta"
+                ) {
+                  const deltaId = event.id || event.data?.id || "";
+                  const deltaContent = event.content || event.data?.delta || "";
+
+                  if (deltaId && deltaContent) {
+                    setPendingDesigns((prev) =>
+                      prev.map((p) =>
+                        p.artifact_id === deltaId
+                          ? { ...p, content: (p.content || "") + deltaContent }
+                          : p
+                      ),
+                    );
+                  }
+                }
+                // Handle artifact finish — single authoritative save path
                 else if (
                   event.type === "artifact_finish" ||
                   event.type === "artifact-finish"
                 ) {
-                  // Handle both event data formats
                   const artifactId = event.id || event.data?.id || "";
                   const artifactTitle = event.title || event.data?.title || "";
                   const artifactContent =
                     event.content || event.data?.content || "";
 
-                  // Update status in streamingDesigns
+                  // Guard: skip if already saved (prevents double-saves)
+                  if (savedArtifactIds.has(artifactId)) return;
+                  savedArtifactIds.add(artifactId);
+
+                  // Mark as completed in streamingDesigns for chat display
                   const designIndex = streamingDesigns.findIndex(
                     (d) => d.id === artifactId,
                   );
@@ -396,9 +485,19 @@ function DesignPageContent() {
                     streamingDesigns[designIndex].status = "completed";
                   }
 
-                  // Remove the streaming design
+                  // Flip pending design to idle so canvas shows iframe immediately
+                  // (avoids blank gap while Convex saves)
                   setPendingDesigns((prev) =>
-                    prev.filter((p) => p.artifact_id !== artifactId),
+                    prev.map((p) =>
+                      p.artifact_id === artifactId
+                        ? {
+                            ...p,
+                            content: artifactContent,
+                            title: artifactTitle,
+                            status: "idle" as const,
+                          }
+                        : p
+                    ),
                   );
 
                   const designData = {
@@ -408,35 +507,32 @@ function DesignPageContent() {
                     content: artifactContent,
                   };
 
-                  // Determine if create or update based on tool name
-                  const toolName = event.tool || "";
-                  const isCreate =
-                    toolName.includes("create") ||
-                    toolName === "createArtifact";
+                  // Use tool name from event to decide create vs update
+                  const toolName = (event as any).tool || "";
+                  const isUpdate =
+                    toolName === "updateArtifact" ||
+                    toolName.includes("update");
 
                   let designDbId;
-                  if (isCreate || !toolName) {
-                    // Default to create if no tool specified
-                    designDbId = await createDesign(designData);
-                  } else {
+                  if (isUpdate) {
                     designDbId = await updateDesign({
                       artifact_id: designData.artifact_id,
                       title: designData.title,
                       content: designData.content,
                     });
+                  } else {
+                    // Default: createArtifact (or unknown tool)
+                    designDbId = await createDesign(designData);
                   }
 
                   if (designDbId) {
                     artifactDbIds.push(designDbId);
                   }
 
-                  artifacts.push({
-                    id: artifactId,
-                    title: artifactTitle,
-                  });
+                  artifacts.push({ id: artifactId, title: artifactTitle });
                   setSelectedArtifactId(artifactId);
 
-                  // Update messages with completed status
+                  // Update messages with latest status
                   setMessages([
                     ...newMessages,
                     {
@@ -448,116 +544,9 @@ function DesignPageContent() {
                     },
                   ]);
                 }
-                // Handle new ai-chatbot style tool-call events
-                else if (event.type === "tool-call") {
-                  const { name, args } = event;
-
-                  // Remove any streaming skeleton
-                  setPendingDesigns((prev) =>
-                    prev.filter((p) => p.artifact_id !== args.id),
-                  );
-
-                  const designData = {
-                    project_id: projectId,
-                    artifact_id: args.id,
-                    title: args.title,
-                    content: args.content,
-                  };
-
-                  let designDbId;
-                  if (name === "createArtifact") {
-                    designDbId = await createDesign(designData);
-                  } else if (name === "updateArtifact") {
-                    designDbId = await updateDesign({
-                      artifact_id: designData.artifact_id,
-                      title: designData.title,
-                      content: designData.content,
-                    });
-                  }
-
-                  if (designDbId) {
-                    artifactDbIds.push(designDbId);
-                  }
-
-                  artifacts.push({
-                    id: args.id,
-                    title: args.title,
-                  });
-                  setSelectedArtifactId(args.id);
-
-                  // Update messages
-                  setMessages([
-                    ...newMessages,
-                    {
-                      role: "assistant",
-                      content: assistantContent,
-                      thoughts: assistantThoughts,
-                      artifacts,
-                      streamingDesigns: [...streamingDesigns],
-                    },
-                  ]);
-                }
-                // Handle finish events (both old and new format)
+                // Handle finish events
                 else if (event.type === "done" || event.type === "finish") {
-                  // Stream complete - messages will be finalized after the loop
-                }
-                // Legacy event handling for backwards compatibility
-                else if (
-                  event.type === "skeleton" ||
-                  event.type === "tool_call"
-                ) {
-                  if (event.type === "skeleton") {
-                    if (!initialSkeletonRemoved) {
-                      setPendingDesigns((prev) =>
-                        prev.filter((p) => p.artifact_id !== pendingSkeletonId),
-                      );
-                      initialSkeletonRemoved = true;
-                    }
-                    const newSkeleton: Design = {
-                      _id: `skeleton-${event.data.id}`,
-                      artifact_id: event.data.id,
-                      title: event.data.title,
-                      content: "",
-                      status: "streaming",
-                      x: undefined,
-                      y: undefined,
-                    };
-                    setPendingDesigns((prev) => [...prev, newSkeleton]);
-                  } else if (event.type === "tool_call") {
-                    setPendingDesigns((prev) =>
-                      prev.filter((p) => p.artifact_id !== event.data.id),
-                    );
-                    const designData = {
-                      project_id: projectId,
-                      artifact_id: event.data.id,
-                      title: event.data.title,
-                      content: event.data.content,
-                    };
-                    let designDbId;
-                    if (
-                      event.tool === "create_artifact" ||
-                      event.tool === "createArtifact"
-                    ) {
-                      designDbId = await createDesign(designData);
-                    } else if (
-                      event.tool === "update_artifact" ||
-                      event.tool === "updateArtifact"
-                    ) {
-                      designDbId = await updateDesign({
-                        artifact_id: designData.artifact_id,
-                        title: designData.title,
-                        content: designData.content,
-                      });
-                    }
-                    if (designDbId) {
-                      artifactDbIds.push(designDbId);
-                    }
-                    artifacts.push({
-                      id: event.data.id,
-                      title: event.data.title,
-                    });
-                    setSelectedArtifactId(event.data.id);
-                  }
+                  // Stream complete — final messages will be set after the loop
                 }
               } catch (e) {
                 console.error("Error parsing SSE:", e);
@@ -626,12 +615,13 @@ function DesignPageContent() {
 
   // Auto-process initial message
   useEffect(() => {
-    if (messagesData && !isLoading) {
+    if (messagesData && !hasTriggeredInitialRef.current) {
       const initialMsg = messagesData.find(
         (m: any) => m.role === "user" && m.initial_status === false,
       );
 
       if (initialMsg) {
+        hasTriggeredInitialRef.current = true;
         // Mark as processed immediately to prevent double-firing
         markMessageProcessed({ message_id: initialMsg._id });
         // Trigger AI - skip saving user message since it's already in the database
@@ -643,7 +633,7 @@ function DesignPageContent() {
         );
       }
     }
-  }, [messagesData, handleSendMessage, markMessageProcessed, isLoading]);
+  }, [messagesData, handleSendMessage, markMessageProcessed]);
 
   // Handle form submission with attachments
   const handleSubmit = useCallback(
@@ -750,12 +740,17 @@ function DesignPageContent() {
             ) : (
               <div className="flex items-center gap-1.5 sm:gap-3 group min-w-0 flex-1">
                 <button
-                  onClick={handleStartEditTitle}
-                  className="flex items-center gap-2 cursor-pointer hover:bg-zinc-100 dark:hover:bg-white/5 px-1 sm:px-2 py-1 -ml-1 sm:-ml-2 rounded-md transition-colors min-w-0 flex-1 overflow-hidden"
+                  onClick={project?.title ? handleStartEditTitle : undefined}
+                  disabled={!project?.title}
+                  className="flex items-center gap-2 cursor-pointer disabled:cursor-default hover:bg-zinc-100 dark:hover:bg-white/5 disabled:hover:bg-transparent px-1 sm:px-2 py-1 -ml-1 sm:-ml-2 rounded-md transition-colors min-w-0 flex-1 overflow-hidden"
                   title="Rename Project"
                 >
-                  <span className="font-semibold text-xs sm:text-sm text-foreground tracking-tight truncate">
-                    {project?.title || "Untitled Project"}
+                  <span className="font-semibold text-xs sm:text-sm text-foreground tracking-tight truncate flex items-center">
+                    {!project?.title ? (
+                      <span className="h-4 w-24 sm:w-32 bg-zinc-200 dark:bg-white/10 rounded-md animate-pulse shrink-0 block" />
+                    ) : (
+                      <AnimatedTitle title={project.title} />
+                    )}
                   </span>
                 </button>
 

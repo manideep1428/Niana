@@ -84,6 +84,12 @@ async function buildGeminiContent(
     parts.push({ text });
   }
 
+  // Gemini rejects requests where any message has zero parts.
+  // Fall back to a single whitespace text part so the array is never empty.
+  if (parts.length === 0) {
+    parts.push({ text: " " });
+  }
+
   return parts;
 }
 
@@ -110,11 +116,12 @@ export async function POST(request: NextRequest) {
     console.error("Failed to fetch project type:", e);
   }
 
+  let isFree = true; // default to restricted until subscription confirmed
   try {
     const subscription = await convex.query(api.quires.getUserSubscription, {
       user_id: user.id,
     });
-    const isFree = !subscription || subscription.plan === "free";
+    isFree = !subscription || subscription.plan === "free";
     const totalTokens =
       isFree && subscription?.tokens_total === -1
         ? 2
@@ -143,21 +150,24 @@ export async function POST(request: NextRequest) {
   const readable = new ReadableStream({
     async start(controller) {
       try {
-        const geminiContents = await Promise.all(
-          messages.map(
-            async (m: {
-              role: string;
-              content: string;
-              attachments?: Attachment[];
-            }) => ({
-              role: m.role === "assistant" ? "model" : "user",
-              parts: await buildGeminiContent(m.content, m.attachments),
-            }),
-          ),
-        );
+        const geminiContents = (
+          await Promise.all(
+            messages.map(
+              async (m: {
+                role: string;
+                content: string;
+                attachments?: Attachment[];
+              }) => ({
+                role: m.role === "assistant" ? "model" : "user",
+                parts: await buildGeminiContent(m.content, m.attachments),
+              }),
+            ),
+          )
+        // Drop any message that still somehow has no parts (safety guard)
+        ).filter((m) => m.parts.length > 0);
 
         const response = await gemini.models.generateContentStream({
-          model: "gemini-3.1-pro-preview",
+          model: "gemini-3.5-flash",
           contents: geminiContents,
           config: {
             systemInstruction: systemPrompt({ projectType }),
@@ -212,19 +222,40 @@ export async function POST(request: NextRequest) {
                   if (args && args.id && !processedToolCalls.has(args.id)) {
                     processedToolCalls.add(args.id);
 
-                    // Send the design-node-skeleton event FIRST (shows Generating card)
+                    // Send artifact-start first to show skeleton in canvas
                     controller.enqueue(
                       encoder.encode(
                         encodeEvent({
                           type: "artifact-start",
                           id: args.id,
                           title: args.title || "",
-                        })
+                          tool: name,
+                        } as any)
                       )
                     );
 
-                    // Then send the artifact-finish event with content
+                    // Stream content in chunks to produce a live generating animation
                     if (args.content) {
+                      const content: string = args.content;
+                      const CHUNK_SIZE = 200;
+                      const CHUNK_DELAY_MS = 5;
+
+                      for (let i = 0; i < content.length; i += CHUNK_SIZE) {
+                        const chunk = content.slice(i, i + CHUNK_SIZE);
+                        controller.enqueue(
+                          encoder.encode(
+                            encodeEvent({
+                              type: "artifact-delta",
+                              id: args.id,
+                              content: chunk,
+                            })
+                          )
+                        );
+                        // Small delay so chunks are flushed separately
+                        await new Promise((r) => setTimeout(r, CHUNK_DELAY_MS));
+                      }
+
+                      // Send finish after all chunks streamed — include tool name so client knows create vs update
                       controller.enqueue(
                         encoder.encode(
                           encodeEvent({
@@ -232,7 +263,8 @@ export async function POST(request: NextRequest) {
                             id: args.id,
                             title: args.title || "",
                             content: args.content,
-                          })
+                            tool: name,
+                          } as any)
                         )
                       );
                     }

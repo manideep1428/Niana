@@ -11,6 +11,7 @@ import { useAuth } from "@workos-inc/authkit-nextjs/components";
 import type { Attachment } from "@/components/preview-attachment";
 
 import { GreetingHeader } from "@/components/greeting-header";
+import { generateUUID } from "@/lib/utils";
 
 export default function Home() {
   const router = useRouter();
@@ -50,39 +51,42 @@ export default function Home() {
 
     setIsLoading(true);
 
-    try {
-      const response = await fetch("/api/project", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          content,
-          isPublic,
-          type,
-          attachments: attachments.map((a) => ({
-            name: a.name,
-            url: a.url,
-            contentType: a.contentType,
-            storageId: a.storageId,
-          })),
-        }),
+    const generatedProjectId = generateUUID();
+
+    // Redirect immediately in parallel
+    setLocalStore("initialMessage", input);
+    setInput("");
+    router.push(`/design/${generatedProjectId}?new=true`);
+
+    // Call API in the background (parallelized)
+    fetch("/api/project", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        id: generatedProjectId,
+        content,
+        isPublic,
+        type,
+        attachments: attachments.map((a) => ({
+          name: a.name,
+          url: a.url,
+          contentType: a.contentType,
+          storageId: a.storageId,
+        })),
+      }),
+    })
+      .then(async (response) => {
+        const data = await response.json();
+        if (!data.success) {
+          toast.error(data.message || "Failed to initialize project");
+        }
+      })
+      .catch((error) => {
+        console.error("Error creating project in background:", error);
+        toast.error("Failed to initialize project");
       });
-
-      const data = await response.json();
-
-      if (data.success && data.projectId) {
-        setLocalStore("initialMessage", input);
-        setInput("");
-        router.push(`/design/${data.projectId}`);
-      } else {
-        toast.error(data.message);
-        setIsLoading(false);
-      }
-    } catch (error) {
-      console.error("Error submitting project:", error);
-      setIsLoading(false);
-    }
   };
 
   return (

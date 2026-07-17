@@ -40,6 +40,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <meta name='impact-site-verification' content='01cf1a41-070b-4d48-9a2c-d2ccbd239f2b' />
+      <meta name="d8fcb067c19d078b4f5877fbd1dd007ae422d5c1" content="d8fcb067c19d078b4f5877fbd1dd007ae422d5c1" />
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${lobsterTwo.variable} antialiased`}
       >

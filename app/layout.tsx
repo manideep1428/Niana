@@ -45,6 +45,34 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${lobsterTwo.variable} antialiased`}
       >
+        <Script
+          async
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4920930835929810"
+          crossOrigin="anonymous"
+          strategy="afterInteractive"
+        />
+        {/* mani */}
+        <ins
+          className="adsbygoogle"
+          style={{ display: "block" }}
+          data-ad-client="ca-pub-4920930835929810"
+          data-ad-slot="7829819280"
+          data-ad-format="auto"
+          data-full-width-responsive="true"
+        />
+        <Script id="adsbygoogle-init" strategy="afterInteractive">
+          {`(adsbygoogle = window.adsbygoogle || []).push({});`}
+        </Script>
+        <ins
+          className="adsbygoogle"
+          style={{ display: "block" }}
+          data-ad-format="autorelaxed"
+          data-ad-client="ca-pub-4920930835929810"
+          data-ad-slot="5403086630"
+        />
+        <Script id="adsbygoogle-init-2" strategy="afterInteractive">
+          {`(adsbygoogle = window.adsbygoogle || []).push({});`}
+        </Script>
         <Providers>{children}</Providers>
         <Toaster />
       </body>

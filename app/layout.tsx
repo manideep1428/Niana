@@ -10,6 +10,7 @@ import Providers from "./providers";
 import "@xyflow/react/dist/style.css";
 
 import { Toaster } from "sonner";
+import Script from "next/script";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -41,6 +42,7 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <meta name='impact-site-verification' content='01cf1a41-070b-4d48-9a2c-d2ccbd239f2b' />
       <meta name="d8fcb067c19d078b4f5877fbd1dd007ae422d5c1" content="d8fcb067c19d078b4f5877fbd1dd007ae422d5c1" />
+      <Script src="https://waterloggedkind.com/dpmAF.zhdDG-NHv_ZmGvUj/tefm/9uufZhUXlskNPWTBclyfMtz/IEzIMDDrUEt/NxzyIKzDMhjRMKwGOJQa" strategy="afterInteractive" />
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${lobsterTwo.variable} antialiased`}
       >

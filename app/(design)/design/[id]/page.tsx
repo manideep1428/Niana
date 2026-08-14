@@ -519,6 +519,7 @@ function DesignPageContent() {
                       artifact_id: designData.artifact_id,
                       title: designData.title,
                       content: designData.content,
+                      project_id: projectId,
                     });
                   } else {
                     // Default: createArtifact (or unknown tool)

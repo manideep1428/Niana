@@ -124,7 +124,7 @@ export const saveProject = mutation({
   },
 });
 
-// Create a new design artifact
+// Create or update a design artifact (Upsert)
 export const createDesign = mutation({
   args: {
     project_id: v.string(),
@@ -135,7 +135,24 @@ export const createDesign = mutation({
     y: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
+    const existing = await ctx.db
+      .query("designs")
+      .withIndex("by_artifact_id", (q) => q.eq("artifact_id", args.artifact_id))
+      .first();
+
     const now = Date.now();
+    if (existing) {
+      await ctx.db.patch(existing._id, {
+        content: args.content,
+        title: args.title || existing.title,
+        updated_at: now,
+        status: "idle",
+        ...(typeof args.x === "number" ? { x: args.x } : {}),
+        ...(typeof args.y === "number" ? { y: args.y } : {}),
+      });
+      return existing._id;
+    }
+
     const designId = await ctx.db.insert("designs", {
       project_id: args.project_id,
       artifact_id: args.artifact_id,
@@ -152,12 +169,13 @@ export const createDesign = mutation({
   },
 });
 
-// Update an existing design by artifact_id
+// Update an existing design by artifact_id (or create if missing and project_id provided)
 export const updateDesign = mutation({
   args: {
     artifact_id: v.string(),
     title: v.optional(v.string()),
     content: v.string(),
+    project_id: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const existing = await ctx.db
@@ -165,21 +183,35 @@ export const updateDesign = mutation({
       .withIndex("by_artifact_id", (q) => q.eq("artifact_id", args.artifact_id))
       .first();
 
-    if (!existing) {
-      throw new Error(
-        `Design with artifact_id "${args.artifact_id}" not found`,
-      );
+    const now = Date.now();
+    if (existing) {
+      await ctx.db.patch(existing._id, {
+        content: args.content,
+        title: args.title ?? existing.title,
+        version: existing.version + 1,
+        updated_at: now,
+        status: "idle",
+      });
+      return existing._id;
     }
 
-    await ctx.db.patch(existing._id, {
-      content: args.content,
-      title: args.title ?? existing.title,
-      version: existing.version + 1,
-      updated_at: Date.now(),
-      status: "idle",
-    });
+    if (args.project_id) {
+      const designId = await ctx.db.insert("designs", {
+        project_id: args.project_id,
+        artifact_id: args.artifact_id,
+        title: args.title || args.artifact_id,
+        content: args.content,
+        version: 1,
+        status: "idle",
+        created_at: now,
+        updated_at: now,
+        x: 0,
+        y: 0,
+      });
+      return designId;
+    }
 
-    return existing._id;
+    return null;
   },
 });
 

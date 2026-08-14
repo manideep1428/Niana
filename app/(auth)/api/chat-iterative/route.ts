@@ -179,15 +179,25 @@ export async function POST(request: NextRequest) {
           },
         });
 
-        const processedToolCalls = new Set<string>();
+        interface ActiveToolCall {
+          id: string;
+          name: string;
+          title: string;
+          content: string;
+          started: boolean;
+          finished: boolean;
+          streamedLength: number;
+        }
+
+        const activeToolCalls = new Map<string, ActiveToolCall>();
 
         for await (const chunk of response) {
           // 1. Text deltas
           if (chunk.text && chunk.text.trim()) {
             controller.enqueue(
               encoder.encode(
-                encodeEvent({ type: "text-delta", content: chunk.text })
-              )
+                encodeEvent({ type: "text-delta", content: chunk.text }),
+              ),
             );
           }
 
@@ -200,14 +210,14 @@ export async function POST(request: NextRequest) {
                     encodeEvent({
                       type: "thought-delta",
                       content: part.text || "",
-                    })
-                  )
+                    }),
+                  ),
                 );
               }
             }
           }
 
-          // 3. Function Calls
+          // 3. Function Calls (accumulated across stream chunks)
           if (chunk.candidates?.[0]?.content?.parts) {
             for (const part of chunk.candidates[0].content.parts) {
               if (part.functionCall) {
@@ -216,56 +226,60 @@ export async function POST(request: NextRequest) {
                 const args = funcCall.args as any;
 
                 if (
-                  name === TOOL_NAMES.CREATE_ARTIFACT ||
-                  name === TOOL_NAMES.UPDATE_ARTIFACT
+                  (name === TOOL_NAMES.CREATE_ARTIFACT ||
+                    name === TOOL_NAMES.UPDATE_ARTIFACT) &&
+                  args &&
+                  args.id
                 ) {
-                  if (args && args.id && !processedToolCalls.has(args.id)) {
-                    processedToolCalls.add(args.id);
+                  const artifactId = String(args.id);
+                  let toolState = activeToolCalls.get(artifactId);
 
-                    // Send artifact-start first to show skeleton in canvas
+                  if (!toolState) {
+                    toolState = {
+                      id: artifactId,
+                      name,
+                      title: args.title || artifactId,
+                      content: "",
+                      started: false,
+                      finished: false,
+                      streamedLength: 0,
+                    };
+                    activeToolCalls.set(artifactId, toolState);
+                  }
+
+                  if (args.title) {
+                    toolState.title = args.title;
+                  }
+
+                  if (!toolState.started) {
+                    toolState.started = true;
                     controller.enqueue(
                       encoder.encode(
                         encodeEvent({
                           type: "artifact-start",
-                          id: args.id,
-                          title: args.title || "",
+                          id: artifactId,
+                          title: toolState.title,
                           tool: name,
-                        } as any)
-                      )
+                        } as any),
+                      ),
                     );
+                  }
 
-                    // Stream content in chunks to produce a live generating animation
-                    if (args.content) {
-                      const content: string = args.content;
-                      const CHUNK_SIZE = 200;
-                      const CHUNK_DELAY_MS = 5;
-
-                      for (let i = 0; i < content.length; i += CHUNK_SIZE) {
-                        const chunk = content.slice(i, i + CHUNK_SIZE);
-                        controller.enqueue(
-                          encoder.encode(
-                            encodeEvent({
-                              type: "artifact-delta",
-                              id: args.id,
-                              content: chunk,
-                            })
-                          )
-                        );
-                        // Small delay so chunks are flushed separately
-                        await new Promise((r) => setTimeout(r, CHUNK_DELAY_MS));
-                      }
-
-                      // Send finish after all chunks streamed — include tool name so client knows create vs update
+                  if (args.content && typeof args.content === "string") {
+                    toolState.content = args.content;
+                    if (toolState.content.length > toolState.streamedLength) {
+                      const delta = toolState.content.slice(
+                        toolState.streamedLength,
+                      );
+                      toolState.streamedLength = toolState.content.length;
                       controller.enqueue(
                         encoder.encode(
                           encodeEvent({
-                            type: "artifact-finish",
-                            id: args.id,
-                            title: args.title || "",
-                            content: args.content,
-                            tool: name,
-                          } as any)
-                        )
+                            type: "artifact-delta",
+                            id: artifactId,
+                            content: delta,
+                          }),
+                        ),
                       );
                     }
                   }
@@ -277,6 +291,24 @@ export async function POST(request: NextRequest) {
           // 4. Token usage
           if (chunk.usageMetadata) {
             totalUsageTokens = chunk.usageMetadata.totalTokenCount || 0;
+          }
+        }
+
+        // Finalize all active tool calls before completing stream
+        for (const [artifactId, toolState] of activeToolCalls.entries()) {
+          if (!toolState.finished) {
+            toolState.finished = true;
+            controller.enqueue(
+              encoder.encode(
+                encodeEvent({
+                  type: "artifact-finish",
+                  id: artifactId,
+                  title: toolState.title,
+                  content: toolState.content,
+                  tool: toolState.name,
+                } as any),
+              ),
+            );
           }
         }
 
@@ -293,7 +325,7 @@ export async function POST(request: NextRequest) {
         }
 
         controller.enqueue(
-          encoder.encode(encodeEvent({ type: "finish", reason: "stop" }))
+          encoder.encode(encodeEvent({ type: "finish", reason: "stop" })),
         );
         controller.close();
       } catch (error) {

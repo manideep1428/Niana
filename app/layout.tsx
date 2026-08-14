@@ -42,6 +42,7 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <meta name="google-adsense-account" content="ca-pub-4920930835929810"></meta>
       <meta name="monetag" content="7efc6357108d71f000fa6125c7b62ec0"/>
+      <meta name="impact-site-verification" value="1a272538-980a-4c06-86d7-0704a8e13e52"/>
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${lobsterTwo.variable} antialiased`}
       >
